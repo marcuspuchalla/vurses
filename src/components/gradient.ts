@@ -98,7 +98,7 @@ export const Gradient = defineComponent({
     const theme = useTheme()
     const text = () => props.text || slotText(slots.default?.())
     return () => {
-      const lines = { value: text().split('\n') }
+      const ls = text().split('\n')
       if (props.bar) {
         return h('tui-box', {
           width: props.width,
@@ -110,7 +110,6 @@ export const Gradient = defineComponent({
             const stops = gradientStops(props.colors, Math.max(1, n), theme.value)
             const at = (x: number, y: number) => stops[props.direction === 'vertical' ? y : props.direction === 'diagonal' ? x + y : x]
             for (let y = 0; y < p.height; y++) for (let x = 0; x < p.width; x++) p.set(x, y, ' ', null, at(x, y))
-            const ls = lines.value
             const top = Math.max(0, Math.floor((p.height - ls.length) / 2))
             ls.forEach((line, i) => {
               const y = top + i
@@ -126,7 +125,7 @@ export const Gradient = defineComponent({
           },
         })
       }
-      const ls = lines.value
+
       const graphemes = ls.map((l) => Array.from(segmenter.segment(l), (s) => s.segment))
       const width = Math.max(1, ...graphemes.map((g) => g.length))
       const dir = props.direction

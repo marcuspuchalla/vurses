@@ -11,7 +11,7 @@ const count = ref(0)
 <template>
   <Box class="flex-col gap-1">
     <Text bold>This page is a client route: it runs in your browser and renders into the devtools console.</Text>
-    <Text color="muted">"/live" and "/stats" are server routes (export const runtime = 'server'): they run on the server and stream row deltas to a tiny frame player.</Text>
+    <Text color="muted">"/live" and "/stats" are server routes (runtime = server): they run on the server and stream row deltas to a tiny frame player.</Text>
     <Box class="gap-1">
       <Button label="-1" @click="count--" />
       <Button label="+1" variant="primary" auto-focus @click="count++" />

@@ -1,16 +1,15 @@
 {
   "adapter": "node",
-  "buildId": "b59d6c9154fd",
-  "createdAt": "2026-11-07T22:16:04.116Z",
+  "buildId": "34196a94bea1",
+  "createdAt": "2026-11-07T22:16:27.448Z",
   "prerendered": [
-    "/",
     "/live",
     "/stats"
   ],
   "routes": [
     {
       "pattern": "/",
-      "runtime": "server",
+      "runtime": "client",
       "handler": false
     },
     {
