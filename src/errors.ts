@@ -132,6 +132,12 @@ export const ERRORS = {
     message: (p) => `Unknown utility class "${s(p.name)}".`,
   },
 
+  VC044: {
+    title: 'Invalid FIGlet font',
+    area: 'style',
+    message: (p) => `Invalid FIGlet font${p.name ? ` "${p.name}"` : ''}: ${s(p.reason, 'missing "flf2a" signature')}.`,
+  },
+
   // ---------------------------------------------------------- focus (050-059)
   VC050: {
     title: 'Focus composable misuse',
@@ -186,6 +192,37 @@ export const ERRORS = {
     message: (p) => `middleware failed for "${s(p.path)}": ${s(p.reason)}`,
   },
 
+  VC067: {
+    title: 'Page and route handler in one segment',
+    area: 'router',
+    message: (p) => `${s(p.pattern)}: a segment cannot have both a page and a route handler (${s(p.page, 'page')}, ${s(p.handler, 'route')}).`,
+  },
+  VC068: {
+    title: 'Duplicate route param',
+    area: 'router',
+    message: (p) => `Duplicate param "${s(p.param)}" in ${s(p.dir)}. Param names must be unique along a route.`,
+  },
+  VC069: {
+    title: 'Too many redirects',
+    area: 'router',
+    message: (p) => `Too many redirects (at ${s(p.path)}). Check middleware and redirect() calls for a loop.`,
+  },
+  VC070: {
+    title: 'Invalid middleware matcher',
+    area: 'router',
+    message: (p) => `Invalid middleware matcher ${JSON.stringify(p.matcher ?? '')}: ${s(p.reason, 'unbalanced "("')}.`,
+  },
+  VC071: {
+    title: 'Navigation timed out',
+    area: 'router',
+    message: (p) => `Navigation did not settle within ${s(p.timeout)}ms${p.path ? ` (at ${p.path})` : ''}.`,
+  },
+  VC072: {
+    title: 'External URL in the terminal',
+    area: 'router',
+    message: (p) => `Cannot open external URL ${s(p.url)} in the terminal; it was ignored.`,
+  },
+
   // --------------------------------------------------------- server (080-099)
   VC080: {
     title: 'Port in use',
@@ -216,6 +253,22 @@ export const ERRORS = {
     title: 'Session limit reached',
     area: 'server',
     message: (p) => `Too many concurrent sessions (${s(p.limit)}).`,
+  },
+
+  VC086: {
+    title: 'Unknown build adapter',
+    area: 'server',
+    message: (p) => `Unknown adapter "${s(p.adapter)}" (expected ${s(p.expected, 'node, static')}).`,
+  },
+  VC087: {
+    title: 'Module not bundled',
+    area: 'server',
+    message: (p) => `Module ${s(p.file)} is not in the browser bundle.`,
+  },
+  VC088: {
+    title: 'Invalid browser boot options',
+    area: 'server',
+    message: () => 'bootBrowser() needs `root`, or `manifest` + `load`.',
   },
 
   // --------------------------------------------------------- canvas (100-109)

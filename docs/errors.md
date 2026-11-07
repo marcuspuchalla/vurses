@@ -214,6 +214,14 @@ A `class` contains a name vuecli does not recognize. It is ignored.
 
 **Fix:** see the list of utility classes in the README.
 
+<a id="vc044"></a>
+## VC044 Invalid FIGlet font
+
+A font passed to `<BigText>` / the ASCII font renderer is not a valid FIGlet
+(`.flf`) file: the `flf2a` signature or the header line is missing or malformed.
+
+**Fix:** use one of the bundled fonts or a valid `.flf` file.
+
 ## Focus
 
 <a id="vc050"></a>
@@ -300,6 +308,55 @@ component as default, or a router factory returned something unexpected.
 **Fix:** see the cause. Middleware must return `NextResponse.next()`,
 `redirect()`, `rewrite()`, a `Response`, or nothing.
 
+<a id="vc067"></a>
+## VC067 Page and route handler in one segment
+
+A folder contains both `page.vue` and `route.ts`. A URL is either a page or an
+API endpoint.
+
+**Fix:** move the handler, e.g. to `app/api/<path>/route.ts`.
+
+<a id="vc068"></a>
+## VC068 Duplicate route param
+
+The same dynamic param name appears twice along a route
+(`app/[id]/items/[id]/page.vue`), so `params.id` would be ambiguous.
+
+**Fix:** rename one of them (`[id]` / `[itemId]`).
+
+<a id="vc069"></a>
+## VC069 Too many redirects
+
+Middleware or `redirect()` kept redirecting (more than 10 hops), usually a loop
+such as `/a → /b → /a`.
+
+**Fix:** check the `matcher` of `middleware.ts` excludes the redirect target.
+
+<a id="vc070"></a>
+## VC070 Invalid middleware matcher
+
+A `config.matcher` pattern of `middleware.ts` could not be compiled (for
+example an unbalanced `(`).
+
+**Fix:** use path-to-regexp style patterns: `/dashboard/:path*`, `/((?!api).*)`.
+
+<a id="vc071"></a>
+## VC071 Navigation timed out
+
+`router.waitForIdle()` gave up: a navigation or an async page (Suspense) did
+not settle in time.
+
+**Fix:** check for an async `setup()` that never resolves; raise the timeout.
+
+<a id="vc072"></a>
+## VC072 External URL in the terminal
+
+A `<Link>`, `router.push()` or middleware redirect pointed to another origin.
+The terminal router cannot open it, so it was ignored (warning).
+
+**Fix:** open external URLs with your own handler (for example the `open`
+package), or keep links internal.
+
 ## Server
 
 <a id="vc080"></a>
@@ -348,6 +405,29 @@ maximum number of concurrent sessions is reached.
 
 **Fix:** raise the limit in the server options or close idle sessions.
 
+<a id="vc086"></a>
+## VC086 Unknown build adapter
+
+`vuecli build --adapter <name>` got an adapter that does not exist.
+
+**Fix:** use one of the adapters listed in the message.
+
+<a id="vc087"></a>
+## VC087 Module not bundled
+
+The browser build was asked for a route module that is not in its module map,
+usually because the file was added after the build.
+
+**Fix:** rebuild (`vuecli build`), or restart `vuecli dev`.
+
+<a id="vc088"></a>
+## VC088 Invalid browser boot options
+
+`bootBrowser()` was called without a root component and without a route
+manifest + module loader.
+
+**Fix:** pass `{ root: App }` or `{ manifest, load }`.
+
 ## Canvas and images
 
 <a id="vc100"></a>
@@ -362,7 +442,7 @@ maximum number of concurrent sessions is reached.
 
 An image passed to `<Image>` or `drawImage()` could not be decoded.
 
-**Fix:** use PNG, JPEG, GIF or raw RGBA data and check the file path / URL.
+**Fix:** use PNG (or raw RGBA `ImageData`) and check the file path / URL.
 
 <a id="vc102"></a>
 ## VC102 Invalid canvas size
