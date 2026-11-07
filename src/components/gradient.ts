@@ -26,7 +26,7 @@ export const GRADIENTS: Record<string, string[]> = {
  * Resolves a color (theme token, named ANSI color, `#hex`, `rgb()`, `ansi256()`)
  * to a `#rrggbb` string, or null if it can't be resolved.
  */
-export function resolveColor(name: string, theme?: Theme): string | null {
+export function resolveColorHex(name: string, theme?: Theme): string | null {
   let n = name
   for (let i = 0; i < 4 && theme && theme[n] !== undefined && n !== 'name'; i++) n = theme[n]
   const c = parseColor(n)
@@ -39,7 +39,7 @@ export function resolveColor(name: string, theme?: Theme): string | null {
 /** `n` evenly spaced colors along a multi-stop gradient. */
 export function gradientStops(colors: string[] | string, n: number, theme?: Theme): string[] {
   const list = typeof colors === 'string' ? (GRADIENTS[colors] ?? colors.split(/[\s,]+/)) : colors
-  const stops = list.map((c) => resolveColor(c, theme)).filter((c): c is string => !!c)
+  const stops = list.map((c) => resolveColorHex(c, theme)).filter((c): c is string => !!c)
   if (!stops.length) return Array.from({ length: n }, () => 'text')
   if (stops.length === 1 || n <= 1) return Array.from({ length: n }, () => stops[0])
   const out: string[] = []

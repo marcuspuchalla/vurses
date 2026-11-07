@@ -1,0 +1,11 @@
+{
+  "name": "vuecli-server-app",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vuecli dev",
+    "dev:terminal": "vuecli dev --terminal",
+    "build": "vuecli build --adapter node",
+    "start": "vuecli start"
+  }
+}

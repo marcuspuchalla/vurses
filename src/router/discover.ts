@@ -71,7 +71,8 @@ export async function discoverRoutes(appDir: string, options: DiscoverOptions = 
       const f = pick(files, s, pageExt)
       if (f) found[s] = path.join(dir, f)
     }
-    const handlerFile = pick(files, 'route', HANDLER_EXTENSIONS)
+    const handlerName = pick(files, 'route', HANDLER_EXTENSIONS)
+    const handlerFile = handlerName && path.join(dir, handlerName)
     const relDir = rel.join('/')
     let segments = parents
     if (found.layout || found.loading || found.error || found['not-found'] || rel.length === 0) {
@@ -103,7 +104,7 @@ export async function discoverRoutes(appDir: string, options: DiscoverOptions = 
         segments,
       }
       if (found.page) entry.page = found.page
-      if (handlerFile) entry.handler = path.join(dir, handlerFile)
+      if (handlerFile) entry.handler = handlerFile
       const loading = [...segments].reverse().find((s) => s.loading)?.loading
       const error = [...segments].reverse().find((s) => s.error)?.error
       if (loading) entry.loading = loading

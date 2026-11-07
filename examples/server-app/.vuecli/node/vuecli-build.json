@@ -1,0 +1,35 @@
+{
+  "adapter": "node",
+  "buildId": "b59d6c9154fd",
+  "createdAt": "2026-11-07T22:16:04.116Z",
+  "prerendered": [
+    "/",
+    "/live",
+    "/stats"
+  ],
+  "routes": [
+    {
+      "pattern": "/",
+      "runtime": "server",
+      "handler": false
+    },
+    {
+      "pattern": "/live",
+      "runtime": "server",
+      "handler": false
+    },
+    {
+      "pattern": "/stats",
+      "runtime": "server",
+      "handler": false
+    },
+    {
+      "pattern": "/api/quotes",
+      "handler": true
+    },
+    {
+      "pattern": "/api/revalidate",
+      "handler": true
+    }
+  ]
+}

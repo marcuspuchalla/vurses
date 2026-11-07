@@ -62,7 +62,7 @@ export class DomView {
     const doc = parent.ownerDocument
     this.el = doc.createElement('pre')
     this.el.className = 'vuecli-screen'
-    this.el.style.cssText = `margin:0;display:inline-block;font:14px/1.2 ui-monospace,Menlo,Consolas,monospace;background:${this.palette.bg};color:${this.palette.fg};user-select:none;cursor:default`
+    this.el.style.cssText = `margin:0;display:inline-block;font:14px/1.15 ui-monospace,Menlo,Consolas,monospace;background:${this.palette.bg};color:${this.palette.fg};user-select:none;cursor:default`
     parent.appendChild(this.el)
     if (options.onMouse) this.wireMouse(options.onMouse)
   }

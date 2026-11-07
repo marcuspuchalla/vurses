@@ -43,3 +43,10 @@ export type { LayoutInfo, TNode } from './dom/nodes.js'
 export { CellBuffer, diffBuffers } from './render/buffer.js'
 export { Painter } from './render/paint.js'
 export { textWidth } from './render/text.js'
+
+// App Router (file-system routes, layouts, Link, middleware)
+export * from './router/index.js'
+
+// Data cache & revalidation (server stream)
+export { cache, unstable_cache, cached, revalidateTag, revalidatePath, updateTag, setCacheStore, getCacheStore, createMemoryStore, clearCache } from './cache/index.js'
+export type { CacheStore, CacheEntry, CacheOptions } from './cache/index.js'
