@@ -4,7 +4,7 @@ import { colorSgr, parseColor, type ColorDepth } from '../style/colors.js'
 import { mergeInk, type Ink, type Style } from '../style/style.js'
 import type { Theme } from '../style/theme.js'
 import { CellBuffer, Flag, intersect, type Rect } from './buffer.js'
-import { lineWidth, toGlyphs, wrapGlyphs, type Glyph, type WrapMode } from './text.js'
+import { graphemeWidth as graphemeWidthOf, lineWidth, toGlyphs, wrapGlyphs, type Glyph, type WrapMode } from './text.js'
 
 export interface HitRegion {
   el: TElement
@@ -14,6 +14,60 @@ export interface HitRegion {
 export interface PaintOptions {
   theme: Theme
   depth: ColorDepth
+  /** Debug: outline every box. */
+  wireframe?: boolean
+}
+
+/**
+ * An out-of-band pixel image (kitty / sixel / iTerm2 escape data) placed at a
+ * cell position. Targets that can't show it simply ignore it (the cells
+ * underneath are painted normally as a fallback).
+ */
+export interface Graphic {
+  /** Stable identity (e.g. element id); used to detect moves/removals. */
+  key: string
+  x: number
+  y: number
+  width: number
+  height: number
+  /** Bumped whenever `data` changes. */
+  version: number
+  /** Escape sequence that draws the image at the cursor position. */
+  data: string
+  /** Optional escape sequence that removes the image (kitty delete). */
+  clear?: string
+}
+
+/** Color for `CellPainter.set`: 0xRRGGBB, a color/theme-token string, or null (keep / default). */
+export type CellColor = number | string | null
+
+export interface CellStyle {
+  bold?: boolean
+  dim?: boolean
+  italic?: boolean
+  underline?: boolean
+  inverse?: boolean
+  strikethrough?: boolean
+}
+
+/**
+ * Drawing surface handed to an element's `paintCells(painter, rect)` prop.
+ * Coordinates are relative to the element's content box; writes outside
+ * it (or outside the visible clip) are dropped.
+ */
+export interface CellPainter {
+  readonly width: number
+  readonly height: number
+  /** Absolute screen position of the content box. */
+  readonly x: number
+  readonly y: number
+  set(x: number, y: number, ch: string, fg?: CellColor, bg?: CellColor, style?: CellStyle): void
+  /** Write a string starting at (x, y) (no wrapping). */
+  text(x: number, y: number, s: string, fg?: CellColor, bg?: CellColor, style?: CellStyle): void
+  /** Add an out-of-band pixel graphic covering the content box (or a sub rect). */
+  graphic(g: Omit<Graphic, 'x' | 'y' | 'width' | 'height'> & Partial<Pick<Graphic, 'x' | 'y' | 'width' | 'height'>>): void
+  /** Color depth of the output ('truecolor' | 256 | 16). */
+  readonly depth: ColorDepth
 }
 
 const BORDERS: Record<string, [string, string, string, string, string, string]> = {
@@ -34,13 +88,16 @@ interface ResolvedInk {
 
 export class Painter {
   private inkCache = new Map<string, ResolvedInk>()
+  private rgbCache = new Map<number, string>()
   hits: HitRegion[] = []
+  graphics: Graphic[] = []
 
   constructor(private opts: PaintOptions) {}
 
   setOptions(opts: PaintOptions) {
     this.opts = opts
     this.inkCache.clear()
+    this.rgbCache.clear()
   }
 
   /** Resolves a color value or theme token to a concrete color string (or null for "default"). */
@@ -80,6 +137,7 @@ export class Painter {
   paint(root: TElement, width: number, height: number): CellBuffer {
     const buf = new CellBuffer(width, height)
     this.hits = []
+    this.graphics = []
     root.calculateLayout(width, height)
     const theme = this.opts.theme
     const bg = this.resolveColorName(theme.background)
@@ -145,6 +203,8 @@ export class Painter {
       if (bg || this.resolveColorName(s.bg) === null) buf.fill(visible, bg)
     }
     if (hasBorder(s)) this.paintBorder(el, s, buf, box, clip, ink)
+    else if (this.opts.wireframe && el.kind !== 'text' && el.kind !== 'root') this.paintWireframe(buf, box, clip)
+    if (typeof el.props.paintCells === 'function') this.runCellPainter(el, buf, inner, intersect(clip, inner), ink)
 
     if (el.kind === 'text') {
       this.paintGlyphs(el.getGlyphs(), buf, inner, intersect(clip, box), ink, s.wrap ?? 'wrap', s.textAlign)
@@ -252,6 +312,86 @@ export class Painter {
         buf.set(cx, y, g.ch, g.w, tr2.fg, tr2.bg, tr2.flags, clip)
         cx += g.w
       }
+    }
+  }
+
+  private colorToSgr(c: CellColor | undefined, layer: 'fg' | 'bg'): string | null {
+    if (c === null || c === undefined) return null
+    if (typeof c === 'number') {
+      const key = layer === 'fg' ? c : c + 0x1000000
+      let v = this.rgbCache.get(key)
+      if (v === undefined) {
+        v = colorSgr({ kind: 'rgb', r: (c >> 16) & 255, g: (c >> 8) & 255, b: c & 255 }, layer, this.opts.depth)
+        this.rgbCache.set(key, v)
+      }
+      return v
+    }
+    return this.sgrFor(c, layer)
+  }
+
+  private runCellPainter(el: TElement, buf: CellBuffer, inner: Rect, clip: Rect, ink: Ink) {
+    const base = this.resolveInk(ink)
+    const flagsOf = (st?: CellStyle) => {
+      if (!st) return base.flags
+      let f = 0
+      if (st.bold) f |= Flag.Bold
+      if (st.dim) f |= Flag.Dim
+      if (st.italic) f |= Flag.Italic
+      if (st.underline) f |= Flag.Underline
+      if (st.inverse) f |= Flag.Inverse
+      if (st.strikethrough) f |= Flag.Strike
+      return f
+    }
+    const graphics = this.graphics
+    const api: CellPainter = {
+      width: inner.width,
+      height: inner.height,
+      x: inner.x,
+      y: inner.y,
+      depth: this.opts.depth,
+      set: (x, y, ch, fg, bg, st) => {
+        if (x < 0 || y < 0 || x >= inner.width || y >= inner.height) return
+        const w = ch.length === 1 && ch.charCodeAt(0) < 0x7f ? 1 : graphemeWidthOf(ch)
+        buf.set(inner.x + x, inner.y + y, ch, w, this.colorToSgr(fg, 'fg') ?? base.fg, this.colorToSgr(bg, 'bg') ?? base.bg, flagsOf(st), clip)
+      },
+      text: (x, y, str, fg, bg, st) => {
+        let cx = x
+        for (const g of toGlyphs(str, {})) {
+          api.set(cx, y, g.ch, fg, bg, st)
+          cx += g.w
+        }
+      },
+      graphic: (g) => {
+        graphics.push({
+          x: inner.x + (g.x ?? 0),
+          y: inner.y + (g.y ?? 0),
+          width: g.width ?? inner.width,
+          height: g.height ?? inner.height,
+          key: g.key,
+          version: g.version,
+          data: g.data,
+          clear: g.clear,
+        })
+      },
+    }
+    el.props.paintCells(api, { ...inner })
+  }
+
+  private paintWireframe(buf: CellBuffer, box: Rect, clip: Rect) {
+    const r = this.resolveInk({ color: 'accent', dim: true })
+    const { x, y, width: w, height: h } = box
+    if (w <= 0 || h <= 0) return
+    const put = (cx: number, cy: number, ch: string) => {
+      const i = cy * buf.width + cx
+      if (cy >= 0 && cy < buf.height && cx >= 0 && cx < buf.width && buf.chars[i] === ' ') buf.set(cx, cy, ch, 1, r.fg, null, r.flags, clip)
+    }
+    for (let i = 0; i < w; i++) {
+      put(x + i, y, '┄')
+      if (h > 1) put(x + i, y + h - 1, '┄')
+    }
+    for (let j = 0; j < h; j++) {
+      put(x, y + j, '┆')
+      if (w > 1) put(x + w - 1, y + j, '┆')
     }
   }
 

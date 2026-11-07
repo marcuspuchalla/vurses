@@ -1,0 +1,21 @@
+{
+  "name": "vscode-vuecli",
+  "displayName": "vuecli",
+  "description": "Live terminal-frame preview and scaffolding for vuecli apps",
+  "version": "0.1.0",
+  "publisher": "vuecli",
+  "license": "MIT",
+  "private": true,
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "main": "./dist/extension.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "contributes": {},
+  "devDependencies": {
+    "@types/chrome": "^0.3.7",
+    "@types/vscode": "^1.145.0"
+  }
+}

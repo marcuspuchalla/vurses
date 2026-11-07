@@ -1,0 +1,7 @@
+{
+  "name": "vuecli-devtools",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Chrome DevTools panel for vuecli apps running in the browser console",
+  "scripts": { "build": "node build.mjs" }
+}

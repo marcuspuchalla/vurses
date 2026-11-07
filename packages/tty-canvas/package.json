@@ -1,0 +1,21 @@
+{
+  "name": "tty-canvas",
+  "version": "0.1.0",
+  "description": "The HTML Canvas 2D API, rendered in the terminal. Run existing canvas code on the command line.",
+  "type": "module",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": { "tty-canvas": "./bin/tty-canvas.js" },
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
+    "./package.json": "./package.json"
+  },
+  "files": ["dist", "bin", "README.md"],
+  "engines": { "node": ">=20.6" },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "keywords": ["canvas", "terminal", "tty", "ansi", "braille", "sixel", "kitty", "2d", "console"]
+}

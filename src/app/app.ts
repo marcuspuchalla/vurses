@@ -1,7 +1,9 @@
 import { defineComponent, h, reactive, ref, shallowRef, type App, type Component } from 'vue'
 import { createRoot, type TElement } from '../dom/nodes.js'
-import { diffBuffers, type CellBuffer } from '../render/buffer.js'
-import { Painter } from '../render/paint.js'
+import type { CellBuffer } from '../render/buffer.js'
+import { Painter, type Graphic } from '../render/paint.js'
+import { Emitter, type RenderTarget, type RuntimeEvents } from './target.js'
+import { ttyTarget, type ReadStreamLike, type WriteStreamLike } from './tty.js'
 import { createBaseApp, trackRoot } from '../renderer.js'
 import { InputParser, matchKey, type KeyEvent, type MouseEvent } from '../input/keys.js'
 import { detectColorDepth, type ColorDepth } from '../style/colors.js'
@@ -9,28 +11,13 @@ import { darkTheme, themes, type Theme } from '../style/theme.js'
 import { APP_CONTEXT, type AppContext, type LogEntry } from './context.js'
 import { FocusManager } from './focus.js'
 import { installComponents, DevTools } from '../components/index.js'
-import { format } from 'node:util'
+import { formatArgs } from './format.js'
 
-export interface ReadStreamLike {
-  isTTY?: boolean
-  setRawMode?(mode: boolean): unknown
-  on(event: 'data', cb: (data: Buffer | string) => void): unknown
-  off(event: 'data', cb: (data: Buffer | string) => void): unknown
-  resume?(): unknown
-  pause?(): unknown
-  setEncoding?(enc: BufferEncoding): unknown
-}
-
-export interface WriteStreamLike {
-  columns?: number
-  rows?: number
-  isTTY?: boolean
-  write(data: string): unknown
-  on?(event: 'resize', cb: () => void): unknown
-  off?(event: 'resize', cb: () => void): unknown
-}
+export type { ReadStreamLike, WriteStreamLike } from './tty.js'
 
 export interface MountOptions {
+  /** Where frames go / input comes from. Default: the process terminal (`ttyTarget`). */
+  target?: RenderTarget | null
   stdin?: ReadStreamLike
   stdout?: WriteStreamLike
   /** Theme object or a built-in theme name (`dark`, `light`, `dracula`). */
@@ -44,14 +31,14 @@ export interface MountOptions {
   /** Max frames per second. Default: 60. */
   fps?: number
   colorDepth?: ColorDepth
-  /** Fixed size (otherwise taken from stdout and updated on resize). */
+  /** Fixed size (otherwise taken from the target and updated on resize). */
   columns?: number
   rows?: number
-  /** Redirect console.* while running and print it after exit. Default: true. */
+  /** Redirect console.* while running and print it after exit. Default: true for the tty target. */
   patchConsole?: boolean
   /** Focus the first focusable component after mount. Default: true. */
   autoFocus?: boolean
-  /** Internal: render synchronously on demand (used by the test renderer). */
+  /** Render synchronously on demand only (tests, MCP, server sessions). Implies no target. */
   manualRender?: boolean
 }
 
@@ -63,59 +50,77 @@ export interface TuiApp extends Omit<App<TElement>, 'mount'> {
   runtime: Runtime | null
 }
 
-const ESC = '\x1b['
-
 export class Runtime {
   readonly root: TElement
   readonly ctx: AppContext
   readonly painter: Painter
+  readonly events = new Emitter<RuntimeEvents>()
+  readonly target: RenderTarget | null
   private prev: CellBuffer | null = null
+  private prevGraphics: Graphic[] = []
   private scheduled: ReturnType<typeof setTimeout> | null = null
   private lastFrameAt = 0
   private readonly frameInterval: number
   private readonly parser = new InputParser()
   private escTimer: ReturnType<typeof setTimeout> | null = null
-  private stdin: ReadStreamLike
-  private stdout: WriteStreamLike
-  private opts: Required<Pick<MountOptions, 'mouse' | 'exitOnCtrlC' | 'alternateScreen' | 'patchConsole' | 'autoFocus' | 'manualRender'>>
+  private opts: Required<Pick<MountOptions, 'exitOnCtrlC' | 'patchConsole' | 'autoFocus' | 'manualRender'>>
   private exitResolvers: { resolve: () => void; reject: (e: unknown) => void } | null = null
   readonly exited: Promise<void>
   private running = false
+  private paused = false
   private cleanups: (() => void)[] = []
   private downTarget: TElement | null = null
   private hovered: TElement[] = []
   private fpsWindow: number[] = []
+  private depth: ColorDepth
+  private wireframe = false
   /** Last rendered buffer. */
   get buffer() {
     return this.prev
+  }
+  get isRunning() {
+    return this.running
+  }
+  get isPaused() {
+    return this.paused
   }
 
   constructor(
     private app: App<TElement>,
     options: MountOptions = {},
   ) {
-    this.stdin = options.stdin ?? process.stdin
-    this.stdout = options.stdout ?? process.stdout
+    const manual = options.manualRender ?? false
+    this.target =
+      options.target !== undefined
+        ? options.target
+        : manual
+          ? null
+          : ttyTarget({
+              stdin: options.stdin,
+              stdout: options.stdout,
+              mouse: options.mouse,
+              alternateScreen: options.alternateScreen,
+              columns: options.columns,
+              rows: options.rows,
+            })
+    const isTty = !manual && options.target === undefined
     this.opts = {
-      mouse: options.mouse ?? true,
       exitOnCtrlC: options.exitOnCtrlC ?? true,
-      alternateScreen: options.alternateScreen ?? true,
-      patchConsole: options.patchConsole ?? true,
+      patchConsole: options.patchConsole ?? isTty,
       autoFocus: options.autoFocus ?? true,
-      manualRender: options.manualRender ?? false,
+      manualRender: manual,
     }
     this.frameInterval = 1000 / (options.fps ?? 60)
     this.exited = new Promise((resolve, reject) => (this.exitResolvers = { resolve, reject }))
     this.exited.catch(() => {})
 
     const theme = shallowRef(resolveTheme(options.theme))
-    const depth = options.colorDepth ?? detectColorDepth()
-    this.painter = new Painter({ theme: theme.value, depth })
+    this.depth = options.colorDepth ?? this.target?.colorDepth ?? detectColorDepth()
+    this.painter = new Painter({ theme: theme.value, depth: this.depth })
     this.root = createRoot({ requestRender: () => this.requestRender() })
-    const fixed = options.columns !== undefined || options.rows !== undefined
     const size = reactive({
-      columns: options.columns ?? this.stdout.columns ?? 80,
-      rows: options.rows ?? this.stdout.rows ?? 24,
+      columns: options.columns ?? this.target?.columns ?? 80,
+      rows: options.rows ?? this.target?.rows ?? 24,
     })
     this.ctx = {
       root: this.root,
@@ -130,23 +135,13 @@ export class Runtime {
       requestRender: () => this.requestRender(),
       setTheme: (t) => {
         theme.value = resolveTheme(t)
-        this.painter.setOptions({ theme: theme.value, depth })
+        this.painter.setOptions({ theme: theme.value, depth: this.depth, wireframe: this.wireframe })
         this.requestRender()
       },
-      writeRaw: (d) => this.stdout.write(d),
+      writeRaw: (d) => (this.target as { stdout?: WriteStreamLike } | null)?.stdout?.write(d),
+      runtime: this,
     }
     this.syncRootSize()
-    if (!fixed) {
-      const onResize = () => {
-        size.columns = this.stdout.columns ?? size.columns
-        size.rows = this.stdout.rows ?? size.rows
-        this.syncRootSize()
-        this.prev = null
-        this.requestRender()
-      }
-      this.stdout.on?.('resize', onResize)
-      this.cleanups.push(() => this.stdout.off?.('resize', onResize))
-    }
   }
 
   private syncRootSize() {
@@ -157,33 +152,8 @@ export class Runtime {
   start() {
     this.running = true
     this.cleanups.push(trackRoot(this.root))
-    const out = this.stdout
-    if (!this.opts.manualRender) {
-      let setup = ''
-      if (this.opts.alternateScreen) setup += `${ESC}?1049h`
-      setup += `${ESC}?25l${ESC}?2004h`
-      if (this.opts.mouse) setup += `${ESC}?1000h${ESC}?1002h${ESC}?1003h${ESC}?1006h`
-      out.write(setup)
-      const restore = () => this.restoreTerminal()
-      process.on('exit', restore)
-      this.cleanups.push(() => process.off('exit', restore))
-      const onSignal = () => this.exit()
-      process.on('SIGTERM', onSignal)
-      this.cleanups.push(() => process.off('SIGTERM', onSignal))
-    }
+    this.target?.start?.(this)
     if (this.opts.patchConsole) this.patchConsole()
-
-    const stdin = this.stdin
-    if (stdin.isTTY && stdin.setRawMode) stdin.setRawMode(true)
-    stdin.setEncoding?.('utf8')
-    const onData = (d: Buffer | string) => this.handleInput(typeof d === 'string' ? d : d.toString('utf8'))
-    stdin.on('data', onData)
-    stdin.resume?.()
-    this.cleanups.push(() => {
-      stdin.off('data', onData)
-      if (stdin.isTTY && stdin.setRawMode) stdin.setRawMode(false)
-      stdin.pause?.()
-    })
     if (this.opts.autoFocus) {
       setTimeout(() => {
         if (this.running && !this.ctx.focus.current.value) this.ctx.focus.focusFirst()
@@ -191,50 +161,85 @@ export class Runtime {
     }
   }
 
-  private terminalRestored = false
-  private restoreTerminal() {
-    if (this.terminalRestored || this.opts.manualRender) return
-    this.terminalRestored = true
-    let s = `${ESC}0m`
-    if (this.opts.mouse) s += `${ESC}?1006l${ESC}?1003l${ESC}?1002l${ESC}?1000l`
-    s += `${ESC}?2004l${ESC}?25h`
-    if (this.opts.alternateScreen) s += `${ESC}?1049l`
-    this.stdout.write(s)
+  // ------------------------------------------------------------------ control
+
+  /** Resize the virtual screen (targets call this on terminal / window resize). */
+  resize(columns: number, rows: number) {
+    if (columns === this.ctx.size.columns && rows === this.ctx.size.rows) return
+    this.ctx.size.columns = columns
+    this.ctx.size.rows = rows
+    this.syncRootSize()
+    this.prev = null
+    this.events.emit('resize', { columns, rows })
+    this.requestRender()
+  }
+
+  /** Stop presenting frames (state keeps updating). */
+  pause() {
+    this.paused = true
+    this.events.emit('pause', true)
+  }
+
+  resume() {
+    this.paused = false
+    this.prev = null
+    this.events.emit('pause', false)
+    this.requestRender()
+  }
+
+  /** Debug view: outline every box. */
+  setWireframe(on: boolean) {
+    this.wireframe = on
+    this.painter.setOptions({ theme: this.ctx.theme.value, depth: this.depth, wireframe: on })
+    this.requestRender()
+  }
+
+  /** Forces a full repaint on the next frame. */
+  invalidate() {
+    this.prev = null
+    this.requestRender()
   }
 
   // ------------------------------------------------------------------ rendering
 
   requestRender() {
-    if (!this.running || this.scheduled || this.opts.manualRender) return
+    if (!this.running || this.scheduled || this.opts.manualRender || this.paused) return
     const wait = Math.max(0, this.lastFrameAt + this.frameInterval - Date.now())
     this.scheduled = setTimeout(() => {
       this.scheduled = null
-      this.renderFrame()
+      if (this.running && !this.paused) this.renderFrame()
     }, wait)
   }
 
-  /** Renders a frame immediately. Returns the buffer. */
+  /** Renders (and presents) a frame immediately. Returns the buffer. */
   renderFrame(): CellBuffer {
     const t0 = performance.now()
     const { columns, rows } = this.ctx.size
     const buf = this.painter.paint(this.root, columns, rows)
-    const out = diffBuffers(this.prev, buf)
+    const graphics = this.painter.graphics
+    const prev = this.prev
+    let bytes = 0
+    if (this.target && !this.opts.manualRender) {
+      bytes = Number(this.target.frame(buf, prev, { graphics, prevGraphics: this.prevGraphics }) ?? 0)
+    }
     this.prev = buf
-    if (out && !this.opts.manualRender) this.stdout.write(`${ESC}?2026h${out}${ESC}?2026l`)
+    this.prevGraphics = graphics
     const now = Date.now()
     this.lastFrameAt = now
     const st = this.ctx.stats
     st.frames++
     st.lastFrameMs = performance.now() - t0
-    st.lastFrameBytes = out.length
+    st.lastFrameBytes = bytes
     this.fpsWindow.push(now)
     while (this.fpsWindow.length && this.fpsWindow[0] < now - 1000) this.fpsWindow.shift()
     st.fps = this.fpsWindow.length
+    this.events.emit('frame', { buffer: buf, prev, ms: st.lastFrameMs, bytes, frame: st.frames })
     return buf
   }
 
   // ------------------------------------------------------------------ input
 
+  /** Feed raw terminal input (escape sequences, text). */
   handleInput(data: string) {
     if (this.escTimer) {
       clearTimeout(this.escTimer)
@@ -250,6 +255,7 @@ export class Runtime {
   }
 
   dispatch(ev: KeyEvent | MouseEvent) {
+    this.events.emit('input', ev)
     if (ev.type === 'mouse') this.dispatchMouse(ev)
     else this.dispatchKey(ev)
   }
@@ -353,7 +359,7 @@ export class Runtime {
     for (const level of levels) {
       original[level] = console[level]
       console[level] = (...args: unknown[]) => {
-        this.ctx.logs.push({ level, message: format(...args), time: Date.now() })
+        this.ctx.logs.push({ level, message: formatArgs(args), time: Date.now() })
         if (this.ctx.logs.length > 1000) this.ctx.logs.splice(0, this.ctx.logs.length - 1000)
       }
     }
@@ -374,19 +380,22 @@ export class Runtime {
     } catch {
       // ignore
     }
-    this.restoreTerminal()
+    this.target?.stop?.(this)
     for (const c of this.cleanups.splice(0).reverse()) c()
-    if (this.opts.patchConsole && !this.opts.manualRender) {
+    const proc = (globalThis as any).process
+    const isTty = this.target && !this.opts.manualRender && proc?.stdout
+    if (this.opts.patchConsole && isTty) {
       for (const l of this.ctx.logs) {
-        const stream = l.level === 'error' || l.level === 'warn' ? process.stderr : process.stdout
+        const stream = l.level === 'error' || l.level === 'warn' ? proc.stderr : proc.stdout
         stream.write(l.message + '\n')
       }
     }
+    this.events.emit('exit', { error })
     if (error) {
-      if (!this.opts.manualRender) {
+      if (isTty) {
         const msg = error instanceof Error ? (error.stack ?? error.message) : String(error)
-        process.stderr.write(`\n[vuecli] app crashed:\n${msg}\n`)
-        process.exitCode = 1
+        proc.stderr.write(`\n[vuecli] app crashed:\n${msg}\n`)
+        proc.exitCode = 1
       }
       this.exitResolvers?.reject(error)
     } else this.exitResolvers?.resolve()

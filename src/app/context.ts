@@ -42,6 +42,8 @@ export interface AppContext {
   setTheme(theme: Theme | string): void
   /** Writes raw output to the terminal (bypassing the renderer). */
   writeRaw(data: string): void
+  /** The runtime instance (frames, input injection, resize, pause). */
+  runtime: import('./app.js').Runtime
 }
 
 export const APP_CONTEXT: InjectionKey<AppContext> = Symbol('vuecli-app')
