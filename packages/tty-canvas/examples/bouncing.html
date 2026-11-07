@@ -1,0 +1,92 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Bouncing balls</title>
+  <style>html, body { margin: 0; background: #0b1020; } canvas { display: block; }</style>
+</head>
+<body>
+  <!-- Plain browser code: open this file in a browser, or run `tty-canvas bouncing.html` -->
+  <canvas id="stage"></canvas>
+  <script>
+    const canvas = document.getElementById('stage')
+    const ctx = canvas.getContext('2d')
+    const balls = []
+    const mouse = { x: -100, y: -100, down: false }
+
+    function resize() {
+      canvas.width = window.innerWidth
+      canvas.height = window.innerHeight
+    }
+    window.addEventListener('resize', resize)
+    resize()
+
+    function addBall(x, y) {
+      const hue = Math.floor(Math.random() * 360)
+      balls.push({
+        x, y,
+        vx: (Math.random() - 0.5) * 6, vy: (Math.random() - 0.5) * 6,
+        r: 3 + Math.random() * Math.min(canvas.width, canvas.height) / 14,
+        color: `hsl(${hue}, 85%, 60%)`,
+      })
+      if (balls.length > 60) balls.shift()
+    }
+    for (let i = 0; i < 12; i++) addBall(Math.random() * canvas.width, Math.random() * canvas.height)
+
+    canvas.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect()
+      mouse.x = (e.clientX - rect.left) * (canvas.width / rect.width)
+      mouse.y = (e.clientY - rect.top) * (canvas.height / rect.height)
+      if (mouse.down) addBall(mouse.x, mouse.y)
+    })
+    canvas.addEventListener('mousedown', (e) => { mouse.down = true; addBall(e.offsetX, e.offsetY) })
+    window.addEventListener('mouseup', () => { mouse.down = false })
+    window.addEventListener('keydown', (e) => {
+      if (e.key === ' ') balls.forEach((b) => { b.vy -= 8 })
+      if (e.key === 'c') balls.length = 0
+    })
+
+    let last = performance.now()
+    function frame(now) {
+      const dt = Math.min(3, (now - last) / 16.7)
+      last = now
+      const sky = ctx.createLinearGradient(0, 0, 0, canvas.height)
+      sky.addColorStop(0, '#0b1020')
+      sky.addColorStop(1, '#23305a')
+      ctx.fillStyle = sky
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+      for (const b of balls) {
+        b.vy += 0.25 * dt
+        b.x += b.vx * dt
+        b.y += b.vy * dt
+        if (b.x < b.r) { b.x = b.r; b.vx = Math.abs(b.vx) }
+        if (b.x > canvas.width - b.r) { b.x = canvas.width - b.r; b.vx = -Math.abs(b.vx) }
+        if (b.y > canvas.height - b.r) { b.y = canvas.height - b.r; b.vy = -Math.abs(b.vy) * 0.9 }
+        const g = ctx.createRadialGradient(b.x - b.r / 3, b.y - b.r / 3, b.r / 8, b.x, b.y, b.r)
+        g.addColorStop(0, '#ffffff')
+        g.addColorStop(0.3, b.color)
+        g.addColorStop(1, '#000000')
+        ctx.fillStyle = g
+        ctx.beginPath()
+        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2)
+        ctx.fill()
+      }
+
+      // cursor
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)'
+      ctx.lineWidth = 1
+      ctx.beginPath()
+      ctx.arc(mouse.x, mouse.y, 4, 0, Math.PI * 2)
+      ctx.stroke()
+
+      ctx.fillStyle = '#e8ecff'
+      ctx.font = `bold ${Math.max(8, Math.round(canvas.height / 12))}px sans-serif`
+      ctx.textBaseline = 'top'
+      ctx.fillText(`${balls.length} balls · click / drag · space`, 4, 4)
+      requestAnimationFrame(frame)
+    }
+    requestAnimationFrame(frame)
+  </script>
+</body>
+</html>

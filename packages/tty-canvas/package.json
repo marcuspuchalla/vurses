@@ -6,16 +6,44 @@
   "license": "MIT",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "bin": { "tty-canvas": "./bin/tty-canvas.js" },
+  "bin": {
+    "tty-canvas": "./bin/tty-canvas.js"
+  },
   "exports": {
-    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./node": {
+      "types": "./dist/node/index.d.ts",
+      "import": "./dist/node/index.js"
+    },
     "./package.json": "./package.json"
   },
-  "files": ["dist", "bin", "README.md"],
-  "engines": { "node": ">=20.6" },
+  "files": [
+    "dist",
+    "bin",
+    "examples",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20.6"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
   },
-  "keywords": ["canvas", "terminal", "tty", "ansi", "braille", "sixel", "kitty", "2d", "console"]
+  "keywords": [
+    "canvas",
+    "terminal",
+    "tty",
+    "ansi",
+    "braille",
+    "sixel",
+    "kitty",
+    "2d",
+    "console"
+  ],
+  "sideEffects": false
 }

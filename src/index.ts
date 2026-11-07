@@ -50,3 +50,12 @@ export * from './router/index.js'
 // Data cache & revalidation (server stream)
 export { cache, unstable_cache, cached, revalidateTag, revalidatePath, updateTag, setCacheStore, getCacheStore, createMemoryStore, clearCache } from './cache/index.js'
 export type { CacheStore, CacheEntry, CacheOptions } from './cache/index.js'
+
+// Error codes (VC###, see docs/errors.md)
+export { VuecliError, vuecliError, isVuecliError, vuecliWarn, formatError, errorDocsUrl, listErrors, ERRORS as VUECLI_ERRORS } from './errors.js'
+export type { VuecliErrorCode, ErrorDefinition } from './errors.js'
+
+// Devtools hook + `vuecli` console REPL
+export { installDevtoolsHook, getDevtoolsHook } from './devtools/hook.js'
+export type { DevtoolsHook, FrameRecord, DevtoolsState } from './devtools/hook.js'
+export type { FrameSnapshot, FrameRun } from './devtools/frame.js'
