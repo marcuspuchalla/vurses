@@ -1,0 +1,65 @@
+{
+  "name": "vuecli",
+  "version": "0.1.0",
+  "description": "Build native Vue 3 apps that render in the terminal",
+  "type": "module",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "vuecli": "./bin/vuecli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "import": "./dist/testing.js"
+    },
+    "./register": {
+      "import": "./dist/sfc/register.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20.6"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "dev": "npm run build && node bin/vuecli.js",
+    "example:dashboard": "npm run build && node bin/vuecli.js examples/dashboard/App.vue",
+    "example:todo": "npm run build && node bin/vuecli.js examples/todo/App.vue",
+    "example:counter": "npm run build && node examples/counter.js",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "vue",
+    "terminal",
+    "tui",
+    "cli",
+    "console",
+    "renderer",
+    "flexbox"
+  ],
+  "dependencies": {
+    "@vue/compiler-dom": "^3.5.45",
+    "esbuild": "^0.28.2",
+    "string-width": "^8.3.0",
+    "vue": "^3.5.45",
+    "yoga-layout": "^3.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  }
+}
