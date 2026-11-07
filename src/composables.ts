@@ -17,10 +17,11 @@ import { nextFocusId, type FocusEntry } from './app/focus.js'
 import type { TElement } from './dom/nodes.js'
 import { matchKey, type KeyEvent } from './input/keys.js'
 import type { Theme } from './style/theme.js'
+import { vuecliError } from './errors.js'
 
 export function useAppContext(): AppContext {
   const ctx = inject(APP_CONTEXT, null)
-  if (!ctx) throw new Error('[vuecli] composable used outside of a vuecli app (did you mount with vuecli\'s createApp?)')
+  if (!ctx) throw vuecliError('VC001', { name: 'useAppContext' })
   return ctx
 }
 
@@ -253,5 +254,5 @@ export function useFrameStats() {
 
 /** Throws if called outside setup(). */
 export function assertSetup(name: string) {
-  if (!getCurrentInstance()) throw new Error(`[vuecli] ${name}() must be called inside setup()`)
+  if (!getCurrentInstance()) throw vuecliError('VC050', { name })
 }

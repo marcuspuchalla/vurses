@@ -4,6 +4,7 @@ import { createRenderer, registerRuntimeCompiler, type RenderFunction } from 'vu
 import { TComment, TElement, TTextNode, getElementById, type TNode } from './dom/nodes.js'
 
 import { TERMINAL_TAGS, compilerOptions } from './compiler-options.js'
+import { vuecliError } from './errors.js'
 export { TERMINAL_TAGS, compilerOptions }
 
 const activeRoots = new Set<TElement>()
@@ -49,7 +50,7 @@ const renderer = createRenderer<TNode, TElement>({
     return null
   },
   insertStaticContent() {
-    throw new Error('[vuecli] static content stringification is not supported; compile templates with hoistStatic: false')
+    throw vuecliError('VC010')
   },
 })
 

@@ -2,3 +2,8 @@ node_modules
 dist
 *.log
 .DS_Store
+
+# build output of vuecli build / dev
+.vuecli
+.vercel
+*.whl

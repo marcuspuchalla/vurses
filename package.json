@@ -18,6 +18,22 @@
       "types": "./dist/testing.d.ts",
       "import": "./dist/testing.js"
     },
+    "./browser": {
+      "types": "./dist/browser.d.ts",
+      "import": "./dist/browser.js"
+    },
+    "./mcp": {
+      "types": "./dist/mcp/index.d.ts",
+      "import": "./dist/mcp/index.js"
+    },
+    "./devtools": {
+      "types": "./dist/devtools/index.d.ts",
+      "import": "./dist/devtools/index.js"
+    },
+    "./cache": {
+      "types": "./dist/cache/index.d.ts",
+      "import": "./dist/cache/index.js"
+    },
     "./register": {
       "import": "./dist/sfc/register.js"
     },
@@ -39,7 +55,12 @@
     "example:dashboard": "npm run build && node bin/vuecli.js examples/dashboard/App.vue",
     "example:todo": "npm run build && node bin/vuecli.js examples/todo/App.vue",
     "example:counter": "npm run build && node examples/counter.js",
-    "prepare": "npm run build"
+    "prepare": "npm run build",
+    "test:all": "vitest run && npm test --workspaces --if-present",
+    "example:gallery": "npm run build && node bin/vuecli.js examples/gallery/App.vue",
+    "example:canvas": "npm run build && node bin/vuecli.js examples/canvas/App.vue",
+    "example:router": "npm run build && node bin/vuecli.js run examples/router-app",
+    "example:server": "npm run build && node bin/vuecli.js dev examples/server-app"
   },
   "keywords": [
     "vue",

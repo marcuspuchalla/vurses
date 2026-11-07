@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import { transformSync } from 'esbuild'
 import { compileScript, compileTemplate, parse } from 'vue/compiler-sfc'
 import { compilerOptions } from '../compiler-options.js'
+import { vuecliError } from '../errors.js'
 
 /**
  * Compiles a Vue single-file component into an ES module for the terminal
@@ -16,7 +17,7 @@ export function compileSFC(source: string, filename: string): string {
   })
   if (errors.length) {
     const e = errors[0]
-    throw new SyntaxError(`[vuecli] ${filename}: ${e instanceof Error ? e.message : String(e)}`)
+    throw vuecliError('VC030', { file: filename, reason: e instanceof Error ? e.message : String(e) })
   }
   const id = createHash('sha256').update(filename).digest('hex').slice(0, 8)
   const opts = { ...compilerOptions }
@@ -42,7 +43,7 @@ export function compileSFC(source: string, filename: string): string {
       id,
       compilerOptions: opts,
     })
-    if (t.errors.length) throw new SyntaxError(`[vuecli] ${filename}: ${String(t.errors[0])}`)
+    if (t.errors.length) throw vuecliError('VC031', { file: filename, reason: String(t.errors[0]) })
     code += t.code.replace(/export function render/, 'function _sfc_render') + '\n_sfc_main.render = _sfc_render\n'
   }
   code += `_sfc_main.__file = ${JSON.stringify(filename)}\nexport default _sfc_main\n`

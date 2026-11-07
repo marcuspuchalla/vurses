@@ -1,6 +1,13 @@
 # vuecli
 
-**Native Vue 3 apps in the terminal.** Write ordinary Vue components (SFCs, `<script setup>`, TypeScript, `ref`, `computed`, `v-model`, slots, `v-for`, `v-if`, `v-show`, Teleport) and they render as a real terminal UI: flexbox layout, borders, colors, themes, keyboard focus and mouse support.
+**Native Vue 3 apps in the terminal.** Write ordinary Vue components (SFCs, `<script setup>`, TypeScript, `ref`, `computed`, `v-model`, slots, `v-for`, `v-if`, `v-show`, Teleport, Suspense) and they render as a real terminal UI: flexbox layout, borders, colors, themes, keyboard focus and mouse support.
+
+Beyond the terminal:
+- a file-based **App Router**
+- a **canvas** you can draw on with the standard HTML Canvas 2D API
+- the same app rendered **inside the browser devtools console**, or **streamed from a server**
+- deploy adapters
+- an **MCP server** for coding agents, DevTools / VS Code extensions and an ESLint plugin
 
 ```vue
 <script setup lang="ts">
@@ -43,6 +50,10 @@ npx vuecli App.vue
 - [How it works](#how-it-works)
 - [Layout and styling](#layout-and-styling)
 - [Components](#components)
+- [App Router](#app-router)
+- [Canvas and images](#canvas-and-images)
+- [Browser console, server rendering and deployment](#browser-console-server-rendering-and-deployment)
+- [Developer tooling](#developer-tooling)
 - [Composables](#composables)
 - [Keyboard, focus and mouse](#keyboard-focus-and-mouse)
 - [Themes](#themes)
@@ -65,15 +76,25 @@ npm install
 npm run example:dashboard    # ops dashboard: tabs, tables, charts, logs, dialogs, command palette
 npm run example:todo         # todo app with inputs, checkboxes, radio filters
 npm run example:counter      # plain JS + runtime-compiled template, no SFC
+npm run example:gallery      # every component: layout, tree, code, diff, charts, fonts, inputs, errors
+npm run example:canvas       # paint program, particles and an unmodified HTML canvas demo
+npm run example:router       # App Router: nested layouts, dynamic routes, loading/error/404, middleware
+npm run example:server       # dev server: the app in the browser console + a server-streamed route
 ```
 
 ### CLI
 
 ```
-vuecli <entry>             Run an app (.vue, .js, .ts); its default export is the root component
-vuecli create <dir>        Scaffold a new app
+vuecli run <entry|dir>     Run an app in the terminal (.vue/.js/.ts entry, or a folder with app/)
+vuecli dev [dir]           Dev server: browser console target + live reload (--terminal: in the terminal)
+vuecli build [dir]         Production build (--adapter node|bun|static|vercel|cloudflare)
+vuecli start [dir]         Serve a node/bun build
+vuecli mcp <entry|dir>     MCP server so coding agents can drive and read the app
+vuecli create <dir>        Scaffold an App Router project (--single for one App.vue)
+vuecli <entry>             Shorthand for `vuecli run <entry>`
 
 --theme <name>             dark | light | dracula
+--route </path>            Initial route (router apps)
 --no-mouse                 Disable mouse tracking
 --fps <n>                  Frame rate cap (default 60)
 --no-alt-screen            Render in the main screen buffer
@@ -150,13 +171,29 @@ Colors can be theme tokens (`primary`, `accent`, `muted`, `surface`, `border`, `
 
 All components are registered globally, so you can use them in templates without importing them. You can also import them from `vuecli`.
 
-**Layout:** `Box`, `Text`, `Newline`, `Spacer`, `Center`, `VStack`, `HStack`, `Divider`, `ScrollBox`, `Tabs`, `Dialog`, `StatusBar`
+**Layout:** `Box`, `Text`, `Newline`, `Spacer`, `Center`, `Stack`, `VStack`, `HStack`, `Grid` (track templates like `'1fr 2fr 20'`), `SplitPane` (drag or keyboard resize, collapsible), `Divider`, `ScrollBox`, `Tabs`, `Dialog`, `StatusBar`
 
-**Forms:** `Button`, `TextInput`, `Checkbox`, `Switch`, `RadioGroup`, `Select`, `List`
+**Forms:** `Button`, `TextInput`, `Checkbox`, `Switch`, `RadioGroup`, `Select`, `List`, `Slider`
 
-**Data and display:** `Table`, `ProgressBar`, `Spinner`, `Sparkline`, `BarChart`, `Badge`, `Stat`, `BigText`, `Markdown`, `KeyHints`
+**Data and display:**
+- data: `Table`, `Tree` (virtualized), `Code` (syntax highlighting for js/ts/json/vue/html/css/bash/python/markdown), `Diff` (unified or side-by-side, word-level highlights)
+- charts: `LineChart` (braille resolution, axes, legend), `BarChart`, `Sparkline`
+- status: `ProgressBar`, `Spinner`, `Badge`, `Stat`
+- text: `BigText`, `AsciiFont` (real FIGlet fonts), `Gradient`, `Markdown`
 
-**Chrome:** `CommandPalette` (ctrl+k), `DevTools` (F12 overlay showing fps, frame time, bytes per frame, focus and captured `console.*` output)
+**Graphics:** `Canvas` (the HTML Canvas 2D API), `Image` (PNG). See [Canvas and images](#canvas-and-images).
+
+**Navigation:** `Link`, `NavLink`, `Outlet`. See [App Router](#app-router).
+
+**Robustness:** `ErrorBoundary` (`#fallback="{ error, reset }"`). Vue's built-in `<Suspense>` works too.
+
+**Chrome:**
+- `CommandPalette` (ctrl+k)
+- `KeyHelp` (`?`: lists every `useKeymap` binding that has a description)
+- `KeyHints`
+- `DevTools` (F12 overlay: fps, frame time, bytes per frame, focus and captured `console.*` output)
+
+Right-to-left text (Hebrew, Arabic) is laid out with the Unicode Bidirectional Algorithm (`dir="auto|ltr|rtl"`).
 
 ```vue
 <TextInput v-model="name" label="Name" placeholder="Your name" @submit="save" />
@@ -186,13 +223,79 @@ All components are registered globally, so you can use them in templates without
 <Markdown source="# Hello\n- **bold** and `code`" />
 ```
 
+## App Router
+
+Folders in `app/` become routes and nested layouts (Next.js conventions):
+
+```
+app/layout.vue            root layout (renders <Outlet/> or its default slot)
+app/page.vue              /
+app/users/[id]/page.vue   /users/:id          app/docs/[...slug]/page.vue  catch-all
+app/(group)/x/page.vue    route group         app/x/loading.vue / error.vue / not-found.vue
+app/api/hello/route.ts    route handler (GET/POST/… → Response)
+middleware.ts             redirects / rewrites, with `export const config = { matcher }`
+```
+
+```sh
+vuecli run my-app --route /users/42     # deep link
+```
+
+- **Navigation:** `<Link href="/about">`, `useRouter()` (`push`, `replace`, `back`, `forward`, `refresh`) and alt+←/→ for history.
+- **Route state:** `useParams()`, `useSearchParams()` and `usePathname()`.
+- **Control flow:** `redirect()` and `notFound()`.
+- **Pages** can export `metadata` (sets the terminal title), `runtime = 'server'` and `revalidate`.
+
+The full API is documented at the top of `src/router/index.ts`.
+
+## Canvas and images
+
+`<Canvas>` gives you a real `CanvasRenderingContext2D`: paths, gradients, transforms, text, images and composite modes. It is drawn in the terminal with block or braille characters, or as true pixels on kitty, sixel and iTerm2 terminals.
+
+```vue
+<Canvas mode="sextant" @ready="(canvas, ctx) => { ctx.fillStyle = 'tomato'; ctx.fillRect(10, 10, 80, 40) }"
+        @frame="(ctx, dt) => draw(ctx, dt)" />
+<Canvas src="./starfield.html" />          <!-- run existing browser canvas code, unmodified -->
+<Image src="logo.png" :width="40" fit="contain" />
+```
+
+The engine is a standalone library, **[`tty-canvas`](packages/tty-canvas/README.md)**, with no dependencies. It works without vuecli:
+
+```sh
+npx tty-canvas index.html            # run an HTML page with a <canvas> + scripts in the terminal
+npx tty-canvas sketch.js -m braille  # or a script that uses document/requestAnimationFrame
+```
+
+## Browser console, server rendering and deployment
+
+- **Browser console target.** The whole app renders inside the browser devtools console. A changed frame becomes one `console.log` with run-length `%c` styling. Frames are appended at least 66 ms apart, and the console is never cleared, so there are no blank flashes. Input arrives through a hidden textarea. An optional DOM view mirrors the frames.
+- **Server rendering.** Routes with `export const runtime = 'server'` run on the server. They stream row deltas over SSE to a 5.6 kB (gzipped) frame player.
+- **Server features.** Route handlers, middleware, `cache()` / `revalidateTag()` / `revalidatePath()` with stale-while-revalidate, and partial prerendering.
+- **Commands.**
+  - `vuecli dev` is the dev server with live reload.
+  - `vuecli build --adapter node|bun|static|vercel|cloudflare` builds for production.
+  - `vuecli start` serves a node/bun build.
+- **Live server routes need `node` or `bun`.** On static, Vercel and Cloudflare, they serve their prerendered frame only.
+
+Details: [docs/SERVER.md](docs/SERVER.md).
+
+## Developer tooling
+
+| Tool | What it does |
+|------|--------------|
+| `vuecli mcp <app>` ([docs](src/mcp/README.md)) | MCP server for coding agents: `read_frame`, `press`, `type`, `click`, `wait_for`, `get_tree`, `navigate`, … |
+| `window.vuecli` REPL ([docs](src/devtools/README.md)) | `pause()`, `step()`, `resize()`, `wireframe()`, `copy()`, `tree()`, `stats()` in Node or the browser |
+| [Chrome DevTools panel](packages/devtools-extension/README.md) | component tree, frame inspector, per-frame timeline, pause/step/wireframe |
+| [VS Code extension](packages/vscode-vuecli/README.md) | live frame preview next to the code (⌘K V), App Router scaffolding |
+| [eslint-plugin-vuecli](packages/eslint-plugin-vuecli/README.md) | `no-dom-elements`, `no-box-in-text`, `no-unsupported-glyphs` |
+| [Error codes](docs/errors.md) | every error is `VC###` with an explanation and fix |
+
 ## Composables
 
 | Composable | Purpose |
 | ---------- | ------- |
 | `useApp()` | `{ exit, theme, setTheme, size, requestRender, toggleDevtools }` |
 | `useInput(handler, { isActive, priority })` | Global key handler (`e.name`, `e.char`, `e.ctrl`, `e.meta`, `e.shift`, `e.paste`, `e.stopPropagation()`) |
-| `useKeymap({ 'ctrl+s': save, 'q\|escape': quit })` | Declarative shortcuts |
+| `useKeymap({ 'ctrl+s': save, 'q\|escape': quit })` | Declarative shortcuts; a value can also be `{ handler, description, group }` (shown by `<KeyHelp>`) |
 | `useFocus({ autoFocus, disabled, onKey })` | Makes a custom component focusable. Bind `ref: focus.el` to its root element |
 | `useFocusManager()` | `focusNext`, `focusPrevious`, `focus(id)`, `activeId` |
 | `useTerminalSize()` | Reactive `{ columns, rows }` |
@@ -282,17 +385,22 @@ createApp({
 
 ## Limitations
 
-- Full-screen apps only (alternate screen). An inline mode for rendering below the prompt is not implemented yet.
-- `<style>` blocks in SFCs are ignored. Style with classes or props instead.
-- No IME composition, kitty keyboard protocol or image protocols yet.
-- Vue `<Transition>` works but nothing animates. Use `useTicker` for animations.
+- **Terminal apps take over the screen** (alternate screen). There is no inline mode that renders below the prompt yet.
+- **Styling:** `<style>` blocks in SFCs are ignored; style with classes or props instead.
+- **Input:** no IME composition in the terminal (the browser console target supports it).
+- **Animation:** Vue `<Transition>` runs, but nothing animates. Use `useTicker` or `<Canvas @frame>`.
+- **Canvas:** 2D context only, PNG only, and one built-in vector font. Details in the [tty-canvas README](packages/tty-canvas/README.md#limitations).
+- **Router:** no parallel or intercepting routes.
+- **Live server routes** need the node or bun adapter (see [docs/SERVER.md](docs/SERVER.md)).
+- **Node version:** `.ts` route modules rely on Node ≥ 22.18 type stripping.
 
 ## Development
 
 ```sh
 npm install
 npm run build       # tsc → dist/
-npm test            # vitest
+npm test            # vitest (root suite)
+npm run test:all    # root suite + every package (tty-canvas, eslint plugin, VS Code, DevTools)
 npm run typecheck
 ```
 

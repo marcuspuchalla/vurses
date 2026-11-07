@@ -12,6 +12,7 @@ import { APP_CONTEXT, type AppContext, type LogEntry } from './context.js'
 import { FocusManager } from './focus.js'
 import { installComponents, DevTools } from '../components/index.js'
 import { formatArgs } from './format.js'
+import { vuecliError, vuecliWarn } from '../errors.js'
 
 export type { ReadStreamLike, WriteStreamLike } from './tty.js'
 
@@ -74,6 +75,8 @@ export class Runtime {
   private fpsWindow: number[] = []
   private depth: ColorDepth
   private wireframe = false
+  /** True when the runtime drives the process terminal (default tty target). */
+  private readonly ownsTerminal: boolean
   /** Last rendered buffer. */
   get buffer() {
     return this.prev
@@ -104,6 +107,7 @@ export class Runtime {
               rows: options.rows,
             })
     const isTty = !manual && options.target === undefined
+    this.ownsTerminal = isTty
     this.opts = {
       exitOnCtrlC: options.exitOnCtrlC ?? true,
       patchConsole: options.patchConsole ?? isTty,
@@ -384,7 +388,9 @@ export class Runtime {
     this.target?.stop?.(this)
     for (const c of this.cleanups.splice(0).reverse()) c()
     const proc = (globalThis as any).process
-    const isTty = this.target && !this.opts.manualRender && proc?.stdout
+    // only the process terminal gets replayed logs, crash output and an exit code;
+    // custom targets (browser console, server sessions, previews) report via events
+    const isTty = this.ownsTerminal && proc?.stdout
     if (this.opts.patchConsole && isTty) {
       for (const l of this.ctx.logs) {
         const stream = l.level === 'error' || l.level === 'warn' ? proc.stderr : proc.stdout
@@ -405,7 +411,10 @@ export class Runtime {
 
 function resolveTheme(t: Theme | string | undefined): Theme {
   if (!t) return darkTheme
-  if (typeof t === 'string') return themes[t] ?? darkTheme
+  if (typeof t === 'string') {
+    if (!themes[t]) vuecliWarn('VC042', { name: t, available: Object.keys(themes).join(', ') })
+    return themes[t] ?? darkTheme
+  }
   return t
 }
 
@@ -446,7 +455,7 @@ export function createApp(rootComponent: Component, rootProps?: Record<string, u
     runtime.requestRender()
     return app
   }
-  app.waitUntilExit = () => exitPromise ?? Promise.reject(new Error('[vuecli] app is not mounted'))
+  app.waitUntilExit = () => exitPromise ?? Promise.reject(vuecliError('VC002', { method: 'waitUntilExit' }))
   return app
 }
 

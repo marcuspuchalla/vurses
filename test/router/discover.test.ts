@@ -157,3 +157,14 @@ describe('pattern helpers', () => {
     expect(scanHandlerMethods(`export function GET(){}\nconst DELETE=1\nexport { DELETE, x as PUT }`)).toEqual(['GET', 'PUT', 'DELETE'])
   })
 })
+
+describe('scanPageExports (integration fix)', () => {
+  it('ignores template text and comments in SFCs', async () => {
+    const { scanPageExports } = await import('../../src/router/discover.js')
+    const sfc = `<script setup>const x = 1 // export const runtime = 'server'</script>
+<template><Text>Write export const runtime = 'server' in your page</Text></template>`
+    expect(scanPageExports(sfc)).toEqual({})
+    const real = `<script>export const runtime = 'server'; export const revalidate = 30</script><template><Text/></template>`
+    expect(scanPageExports(real)).toEqual({ runtime: 'server', revalidate: 30 })
+  })
+})

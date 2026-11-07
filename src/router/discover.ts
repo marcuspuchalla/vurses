@@ -151,8 +151,19 @@ export async function discoverRoutes(appDir: string, options: DiscoverOptions = 
 }
 
 /** Statically detects `export const runtime` / `revalidate` in a page source. */
+/**
+ * The code a page module can export from: for SFCs only the `<script>` blocks
+ * (never template text), with comments removed.
+ */
+function exportableCode(source: string): string {
+  const blocks = [...source.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)].map((m) => m[1])
+  const code = /<template\b|<script\b/i.test(source) ? blocks.join('\n') : source
+  return code.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:\\])\/\/.*$/gm, '$1')
+}
+
 export function scanPageExports(source: string): Pick<RouteEntry, 'runtime' | 'revalidate'> {
   const out: Pick<RouteEntry, 'runtime' | 'revalidate'> = {}
+  source = exportableCode(source)
   const rt = source.match(/export\s+const\s+runtime\s*(?::[^=]+)?=\s*['"`](server|client)['"`]/)
   if (rt) out.runtime = rt[1] as 'server' | 'client'
   const rv = source.match(/export\s+const\s+revalidate\s*(?::[^=]+)?=\s*(false|\d+(?:\.\d+)?)/)
