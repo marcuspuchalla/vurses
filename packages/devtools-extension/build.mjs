@@ -1,7 +1,7 @@
 // Builds the unpacked extension into dist/ (load it from chrome://extensions → "Load unpacked").
 import { build } from 'esbuild'
 import { copyFileSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs'
-import { crc32, deflateSync } from 'node:zlib'
+import { deflateSync } from 'node:zlib'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -19,7 +19,17 @@ await build({
   logLevel: 'info',
 })
 for (const f of readdirSync(join(here, 'static'))) copyFileSync(join(here, 'static', f), join(out, f))
-writeFileSync(join(out, 'icon.png'), icon(128))
+
+const CRC = Array.from({ length: 256 }, (_, n) => {
+  let c = n
+  for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1
+  return c >>> 0
+})
+function crc32(buf) {
+  let c = 0xffffffff
+  for (const b of buf) c = CRC[(c ^ b) & 0xff] ^ (c >>> 8)
+  return (c ^ 0xffffffff) >>> 0
+}
 
 /** A 128px icon: a green rounded square with a terminal prompt (no image assets in the repo). */
 function icon(size) {
@@ -57,3 +67,5 @@ function icon(size) {
   ihdr[9] = 6
   return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('IDAT', deflateSync(px)), chunk('IEND', Buffer.alloc(0))])
 }
+
+writeFileSync(join(out, 'icon.png'), icon(128))

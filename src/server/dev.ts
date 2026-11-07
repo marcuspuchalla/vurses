@@ -95,6 +95,8 @@ export async function startDevServer(options: DevServerOptions = {}): Promise<Ru
 }
 
 const IGNORED = /(^|[\\/])(node_modules|\.git|\.vuecli|\.vercel|dist|\.wrangler)([\\/]|$)/
+/** Files whose changes trigger a reload (sources and public assets; not logs or build output). */
+const WATCHED = /\.(vue|[cm]?[jt]sx?|json|html|css|svg|png|jpe?g|gif|webp|avif|ico|txt|md|wasm|woff2?)$/i
 
 export interface SupervisorOptions {
   /** Directory to watch. */
@@ -148,7 +150,7 @@ export function supervise(o: SupervisorOptions): Promise<number> {
     }
     watcher = watch(o.watchDir, { recursive: true }, (_ev, file) => {
       const name = String(file ?? '')
-      if (!name || IGNORED.test(name)) return
+      if (!name || IGNORED.test(name) || !WATCHED.test(name)) return
       if (timer) clearTimeout(timer)
       timer = setTimeout(() => restart(name), 80)
     })
