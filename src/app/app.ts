@@ -1,4 +1,4 @@
-import { defineComponent, h, reactive, ref, shallowRef, type App, type Component } from 'vue'
+import { defineComponent, h, reactive, ref, shallowReactive, shallowRef, type App, type Component } from 'vue'
 import { createRoot, type TElement } from '../dom/nodes.js'
 import type { CellBuffer } from '../render/buffer.js'
 import { Painter, type Graphic } from '../render/paint.js'
@@ -128,6 +128,7 @@ export class Runtime {
       size,
       focus: new FocusManager(() => this.root),
       inputHandlers: new Set(),
+      keymaps: shallowReactive(new Set()),
       logs: reactive<LogEntry[]>([]),
       stats: { frames: 0, lastFrameMs: 0, lastFrameBytes: 0, fps: 0 },
       devtools: ref(false),

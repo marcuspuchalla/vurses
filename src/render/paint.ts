@@ -4,7 +4,7 @@ import { colorSgr, parseColor, type ColorDepth } from '../style/colors.js'
 import { mergeInk, type Ink, type Style } from '../style/style.js'
 import type { Theme } from '../style/theme.js'
 import { CellBuffer, Flag, intersect, type Rect } from './buffer.js'
-import { graphemeWidth as graphemeWidthOf, lineWidth, toGlyphs, wrapGlyphs, type Glyph, type WrapMode } from './text.js'
+import { graphemeWidth as graphemeWidthOf, lineWidth, reorderBidi, toGlyphs, wrapGlyphs, type Glyph, type WrapMode } from './text.js'
 
 export interface HitRegion {
   el: TElement
@@ -207,7 +207,7 @@ export class Painter {
     if (typeof el.props.paintCells === 'function') this.runCellPainter(el, buf, inner, intersect(clip, inner), ink)
 
     if (el.kind === 'text') {
-      this.paintGlyphs(el.getGlyphs(), buf, inner, intersect(clip, box), ink, s.wrap ?? 'wrap', s.textAlign)
+      this.paintGlyphs(el.getGlyphs(), buf, inner, intersect(clip, box), ink, s.wrap ?? 'wrap', s.textAlign, s.dir)
       return
     }
 
@@ -225,7 +225,7 @@ export class Painter {
         // text never bleeds into the parent's padding/border (guards against rounding)
         this.paintElement(c, buf, x - sx, y - sy, c.kind === 'text' ? intersect(childClip, inner) : childClip, ink)
       } else if (c.nodeType === 'text' && c.yoga && c.yoga.getDisplay() !== Display.None) {
-        this.paintTextNode(c, buf, x - sx, y - sy, intersect(childClip, inner), ink)
+        this.paintTextNode(c, buf, x - sx, y - sy, intersect(childClip, inner), ink, s.dir)
       }
     }
     if (absolute) {
@@ -234,7 +234,7 @@ export class Painter {
     }
   }
 
-  private paintTextNode(t: TTextNode, buf: CellBuffer, ox: number, oy: number, clip: Rect, ink: Ink) {
+  private paintTextNode(t: TTextNode, buf: CellBuffer, ox: number, oy: number, clip: Rect, ink: Ink, dir?: Style['dir']) {
     const yoga = t.yoga!
     const rect: Rect = {
       x: Math.round(ox + yoga.getComputedLeft()),
@@ -242,7 +242,7 @@ export class Painter {
       width: Math.round(yoga.getComputedWidth()),
       height: Math.round(yoga.getComputedHeight()),
     }
-    this.paintGlyphs(t.getGlyphs(), buf, rect, intersect(clip, rect), ink, 'wrap', undefined)
+    this.paintGlyphs(t.getGlyphs(), buf, rect, intersect(clip, rect), ink, 'wrap', undefined, dir)
   }
 
   private paintGlyphs(
@@ -252,15 +252,20 @@ export class Painter {
     clip: Rect,
     base: Ink,
     wrap: WrapMode,
-    align: Style['textAlign'],
+    alignOpt: Style['textAlign'],
+    dir?: Style['dir'],
   ) {
     if (rect.width <= 0 || rect.height <= 0 || glyphs.length === 0) return
-    const lines = wrapGlyphs(glyphs, rect.width, wrap)
+    let lines = wrapGlyphs(glyphs, rect.width, wrap)
+    // Unicode bidi: visual reordering per line (no-op fast path without RTL text)
+    const bidi = reorderBidi(glyphs, lines, dir)
+    if (bidi) lines = bidi.lines
     let lastInk: Ink | null = null
     let resolved: ResolvedInk | null = null
     for (let row = 0; row < lines.length && row < rect.height; row++) {
       const line = lines[row]
       let cx = rect.x
+      const align = alignOpt ?? (bidi?.rtl[row] ? 'right' : undefined)
       if (align === 'center' || align === 'right') {
         const free = rect.width - lineWidth(line)
         if (free > 0) cx += align === 'center' ? Math.floor(free / 2) : free

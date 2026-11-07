@@ -1,3 +1,5 @@
+import * as bidiModule from 'bidi-js'
+import type { Bidi } from 'bidi-js'
 import stringWidth from 'string-width'
 import type { Ink } from '../style/style.js'
 
@@ -201,4 +203,145 @@ export function measureGlyphs(glyphs: Glyph[], maxWidth: number, mode: WrapMode 
   let width = 0
   for (const l of lines) width = Math.max(width, lineWidth(l))
   return { width, height: lines.length, lines }
+}
+
+// ------------------------------------------------------------------ bidi (RTL)
+
+
+/** Base direction of a paragraph: explicit, or `auto` (first strong character). */
+export type TextDirection = 'ltr' | 'rtl' | 'auto'
+
+let bidiInstance: Bidi | null = null
+/** bidi-js is CommonJS: its factory is the default export (or the default's default, depending on the loader). */
+function bidiFactory(): () => Bidi {
+  let f: unknown = bidiModule
+  for (let i = 0; i < 3 && typeof f !== 'function'; i++) f = (f as { default?: unknown })?.default
+  return f as () => Bidi
+}
+const bidi = (): Bidi => (bidiInstance ??= bidiFactory()())
+
+/**
+ * Characters with a strong right-to-left bidi class (Hebrew, Arabic, Syriac,
+ * Thaana, NKo, ..., presentation forms, RTL marks/embeddings/isolates).
+ */
+// eslint-disable-next-line no-misleading-character-class
+const RTL_RE = /[֐-ࣿ‏‫‮⁧יִ-﷿ﹰ-ﻼ\u{10800}-\u{10FFF}\u{1E800}-\u{1EFFF}]/u
+
+/** True if the string contains right-to-left characters. */
+export function containsRtl(s: string): boolean {
+  return RTL_RE.test(s)
+}
+
+const rtlCache = new WeakMap<Glyph[], boolean>()
+
+/** True if any glyph contains right-to-left characters (cached per glyph array). */
+export function glyphsHaveRtl(glyphs: Glyph[]): boolean {
+  let v = rtlCache.get(glyphs)
+  if (v === undefined) {
+    v = false
+    for (const g of glyphs) {
+      // ASCII glyphs are by far the most common: skip the regex for them
+      if (g.ch.length === 1 && g.ch.charCodeAt(0) < 0x590) continue
+      if (RTL_RE.test(g.ch)) {
+        v = true
+        break
+      }
+    }
+    rtlCache.set(glyphs, v)
+  }
+  return v
+}
+
+export interface BidiLines {
+  /** Lines in visual (left-to-right screen) order. */
+  lines: Line[]
+  /** Per line: the paragraph's base direction is right-to-left. */
+  rtl: boolean[]
+}
+
+/**
+ * Applies the Unicode Bidirectional Algorithm (UAX #9) to already wrapped
+ * lines: embedding levels are resolved over the whole text (so wrapping and
+ * paragraph direction are computed on logical order), then each line is
+ * reordered per rules L1 (trailing whitespace) and L2 (reverse runs), and
+ * mirrored characters (brackets) are swapped in right-to-left runs (L4).
+ *
+ * Returns `null` when nothing needs to change (no RTL characters and the base
+ * direction isn't forced to `rtl`) — the fast path for ordinary text.
+ */
+export function reorderBidi(glyphs: Glyph[], lines: Line[], dir: TextDirection = 'auto'): BidiLines | null {
+  if (dir !== 'rtl' && !glyphsHaveRtl(glyphs)) return null
+  const b = bidi()
+  const offsets = new Map<Glyph, number>()
+  let text = ''
+  for (const g of glyphs) {
+    offsets.set(g, text.length)
+    text += g.ch
+  }
+  const { levels, paragraphs } = b.getEmbeddingLevels(text, dir === 'auto' ? undefined : dir)
+  const paraLevelAt = (off: number) => {
+    for (const p of paragraphs) if (off >= p.start && off <= p.end) return p.level
+    return paragraphs[0]?.level ?? 0
+  }
+  const outLines: Line[] = []
+  const rtl: boolean[] = []
+  let lastPara = dir === 'rtl' ? 1 : 0
+  for (const line of lines) {
+    const n = line.length
+    const lv = new Array<number>(n)
+    let para = -1
+    let prev = -1
+    for (let i = 0; i < n; i++) {
+      const off = offsets.get(line[i])
+      if (off === undefined) {
+        lv[i] = prev // synthetic glyph (ellipsis): inherit the neighbour's level
+        continue
+      }
+      if (para < 0) para = paraLevelAt(off)
+      lv[i] = prev = levels[off]
+    }
+    if (para < 0) para = lastPara
+    lastPara = para
+    // synthetic glyphs at the start take the next real level
+    for (let i = n - 1, next = para; i >= 0; i--) {
+      if (lv[i] < 0) lv[i] = next
+      else next = lv[i]
+    }
+    // L1: trailing whitespace takes the paragraph level
+    for (let i = n - 1; i >= 0 && line[i].ch === ' '; i--) lv[i] = para
+    let max = 0
+    let minOdd = Infinity
+    for (const l of lv) {
+      if (l > max) max = l
+      if (l & 1 && l < minOdd) minOdd = l
+    }
+    let out = line
+    if (max > 0 && minOdd !== Infinity) {
+      const idx = Array.from({ length: n }, (_, i) => i)
+      // L2: from the highest level down to the lowest odd level, reverse runs at or above it
+      for (let level = max; level >= minOdd; level--) {
+        let i = 0
+        while (i < n) {
+          if (lv[idx[i]] >= level) {
+            let j = i
+            while (j + 1 < n && lv[idx[j + 1]] >= level) j++
+            for (let a = i, z = j; a < z; a++, z--) [idx[a], idx[z]] = [idx[z], idx[a]]
+            i = j + 1
+          } else i++
+        }
+      }
+      out = idx.map((k) => {
+        const g = line[k]
+        if (lv[k] & 1) {
+          // L4: mirrored glyphs in RTL runs
+          const m = g.ch.length === 1 ? b.getMirroredCharacter(g.ch) : null
+          if (m) return { ...g, ch: m }
+        }
+        return g
+      })
+    }
+    outLines.push(out)
+    rtl.push((para & 1) === 1)
+  }
+  return { lines: outLines, rtl }
 }

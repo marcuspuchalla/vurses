@@ -12,6 +12,22 @@ export interface InputHandlerEntry {
   order: number
 }
 
+/** A key binding as listed by `<KeyHelp>` / `useKeyBindings()`. */
+export interface KeyBindingInfo {
+  /** Key combo(s), e.g. 'ctrl+s' or 'q|escape'. */
+  keys: string
+  description?: string
+  group?: string
+}
+
+/** A `useKeymap()` registration (see `AppContext.keymaps`). */
+export interface KeymapEntry {
+  bindings(): KeyBindingInfo[]
+  active(): boolean
+  priority: number
+  order: number
+}
+
 export interface LogEntry {
   level: 'log' | 'info' | 'warn' | 'error' | 'debug'
   message: string
@@ -34,6 +50,8 @@ export interface AppContext {
   size: { columns: number; rows: number }
   focus: FocusManager
   inputHandlers: Set<InputHandlerEntry>
+  /** Registry of `useKeymap()` bindings (reactive; read by `<KeyHelp>`). */
+  keymaps: Set<KeymapEntry>
   logs: LogEntry[]
   stats: FrameStats
   devtools: Ref<boolean>

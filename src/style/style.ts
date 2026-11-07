@@ -71,6 +71,8 @@ export interface Style {
   // text
   wrap?: 'wrap' | 'truncate' | 'truncate-start' | 'truncate-middle' | 'none'
   textAlign?: 'left' | 'center' | 'right'
+  /** Base text direction for the Unicode bidi algorithm (default `auto`: first strong character). */
+  dir?: 'ltr' | 'rtl' | 'auto'
 }
 
 export const STYLE_KEYS = new Set<string>([
@@ -80,7 +82,7 @@ export const STYLE_KEYS = new Set<string>([
   'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'margin', 'marginX', 'marginY',
   'marginTop', 'marginRight', 'marginBottom', 'marginLeft', 'gap', 'rowGap', 'columnGap', 'overflow',
   'zIndex', 'border', 'borderColor', 'borderTop', 'borderRight', 'borderBottom', 'borderLeft', 'color',
-  'bg', 'bold', 'dim', 'italic', 'underline', 'inverse', 'strikethrough', 'wrap', 'textAlign',
+  'bg', 'bold', 'dim', 'italic', 'underline', 'inverse', 'strikethrough', 'wrap', 'textAlign', 'dir',
 ])
 
 const ALIASES: Record<string, string> = {

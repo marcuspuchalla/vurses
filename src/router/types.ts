@@ -40,6 +40,37 @@ export interface RouteEntry {
   /** Dynamic param names in order. Catch-all params end with '...' removed but listed in `catchAll`. */
   params: string[]
   catchAll?: string
+
+  // ---- additive fields (filled by discoverRoutes; optional for hand-written manifests) ----
+
+  /** True when `catchAll` comes from an optional catch-all `[[...slug]]` (also matches zero segments). */
+  optionalCatchAll?: boolean
+  /**
+   * Every directory level from the app root to the page directory that has a
+   * convention file (layout / loading / error / not-found), outermost first.
+   * The router renders one layout + error boundary + Suspense per segment.
+   * When absent, the router derives segments from `layouts`, `loading` and `error`.
+   */
+  segments?: RouteSegment[]
+  /** Statically detected `export const runtime = ...` of the page (no module is executed). */
+  runtime?: 'server' | 'client'
+  /** Statically detected `export const revalidate = ...` of the page. */
+  revalidate?: number | false
+  /** HTTP methods exported by the `route.ts` handler (statically detected), e.g. ['GET', 'POST']. */
+  methods?: string[]
+}
+
+/** One directory level of a route (see `RouteEntry.segments`). */
+export interface RouteSegment {
+  /** Directory relative to the app dir, with '/' separators ('' = app root), e.g. '(shop)/users/[id]'. */
+  dir: string
+  layout?: string
+  loading?: string
+  error?: string
+  /** Segment-level not-found.vue, rendered when `notFound()` is thrown below this segment. */
+  notFound?: string
+  /** Names of the dynamic params known at this level (introduced here or by an ancestor). */
+  params: string[]
 }
 
 export interface RouteManifest {
@@ -52,6 +83,8 @@ export interface RouteManifest {
   notFound?: string
   /** Root layout (app/layout.vue), if any. */
   rootLayout?: string
+  /** The app root segment (root layout / loading / error / not-found). Additive. */
+  root?: RouteSegment
 }
 
 /** Loads a route module by absolute file path (Node: dynamic import; browser: bundled map). */
@@ -61,4 +94,15 @@ export interface PageModuleMeta {
   runtime?: 'server' | 'client'
   revalidate?: number | false
   metadata?: { title?: string; description?: string }
+}
+
+/**
+ * Metadata as exported by a page/layout module (`export const metadata`), or
+ * returned by `export async function generateMetadata({ params, searchParams })`. `title` may be a string or Next.js-style
+ * `{ default, template: '%s · My App', absolute }` (templates apply to child segments).
+ */
+export interface Metadata {
+  title?: string | { default?: string; template?: string; absolute?: string }
+  description?: string
+  [key: string]: unknown
 }

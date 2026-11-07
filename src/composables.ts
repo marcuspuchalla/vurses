@@ -12,7 +12,7 @@ import {
   type MaybeRefOrGetter,
   type Ref,
 } from 'vue'
-import { APP_CONTEXT, type AppContext } from './app/context.js'
+import { APP_CONTEXT, type AppContext, type KeyBindingInfo, type KeymapEntry } from './app/context.js'
 import { nextFocusId, type FocusEntry } from './app/focus.js'
 import type { TElement } from './dom/nodes.js'
 import { matchKey, type KeyEvent } from './input/keys.js'
@@ -73,23 +73,87 @@ export function useInput(handler: (e: KeyEvent) => void, options: UseInputOption
   onBeforeUnmount(() => ctx.inputHandlers.delete(entry))
 }
 
-export type Keymap = Record<string, (e: KeyEvent) => void>
+/** A key binding with metadata (shown by `<KeyHelp>`). */
+export interface KeyBinding {
+  handler: (e: KeyEvent) => void
+  /** Human readable description, e.g. 'Save file'. */
+  description?: string
+  /** Group heading in `<KeyHelp>`, e.g. 'File'. */
+  group?: string
+  /** Keep the binding out of `<KeyHelp>`. */
+  hidden?: boolean
+  /** Only active while this is true. */
+  when?: MaybeRefOrGetter<boolean>
+}
+
+export type Keymap = Record<string, ((e: KeyEvent) => void) | KeyBinding>
+
+export interface UseKeymapOptions extends UseInputOptions {
+  /** Default group for bindings without one. */
+  group?: string
+}
+
+function bindingOf(v: Keymap[string]): KeyBinding {
+  return typeof v === 'function' ? { handler: v } : v
+}
 
 /**
  * Declarative key bindings: `useKeymap({ 'ctrl+s': save, 'q|escape': quit })`.
- * Matched keys stop propagation.
+ * Matched keys stop propagation. Bindings can carry metadata for `<KeyHelp>`:
+ * `useKeymap({ 'ctrl+s': { handler: save, description: 'Save', group: 'File' } })`.
  */
-export function useKeymap(keymap: MaybeRefOrGetter<Keymap>, options: UseInputOptions = {}) {
+export function useKeymap(keymap: MaybeRefOrGetter<Keymap>, options: UseKeymapOptions = {}) {
+  const ctx = useAppContext()
+  const isActive = () => (options.isActive === undefined ? true : !!toValue(options.isActive))
   useInput((e) => {
     const map = toValue(keymap)
     for (const combo in map) {
+      const b = bindingOf(map[combo])
+      if (b.when !== undefined && !toValue(b.when)) continue
       if (matchKey(e, combo)) {
         e.stopPropagation()
-        map[combo](e)
+        b.handler(e)
         return
       }
     }
   }, options)
+  const entry: KeymapEntry = {
+    order: ++handlerOrder,
+    priority: options.priority ?? 0,
+    active: isActive,
+    bindings: () => {
+      const map = toValue(keymap)
+      const out: KeyBindingInfo[] = []
+      for (const combo in map) {
+        const b = bindingOf(map[combo])
+        if (b.hidden || (b.when !== undefined && !toValue(b.when))) continue
+        out.push({ keys: combo, description: b.description, group: b.group ?? options.group })
+      }
+      return out
+    },
+  }
+  // older contexts (custom runtimes) may not have a registry
+  onMounted(() => ctx.keymaps?.add(entry))
+  onBeforeUnmount(() => ctx.keymaps?.delete(entry))
+}
+
+/** All key bindings currently registered with `useKeymap` (active ones only, reactive). */
+export function useKeyBindings(): ComputedRef<KeyBindingInfo[]> {
+  const ctx = useAppContext()
+  return computed(() => {
+    const entries = [...(ctx.keymaps ?? [])].filter((k) => k.active())
+    entries.sort((a, b) => b.priority - a.priority || a.order - b.order)
+    const seen = new Set<string>()
+    const out: KeyBindingInfo[] = []
+    for (const en of entries) {
+      for (const b of en.bindings()) {
+        if (seen.has(b.keys)) continue
+        seen.add(b.keys)
+        out.push(b)
+      }
+    }
+    return out
+  })
 }
 
 export interface UseFocusOptions {
