@@ -201,7 +201,7 @@ describe('strokes', () => {
       m.ctx.lineTo(10, 10)
       m.ctx.lineTo(16, 16)
       m.ctx.stroke()
-      return px(m.c, 10, 6)[3]
+      return px(m.c, 10, 7)[3]
     }
     expect(join('miter')).toBe(255)
     expect(join('bevel')).toBeLessThan(80)

@@ -261,7 +261,7 @@ export function encodeCells(rgba: ArrayLike<number>, width: number, height: numb
         const d = dist2(cols, i * 3, cols, j * 3)
         if (d > best) { best = d; bi = i; bj = j }
       }
-      if (best <= 24) {
+      if (best <= 600) {
         // uniform cell
         let r = 0, g = 0, b = 0
         for (let k = 0; k < n; k++) { r += cols[k * 3]; g += cols[k * 3 + 1]; b += cols[k * 3 + 2] }

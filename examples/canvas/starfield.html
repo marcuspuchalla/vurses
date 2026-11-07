@@ -1,0 +1,76 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Starfield</title>
+  <style>html, body { margin: 0; height: 100%; background: black; overflow: hidden } canvas { display: block }</style>
+</head>
+<body>
+  <!-- An ordinary browser canvas demo. Open it in a browser, run `tty-canvas starfield.html`,
+       or embed it in a vuecli app with <Canvas src="starfield.html" />. -->
+  <canvas id="sky"></canvas>
+  <script>
+    const canvas = document.getElementById('sky')
+    const ctx = canvas.getContext('2d')
+    let stars = []
+    let speed = 0.6
+    const steer = { x: 0, y: 0 }
+
+    function resize() {
+      canvas.width = window.innerWidth
+      canvas.height = window.innerHeight
+      ctx.fillStyle = 'black'
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+    }
+    function star() {
+      return { x: (Math.random() - 0.5) * 2, y: (Math.random() - 0.5) * 2, z: Math.random() * 0.9 + 0.1, hue: 180 + Math.random() * 80 }
+    }
+    for (let i = 0; i < 250; i++) stars.push(star())
+    window.addEventListener('resize', resize)
+    resize()
+
+    canvas.addEventListener('mousemove', (e) => {
+      steer.x = (e.offsetX / canvas.width - 0.5) * 2
+      steer.y = (e.offsetY / canvas.height - 0.5) * 2
+    })
+    canvas.addEventListener('wheel', (e) => { speed = Math.max(0.1, Math.min(3, speed - e.deltaY / 500)) })
+    document.addEventListener('keydown', (e) => {
+      if (e.key === '+' || e.key === 'ArrowUp') speed = Math.min(3, speed + 0.2)
+      if (e.key === '-' || e.key === 'ArrowDown') speed = Math.max(0.1, speed - 0.2)
+    })
+
+    let last = performance.now()
+    function frame(now) {
+      const dt = Math.min(0.1, (now - last) / 1000)
+      last = now
+      const w = canvas.width, h = canvas.height
+      const cx = w / 2 - steer.x * w * 0.25, cy = h / 2 - steer.y * h * 0.25
+      // motion trails: fade the previous frame
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.35)'
+      ctx.fillRect(0, 0, w, h)
+      const scale = Math.max(w, h) * 0.6
+      for (const s of stars) {
+        const pz = s.z
+        s.z -= dt * speed * 0.5
+        if (s.z <= 0.02) Object.assign(s, star(), { z: 1 })
+        const x0 = cx + (s.x / pz) * scale, y0 = cy + (s.y / pz) * scale
+        const x1 = cx + (s.x / s.z) * scale, y1 = cy + (s.y / s.z) * scale
+        const light = Math.round(100 - s.z * 60)
+        ctx.strokeStyle = `hsl(${s.hue}, 80%, ${light}%)`
+        ctx.lineWidth = Math.max(0.6, (1 - s.z) * 3)
+        ctx.lineCap = 'round'
+        ctx.beginPath()
+        ctx.moveTo(x0, y0)
+        ctx.lineTo(x1, y1)
+        ctx.stroke()
+      }
+      ctx.fillStyle = 'rgba(200, 220, 255, 0.9)'
+      ctx.font = `${Math.max(8, Math.round(h / 10))}px sans-serif`
+      ctx.textAlign = 'right'
+      ctx.fillText(`warp ${speed.toFixed(1)}`, w - 3, h - 3)
+      requestAnimationFrame(frame)
+    }
+    requestAnimationFrame(frame)
+  </script>
+</body>
+</html>

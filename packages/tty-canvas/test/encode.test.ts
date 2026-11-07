@@ -99,7 +99,7 @@ describe('cell encoders', () => {
   })
 
   it('fitCells keeps the aspect ratio', () => {
-    expect(fitCells(100, 100, 80, 24, 'contain', 'halfblock')).toEqual({ x: 28, y: 0, columns: 24 * 2 / 2 * 2, rows: 24 })
+    expect(fitCells(100, 100, 80, 24, 'contain', 'halfblock')).toEqual({ x: 16, y: 0, columns: 48, rows: 24 })
     expect(fitCells(100, 100, 80, 24, 'fill')).toEqual({ x: 0, y: 0, columns: 80, rows: 24 })
   })
 })

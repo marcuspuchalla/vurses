@@ -9,6 +9,7 @@ import type { BrowserEnvironment } from '../dom.js'
 import { diffCells, type ColorDepth } from '../encode/ansi.js'
 import { encodeCells, MODE_RESOLUTION, type CellMode, type EncodedCells } from '../encode/cells.js'
 import { detectGraphics, encodeIterm2, encodeKitty, encodeSixel, kittyDelete, type GraphicsProtocol } from '../encode/protocols.js'
+import { setInterval, clearInterval, setTimeout, clearTimeout } from 'node:timers'
 import { MouseEvent, WheelEvent } from '../events.js'
 import { InputParser, type TermKey, type TermMouse } from './input.js'
 import type { Page } from './runner.js'
@@ -144,7 +145,7 @@ export function play(source: Canvas | BrowserEnvironment | Page, opts: PlayOptio
   const toCanvas = (m: TermMouse) => {
     const c = getCanvas()
     if (!c) return { x: 0, y: 0 }
-    return { x: ((m.x - box.x + 0.5) / box.columns) * c.width, y: ((m.y - box.y + 0.5) / box.rows) * c.height }
+    return { x: ((m.x - box.x + 0.5) * c.width) / box.columns, y: ((m.y - box.y + 0.5) * c.height) / box.rows }
   }
 
   const dispatchPointer = (m: TermMouse) => {

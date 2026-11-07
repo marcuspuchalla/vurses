@@ -108,6 +108,7 @@ export function encodeSixel(rgba: ArrayLike<number>, width: number, height: numb
   // composite and quantize to 5 bits per channel
   const key = new Int32Array(n)
   const hist = new Uint32Array(32768)
+  const sums = new Float64Array(32768 * 3)
   for (let i = 0; i < n; i++) {
     let r = rgba[i * 4], g = rgba[i * 4 + 1], b = rgba[i * 4 + 2]
     const a = rgba[i * 4 + 3] / 255
@@ -122,8 +123,11 @@ export function encodeSixel(rgba: ArrayLike<number>, width: number, height: numb
     const k = ((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3)
     key[i] = k
     hist[k]++
+    sums[k * 3] += r
+    sums[k * 3 + 1] += g
+    sums[k * 3 + 2] += b
   }
-  const palette = medianCut(hist, maxColors)
+  const palette = medianCut(hist, sums, maxColors)
   const nearest = new Int16Array(32768).fill(-1)
   const lookup = (k: number) => {
     let v = nearest[k]
@@ -178,7 +182,7 @@ export function encodeSixel(rgba: ArrayLike<number>, width: number, height: numb
   return out + ST
 }
 
-function medianCut(hist: Uint32Array, maxColors: number): [number, number, number][] {
+function medianCut(hist: Uint32Array, sums: Float64Array, maxColors: number): [number, number, number][] {
   const entries: number[] = []
   for (let k = 0; k < 32768; k++) if (hist[k]) entries.push(k)
   if (!entries.length) return [[0, 0, 0]]
@@ -218,8 +222,7 @@ function medianCut(hist: Uint32Array, maxColors: number): [number, number, numbe
   return boxes.map((b) => {
     let r = 0, g = 0, bl = 0
     for (const k of b.keys) {
-      const w = hist[k]
-      r += (ch(k, 0) * 8 + 4) * w; g += (ch(k, 1) * 8 + 4) * w; bl += (ch(k, 2) * 8 + 4) * w
+      r += sums[k * 3]; g += sums[k * 3 + 1]; bl += sums[k * 3 + 2]
     }
     return [Math.round(r / b.count), Math.round(g / b.count), Math.round(bl / b.count)] as [number, number, number]
   })

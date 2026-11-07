@@ -52,6 +52,13 @@ export interface PointerInput {
   deltaY?: number
 }
 
+// host timers, captured before any environment installs its wrappers on globalThis
+const hostSetTimeout = globalThis.setTimeout
+const hostClearTimeout = globalThis.clearTimeout
+const hostSetInterval = globalThis.setInterval
+const hostClearInterval = globalThis.clearInterval
+const hostQueueMicrotask = globalThis.queueMicrotask
+
 const BUTTON_INDEX: Record<MouseButtonName, number> = { left: 0, middle: 1, right: 2, none: 0 }
 const BUTTON_MASK: Record<MouseButtonName, number> = { left: 1, middle: 4, right: 2, none: 0 }
 
@@ -221,31 +228,31 @@ export class BrowserEnvironment {
       },
       cancelAnimationFrame: (id: number) => void this.rafs.delete(id),
       requestIdleCallback: (cb: (d: unknown) => void) => {
-        const t = setTimeout(() => cb({ didTimeout: false, timeRemaining: () => 10 }), 1)
+        const t = hostSetTimeout(() => cb({ didTimeout: false, timeRemaining: () => 10 }), 1)
         return track(this.timers, t)
       },
-      cancelIdleCallback: (t: Timer) => clearTimeout(t),
+      cancelIdleCallback: (t: Timer) => hostClearTimeout(t),
       setTimeout: (fn: (...a: unknown[]) => void, ms?: number, ...args: unknown[]) => {
         if (typeof fn !== 'function') return 0
-        const t: Timer = setTimeout(() => {
+        const t: Timer = hostSetTimeout(() => {
           this.timers.delete(t)
           if (!this.disposed) safeCall(fn, args, hostConsole)
         }, ms)
         return track(this.timers, t)
       },
       clearTimeout: (t: Timer) => {
-        clearTimeout(t)
+        hostClearTimeout(t)
         this.timers.delete(t)
       },
       setInterval: (fn: (...a: unknown[]) => void, ms?: number, ...args: unknown[]) => {
         if (typeof fn !== 'function') return 0
-        return track(this.intervals, setInterval(() => !this.disposed && safeCall(fn, args, hostConsole), ms))
+        return track(this.intervals, hostSetInterval(() => !this.disposed && safeCall(fn, args, hostConsole), ms))
       },
       clearInterval: (t: Timer) => {
-        clearInterval(t)
+        hostClearInterval(t)
         this.intervals.delete(t)
       },
-      queueMicrotask: (fn: () => void) => queueMicrotask(fn),
+      queueMicrotask: (fn: () => void) => hostQueueMicrotask(fn),
       performance: { now: () => perf.now() - this.t0, timeOrigin: Date.now(), mark() {}, measure() {}, getEntriesByName: () => [] },
       console: hostConsole,
       localStorage: new Storage(), sessionStorage: new Storage(),
@@ -472,8 +479,8 @@ export class BrowserEnvironment {
   /** Stops all timers and animation frames. */
   dispose() {
     this.disposed = true
-    for (const t of this.timers) clearTimeout(t)
-    for (const t of this.intervals) clearInterval(t)
+    for (const t of this.timers) hostClearTimeout(t)
+    for (const t of this.intervals) hostClearInterval(t)
     this.timers.clear()
     this.intervals.clear()
     this.rafs.clear()

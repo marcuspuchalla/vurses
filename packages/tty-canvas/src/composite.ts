@@ -113,9 +113,9 @@ export function compositeRow(
       if (sa <= 0) continue
       const p = (row + x) * 4
       if (sa >= 0.999999) {
-        data[p] = (src[s] * k / sa) * 255 + 0.5
-        data[p + 1] = (src[s + 1] * k / sa) * 255 + 0.5
-        data[p + 2] = (src[s + 2] * k / sa) * 255 + 0.5
+        data[p] = (src[s] * k / sa) * 255
+        data[p + 1] = (src[s + 1] * k / sa) * 255
+        data[p + 2] = (src[s + 2] * k / sa) * 255
         data[p + 3] = 255
         continue
       }
@@ -123,10 +123,10 @@ export function compositeRow(
       const fb = da * (1 - sa)
       const ao = sa + fb
       const inv = 255 / ao
-      data[p] = (src[s] * k + (data[p] / 255) * fb) * inv + 0.5
-      data[p + 1] = (src[s + 1] * k + (data[p + 1] / 255) * fb) * inv + 0.5
-      data[p + 2] = (src[s + 2] * k + (data[p + 2] / 255) * fb) * inv + 0.5
-      data[p + 3] = ao * 255 + 0.5
+      data[p] = (src[s] * k + (data[p] / 255) * fb) * inv
+      data[p + 1] = (src[s + 1] * k + (data[p + 1] / 255) * fb) * inv
+      data[p + 2] = (src[s + 2] * k + (data[p + 2] / 255) * fb) * inv
+      data[p + 3] = ao * 255
     }
     return
   }
@@ -185,9 +185,9 @@ export function compositeRow(
       continue
     }
     const inv = 255 / ao
-    data[p] = ro * inv + 0.5
-    data[p + 1] = go * inv + 0.5
-    data[p + 2] = bo * inv + 0.5
-    data[p + 3] = ao * 255 + 0.5
+    data[p] = ro * inv
+    data[p + 1] = go * inv
+    data[p + 2] = bo * inv
+    data[p + 3] = ao * 255
   }
 }
