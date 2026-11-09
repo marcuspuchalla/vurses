@@ -40,8 +40,12 @@ async function dev(args: string[], flags: Flags) {
     const code = await supervise({ watchDir, terminal: true, args: [bin, 'run', entry, ...passthrough(flags, ['theme', 'fps', 'mouse', 'alt-screen', 'route', 'app'])] })
     process.exit(code)
   }
-  console.log(`\n  vuecli dev — ${entry}\n  http://${host && host !== '0.0.0.0' ? host : 'localhost'}:${port}  (watching for changes)\n`)
-  await supervise({ watchDir, args: [bin, 'dev', entry, '--worker', `--port=${port}`, ...(host ? [`--host=${host}`] : []), ...passthrough(flags, ['app'])] })
+  // pick the port once, here: every restarted worker reuses it, so the open tab keeps working
+  const { findFreePort } = await import('../../server/node.js')
+  const free = await findFreePort(port, host)
+  if (free !== port) console.log(`\n  port ${port} is in use (by another process on localhost) — using ${free}`)
+  console.log(`\n  vuecli dev — ${entry}\n  http://${host && host !== '0.0.0.0' ? host : 'localhost'}:${free}  (watching for changes)\n`)
+  await supervise({ watchDir, args: [bin, 'dev', entry, '--worker', `--port=${free}`, ...(host ? [`--host=${host}`] : []), ...passthrough(flags, ['app'])] })
 }
 
 const command: Command = {

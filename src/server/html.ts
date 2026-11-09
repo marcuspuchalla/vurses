@@ -57,6 +57,7 @@ export function renderDocument(o: DocumentOptions): string {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="data:,">
 <title>${title}</title>${o.description ? `\n<meta name="description" content="${escHtml(o.description)}">` : ''}
 <style>${CSS}</style>
 </head>

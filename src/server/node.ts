@@ -4,6 +4,7 @@
  * body stream when the client disconnects.
  */
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
+import { connect, createServer as createNetServer } from 'node:net'
 import { Readable } from 'node:stream'
 import type { FetchHandler } from './handler.js'
 
@@ -95,6 +96,44 @@ export interface RunningServer {
   url: string
   port: number
   close(): Promise<void>
+}
+
+/** True when something accepts TCP connections on `host:port`. */
+function answers(host: string, port: number, timeout = 250): Promise<boolean> {
+  return new Promise((done) => {
+    const socket = connect({ host, port })
+    const finish = (taken: boolean) => {
+      socket.destroy()
+      done(taken)
+    }
+    socket.setTimeout(timeout, () => finish(false))
+    socket.once('connect', () => finish(true))
+    socket.once('error', () => finish(false))
+  })
+}
+
+/** True when we can bind `port` on `host` (default: all interfaces). */
+function bindable(port: number, host?: string): Promise<boolean> {
+  return new Promise((done) => {
+    const probe = createNetServer()
+    probe.once('error', () => done(false))
+    probe.listen(port, host, () => probe.close(() => done(true)))
+  })
+}
+
+/**
+ * First port from `start` that is free for `host` AND not answering on either
+ * loopback address. Binding alone is not enough: on macOS a wildcard bind
+ * succeeds even when another process (e.g. Vite) holds `[::1]:port`, and
+ * browsers resolve `localhost` to `::1` first — so they would reach the other
+ * server, not ours.
+ */
+export async function findFreePort(start: number, host?: string, attempts = 20): Promise<number> {
+  for (let port = start; port < start + attempts; port++) {
+    const [v4, v6] = await Promise.all([answers('127.0.0.1', port), answers('::1', port)])
+    if (!v4 && !v6 && (await bindable(port, host))) return port
+  }
+  throw new Error(`no free port in ${start}–${start + attempts - 1}`)
 }
 
 /** Starts a node:http server for a fetch handler. `port: 0` picks a free port. */

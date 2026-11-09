@@ -92,6 +92,7 @@ export function browserTarget(options: BrowserTargetOptions = {}): BrowserTarget
         const input = attachHiddenInput({ document: doc, onData: send })
         cleanups.push(() => input.dispose())
       }
+      if (consoleOut) consoleHint(g)
       if (!size.fixed && options.resize !== false && g.addEventListener) {
         let t: ReturnType<typeof setTimeout> | null = null
         const onResize = () => {
@@ -121,4 +122,9 @@ export function browserTarget(options: BrowserTargetOptions = {}): BrowserTarget
     },
   }
   return target
+}
+
+/** One-time hint: keys typed into the console prompt never reach the page. */
+function consoleHint(g: Record<string, any>) {
+  g.console?.info?.("vuecli: click this page (not the console) to type into the app — or drive it from the console: await vuecli.press('tab', 'enter'), vuecli.type('hello'), vuecli.help()")
 }
