@@ -1,0 +1,11 @@
+:root { --accent: #ff0066; }
+body { background: #ffffff; color: #222222; }
+.top { border-bottom: 1px solid #dddddd; margin-bottom: 16px; }
+.title { color: var(--accent); font-weight: bold; }
+.items { list-style: none; padding: 0; }
+.items li { display: flex; gap: 1rem; }
+.price { color: #008800; }
+.hidden-on-terminal { display: none; }
+.total::before { content: "Σ "; }
+@media (max-width: 400px) { .wide-only { display: none; } }
+@media (prefers-color-scheme: dark) { .scheme::after { content: " (dark)"; } }

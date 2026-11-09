@@ -11,10 +11,11 @@ const COMMANDS: Record<string, () => Promise<{ default: Command }>> = {
   start: () => import('./commands/start.js'),
   mcp: () => import('./commands/mcp.js'),
   create: () => import('./commands/create.js'),
+  web: () => import('./commands/web.js'),
 }
 
 /** Flags that take a value (`--theme dark` as well as `--theme=dark`). */
-const VALUE_FLAGS = new Set(['theme', 'fps', 'port', 'host', 'adapter', 'out', 'outDir', 'app', 'route', 'size', 'mode'])
+const VALUE_FLAGS = new Set(['theme', 'fps', 'port', 'host', 'adapter', 'out', 'outDir', 'app', 'route', 'size', 'mode', 'keys', 'wait', 'keywait'])
 
 export function parseArgs(argv: string[]) {
   const args: string[] = []

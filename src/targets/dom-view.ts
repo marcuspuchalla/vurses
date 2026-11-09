@@ -161,3 +161,14 @@ export class DomView {
     this.el.remove()
   }
 }
+
+/** A whole frame as a standalone HTML page (snapshots, docs). */
+export function gridToHtml(g: CellGrid, palette: Palette = defaultPalette, title = 'vuecli'): string {
+  const rows: string[] = []
+  for (let y = 0; y < g.height; y++) rows.push(`<div style="height:1.25em;white-space:pre">${rowHtml(g, y, palette).replace(/<span style="/g, '<span style="display:inline-block;height:100%;')}</div>`)
+  const bg = resolveStyle('', '', 0, palette).background
+  const fg = resolveStyle('', '', 0, palette).color
+  return `<!doctype html><meta charset="utf-8"><title>${esc(title)}</title>
+<body style="margin:0;background:${bg}"><pre style="margin:0;padding:12px;font:14px/1.25 ui-monospace,Menlo,Consolas,monospace;color:${fg};background:${bg};display:inline-block">${rows.join('')}</pre></body>
+`
+}

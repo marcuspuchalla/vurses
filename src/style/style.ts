@@ -7,6 +7,12 @@
  *   3. direct props:     <Box flex-direction="column" :padding="1" />
  */
 
+/** A run of generated text with its own ink (CSS `content`, widget chrome). */
+export interface Segment {
+  text: string
+  ink?: Ink
+}
+
 export type Dimension = number | `${number}%` | 'auto'
 export type BorderStyle = 'single' | 'round' | 'double' | 'bold' | 'ascii' | 'dashed' | 'none'
 
@@ -73,6 +79,18 @@ export interface Style {
   textAlign?: 'left' | 'center' | 'right'
   /** Base text direction for the Unicode bidi algorithm (default `auto`: first strong character). */
   dir?: 'ltr' | 'rtl' | 'auto'
+  // generated content (set by style scopes, e.g. the web layer; not a prop)
+  /** Replaces the element's children (form controls, images). */
+  content?: Segment[] | string
+  /** Inserted before / after the children (CSS ::before / ::after). */
+  before?: Segment[] | string
+  after?: Segment[] | string
+  /** Painted in the left padding, on the first line (list bullets). */
+  marker?: Segment[] | string
+  /** Web flow: inline-level element (flows inside text runs). */
+  inline?: boolean
+  /** CSS white-space: `normal`/`nowrap` collapse spaces, `pre` keeps them. */
+  whiteSpace?: 'normal' | 'nowrap' | 'pre'
 }
 
 export const STYLE_KEYS = new Set<string>([

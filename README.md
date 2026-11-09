@@ -2,6 +2,8 @@
 
 **Native Vue 3 apps in the terminal.** Write ordinary Vue components (SFCs, `<script setup>`, TypeScript, `ref`, `computed`, `v-model`, slots, `v-for`, `v-if`, `v-show`, Teleport, Suspense) and they render as a real terminal UI: flexbox layout, borders, colors, themes, keyboard focus and mouse support.
 
+**Already have a Vue web app?** `npx vuecli web` runs an existing Vite + Vue 3 app in the terminal, unchanged. It uses your CSS, links, forms and router. See [Existing web apps](#existing-web-apps).
+
 Beyond the terminal:
 - a file-based **App Router**
 - a **canvas** you can draw on with the standard HTML Canvas 2D API
@@ -50,6 +52,7 @@ npx vuecli App.vue
 - [How it works](#how-it-works)
 - [Layout and styling](#layout-and-styling)
 - [Components](#components)
+- [Existing web apps](#existing-web-apps)
 - [App Router](#app-router)
 - [Canvas and images](#canvas-and-images)
 - [Browser console, server rendering and deployment](#browser-console-server-rendering-and-deployment)
@@ -91,6 +94,7 @@ vuecli build [dir]         Production build (--adapter node|bun|static|vercel|cl
 vuecli start [dir]         Serve a node/bun build
 vuecli mcp <entry|dir>     MCP server so coding agents can drive and read the app
 vuecli create <dir>        Scaffold an App Router project (--single for one App.vue)
+vuecli web [dir]           Run an existing Vite + Vue web app in the terminal
 vuecli <entry>             Shorthand for `vuecli run <entry>`
 
 --theme <name>             dark | light | dracula
@@ -222,6 +226,37 @@ Right-to-left text (Hebrew, Arabic) is laid out with the Unicode Bidirectional A
 <ProgressBar :value="0.42" show-percent />  <Spinner label="Loading…" />  <Sparkline :data="history" :width="30" />
 <Markdown source="# Hello\n- **bold** and `code`" />
 ```
+
+## Existing web apps
+
+`vuecli web` runs an existing **Vite + Vue 3** web app in the terminal without changing
+its code. The app is built with its own Vite config and then rendered with real CSS
+(selectors, `@media`, `var()`, flexbox, block and inline flow), with keyboard-operable
+links, buttons and form controls (`v-model` included) and vue-router navigation.
+
+```sh
+cd my-vue-app
+npm install -D vuecli
+npx vuecli web                      # Tab / Enter / Space, PgUp/PgDn, mouse
+npx vuecli web --route /about       # deep link
+npx vuecli web --snapshot --size 100x40 --keys "tab,enter"   # one frame as text (CI)
+```
+
+```
+                                           todos
+
+                   What needs to be done?
+           ─────────────────────────────────────────────────────────────────────
+           [x]     Buy milk                                               [ × ]
+           ─────────────────────────────────────────────────────────────────────
+           [ ]     Walk the dog
+           ─────────────────────────────────────────────────────────────────────
+             1 item left         [All]  Active  Completed     [ Clear completed ]
+```
+
+<sub>TodoMVC's Vue example, unmodified.</sub>
+
+Details, key bindings, CSS support and limitations: [docs/WEB.md](docs/WEB.md).
 
 ## App Router
 

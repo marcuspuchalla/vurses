@@ -1,5 +1,5 @@
 import { Display, Edge } from 'yoga-layout'
-import { borderEdges, hasBorder, TElement, type TNode, type TTextNode } from '../dom/nodes.js'
+import { borderEdges, hasBorder, InlineRun, TElement, type TNode, type TTextNode } from '../dom/nodes.js'
 import { colorSgr, parseColor, type ColorDepth } from '../style/colors.js'
 import { mergeInk, type Ink, type Style } from '../style/style.js'
 import type { Theme } from '../style/theme.js'
@@ -206,8 +206,15 @@ export class Painter {
     else if (this.opts.wireframe && el.kind !== 'text' && el.kind !== 'root') this.paintWireframe(buf, box, clip)
     if (typeof el.props.paintCells === 'function') this.runCellPainter(el, buf, inner, intersect(clip, inner), ink)
 
+    if (s.marker) {
+      const glyphs = toGlyphs(typeof s.marker === 'string' ? s.marker : s.marker.map((m) => m.text).join(''), {})
+      const mw = lineWidth(glyphs)
+      const mx = Math.max(x + bl, inner.x - mw)
+      this.paintGlyphs(glyphs, buf, { x: mx, y: inner.y, width: mw, height: 1 }, intersect(clip, box), ink, 'none', undefined)
+    }
+
     if (el.kind === 'text') {
-      this.paintGlyphs(el.getGlyphs(), buf, inner, intersect(clip, box), ink, s.wrap ?? 'wrap', s.textAlign, s.dir)
+      this.paintGlyphs(el.getGlyphs(), buf, inner, intersect(clip, box), ink, s.wrap ?? 'wrap', s.textAlign, s.dir, el)
       return
     }
 
@@ -216,7 +223,18 @@ export class Painter {
     const sy = Number(el.props.scrollTop ?? 0) || 0
 
     let absolute: TElement[] | null = null
-    for (const c of el.children) {
+    for (const c of el.layoutItems ?? el.children) {
+      if (c instanceof InlineRun) {
+        const ry = c.yoga
+        const rect: Rect = {
+          x: Math.round(x - sx + ry.getComputedLeft()),
+          y: Math.round(y - sy + ry.getComputedTop()),
+          width: Math.round(ry.getComputedWidth()),
+          height: Math.round(ry.getComputedHeight()),
+        }
+        this.paintGlyphs(c.glyphs, buf, rect, intersect(childClip, inner), ink, s.wrap ?? 'wrap', s.textAlign, s.dir, el)
+        continue
+      }
       if (c.nodeType === 'element') {
         if (c.computedStyle.position === 'absolute') {
           ;(absolute ??= []).push(c)
@@ -254,6 +272,8 @@ export class Painter {
     wrap: WrapMode,
     alignOpt: Style['textAlign'],
     dir?: Style['dir'],
+    /** Text element being painted: glyphs from nested inline elements get their own hit regions. */
+    owner?: TElement,
   ) {
     if (rect.width <= 0 || rect.height <= 0 || glyphs.length === 0) return
     let lines = wrapGlyphs(glyphs, rect.width, wrap)
@@ -262,6 +282,8 @@ export class Painter {
     if (bidi) lines = bidi.lines
     let lastInk: Ink | null = null
     let resolved: ResolvedInk | null = null
+    // inline elements get a layout box from their glyphs (focus scrolling, getBoundingClientRect)
+    const boxes = owner ? new Map<TElement, { x0: number; y0: number; x1: number; y1: number }>() : null
     for (let row = 0; row < lines.length && row < rect.height; row++) {
       const line = lines[row]
       let cx = rect.x
@@ -277,9 +299,30 @@ export class Painter {
         }
         const r = resolved!
         buf.set(cx, rect.y + row, g.ch, g.w, r.fg, r.bg, r.flags, clip)
+        if (owner && g.src && g.src !== owner) {
+          // merge consecutive glyphs of the same inline element into one hit rect
+          const last = this.hits[this.hits.length - 1]
+          if (last && last.el === g.src && last.rect.y === rect.y + row && last.rect.x + last.rect.width === cx) last.rect.width += g.w
+          else this.hits.push({ el: g.src as TElement, rect: intersect(clip, { x: cx, y: rect.y + row, width: g.w, height: 1 }) })
+          const src = g.src as TElement
+          const b = boxes!.get(src)
+          const y = rect.y + row
+          if (!b) boxes!.set(src, { x0: cx, y0: y, x1: cx + g.w, y1: y + 1 })
+          else {
+            b.x0 = Math.min(b.x0, cx)
+            b.x1 = Math.max(b.x1, cx + g.w)
+            b.y1 = y + 1
+          }
+        }
         cx += g.w
       }
     }
+    if (boxes)
+      for (const [el, b] of boxes) {
+        const width = b.x1 - b.x0
+        const height = b.y1 - b.y0
+        el.updateLayout({ x: b.x0, y: b.y0, width, height, innerWidth: width, innerHeight: height, scrollWidth: width, scrollHeight: height })
+      }
   }
 
   private paintBorder(el: TElement, s: Style, buf: CellBuffer, box: Rect, clip: Rect, ink: Ink) {

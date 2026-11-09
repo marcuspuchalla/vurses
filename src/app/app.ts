@@ -316,8 +316,15 @@ export class Runtime {
     }
   }
 
+  /**
+   * Optional interceptor (used by the web layer): return true to take over a
+   * mouse event, e.g. to deliver DOM-shaped click events inside a web page.
+   */
+  mouseHook: ((e: MouseEvent, target: TElement | null) => boolean) | null = null
+
   dispatchMouse(e: MouseEvent) {
     const target = this.painter.hitTest(e.x, e.y)
+    if (this.mouseHook?.(e, target)) return
     const payload = { ...e }
     switch (e.action) {
       case 'down': {
@@ -424,7 +431,7 @@ function resolveTheme(t: Theme | string | undefined): Theme {
  *
  *   createApp(App).mount()
  */
-export function createApp(rootComponent: Component, rootProps?: Record<string, unknown> | null): TuiApp {
+export function createApp(rootComponent: Component, rootProps?: Record<string, unknown> | null, options: { components?: boolean } = {}): TuiApp {
   // wrap the user's root so built-in overlays (devtools) are always available
   const Root = defineComponent({
     name: 'VueCliRoot',
@@ -433,7 +440,8 @@ export function createApp(rootComponent: Component, rootProps?: Record<string, u
     },
   })
   const app = createBaseApp(Root) as unknown as TuiApp
-  installComponents(app as unknown as App)
+  // web apps (`vuecli web`) bring their own components; don't shadow their names
+  if (options.components !== false) installComponents(app as unknown as App)
   const baseMount = (app as unknown as App<TElement>).mount
   let runtime: Runtime | null = null
   app.runtime = null

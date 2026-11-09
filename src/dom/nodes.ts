@@ -13,7 +13,7 @@ import Yoga, {
   type Node as YogaNode,
 } from 'yoga-layout'
 import { parseClasses } from '../style/classes.js'
-import { assignStyle, parseStyleString, type Ink, type Style, mergeInk } from '../style/style.js'
+import { assignStyle, parseStyleString, type Ink, type Segment, type Style, mergeInk } from '../style/style.js'
 import { measureGlyphs, toGlyphs, type Glyph, type WrapMode } from '../render/text.js'
 
 export type TNode = TElement | TTextNode | TComment
@@ -58,6 +58,35 @@ export interface LayoutInfo extends LayoutRect {
 /** Hook used by the app to know when it must repaint. */
 export interface Host {
   requestRender(): void
+}
+
+/**
+ * A style scope takes over style resolution for every element below the
+ * element it is attached to (`el.scope = ...`). Used by the web layer
+ * (`vuecli web`) to apply real CSS and HTML flow layout to existing web apps.
+ */
+export interface StyleScope {
+  /** Resolves the style of an element inside the scope. */
+  style(el: TElement): Style
+  /** A subtree was inserted below the scope. */
+  attached(node: TNode): void
+  /** A subtree is about to be removed from the scope. */
+  detached(node: TNode): void
+  /** Children or style of an element changed (flow may need recomputing). */
+  changed(el: TElement): void
+  /** A prop was patched on an element inside the scope. */
+  propChanged(el: TElement, key: string, value: unknown): void
+  /** Called once per frame, before layout. */
+  flush(): void
+}
+
+/** Nearest scope at or above `n`. */
+export function scopeOf(n: TElement | null): StyleScope | null {
+  while (n) {
+    if (n.scope) return n.scope
+    n = n.parent
+  }
+  return null
 }
 
 abstract class NodeBase {
@@ -109,7 +138,11 @@ export class TTextNode extends NodeBase {
     this.notify()
   }
   getGlyphs(): Glyph[] {
-    return (this.glyphs ??= toGlyphs(this._text, {}))
+    if (this.glyphs) return this.glyphs
+    // web flow: collapse white space like CSS `white-space: normal`
+    const ws = this.parent?.computedStyle.whiteSpace
+    const text = ws === 'normal' || ws === 'nowrap' ? this._text.replace(/\s+/g, ' ').trim() : this._text
+    return (this.glyphs = toGlyphs(text, {}))
   }
 }
 
@@ -124,10 +157,19 @@ export type Listener = (...args: any[]) => unknown
 
 export class TElement extends NodeBase {
   readonly nodeType = 'element' as const
-  readonly kind: ElementKind
+  kind: ElementKind
   props: Record<string, any> = {}
   children: TNode[] = []
   host: Host | null = null
+  /** Set on the element that owns a style scope (see `StyleScope`). */
+  scope: StyleScope | null = null
+  /**
+   * Web flow only: layout items of a box that mixes block and inline
+   * children; consecutive inline children are grouped into `InlineRun`s
+   * (CSS anonymous inline boxes). Null for ordinary elements.
+   */
+  layoutItems: (TNode | InlineRun)[] | null = null
+  private runs: InlineRun[] = []
 
   /** resolved style (cached) */
   private _style: Style | null = null
@@ -167,11 +209,13 @@ export class TElement extends NodeBase {
     if (i >= 0) this.children.splice(i, 0, child)
     else this.children.push(child)
     this.childrenChanged()
+    scopeOf(this)?.attached(child)
   }
 
   removeChild(child: TNode, dispose = true) {
     const i = this.children.indexOf(child)
     if (i < 0) return
+    scopeOf(this)?.detached(child)
     this.children.splice(i, 1)
     detachYoga(child)
     child.parent = null
@@ -182,6 +226,24 @@ export class TElement extends NodeBase {
   private childrenChanged() {
     this.childrenDirty = true
     if (this.kind === 'text') this.invalidateText()
+    scopeOf(this)?.changed(this)
+    this.notify()
+  }
+
+  /**
+   * Switches between box and text layout (web flow: a block whose children
+   * are all inline becomes a text block). Drops the Yoga subtree; it is
+   * rebuilt on the next layout.
+   */
+  setKind(kind: ElementKind) {
+    if (kind === this.kind) return
+    disposeTree(this)
+    this.kind = kind
+    this._style = null
+    this.styleApplied = false
+    this.childrenDirty = true
+    for (const el of this.walk()) el.glyphCache = null
+    if (this.parent) this.parent.childrenDirty = true
     this.notify()
   }
 
@@ -190,6 +252,8 @@ export class TElement extends NodeBase {
   setProp(key: string, value: unknown) {
     if (value === undefined || value === null) delete this.props[key]
     else this.props[key] = value
+    const scope = scopeOf(this.parent)
+    if (scope) scope.propChanged(this, key, value)
     if (/^on[A-Z]/.test(key)) return
     this.invalidateStyle()
   }
@@ -198,6 +262,7 @@ export class TElement extends NodeBase {
     this._style = null
     this.styleApplied = false
     if (this.kind === 'text') this.invalidateText()
+    scopeOf(this.parent)?.changed(this)
     this.notify()
   }
 
@@ -212,6 +277,12 @@ export class TElement extends NodeBase {
 
   get computedStyle(): Style {
     if (this._style) return this._style
+    const scope = scopeOf(this.parent)
+    if (scope) {
+      const ws = scope.style(this)
+      if (this._vshowDisplay === 'none') ws.display = 'none'
+      return (this._style = ws)
+    }
     const s: Style = {}
     const p = this.props
     if (p.class) Object.assign(s, parseClasses(String(p.class)))
@@ -246,8 +317,10 @@ export class TElement extends NodeBase {
   /** Glyphs of the whole text element, including nested spans, with their own ink. */
   getGlyphs(): Glyph[] {
     if (this.glyphCache) return this.glyphCache
-    const out: Glyph[] = []
+    let out: Glyph[] = []
     collectGlyphs(this, mergeInk({}, this.computedStyle), out)
+    const ws = this.computedStyle.whiteSpace
+    if (ws === 'normal' || ws === 'nowrap') out = collapseSpaces(out)
     return (this.glyphCache = out)
   }
 
@@ -258,6 +331,7 @@ export class TElement extends NodeBase {
    * `calculateLayout`.
    */
   prepareLayout() {
+    this.scope?.flush()
     const yoga = (this.yoga ??= Yoga.Node.create(yogaConfig))
     if (!this.styleApplied) {
       applyYogaStyle(yoga, this.computedStyle, this.kind)
@@ -269,6 +343,7 @@ export class TElement extends NodeBase {
       for (const c of this.children) releaseYogaTree(c)
       return
     }
+    if (this.computedStyle.whiteSpace !== undefined) return this.prepareFlowLayout(yoga)
     for (const c of this.children) {
       if (c.nodeType === 'element') c.prepareLayout()
       else if (c.nodeType === 'text') prepareTextNode(c)
@@ -281,6 +356,48 @@ export class TElement extends NodeBase {
       }
       this.childrenDirty = false
     }
+  }
+
+  /** Web flow: block children get their own Yoga nodes, inline runs one text node each. */
+  private prepareFlowLayout(yoga: YogaNode) {
+    const items: (TNode | InlineRun)[] = []
+    const runs: InlineRun[] = []
+    let run: InlineRun | null = null
+    for (const c of this.children) {
+      if (c.nodeType === 'comment') continue
+      if (isInlineMember(c, this)) {
+        if (!run) {
+          run = this.runs[runs.length] ?? new InlineRun(this)
+          run.members = []
+          runs.push(run)
+          items.push(run)
+        }
+        run.members.push(c)
+        releaseYogaTree(c)
+        continue
+      }
+      run = null
+      if (c.nodeType === 'element') {
+        c.prepareLayout()
+        items.push(c)
+      } else if (c.nodeType === 'text') {
+        prepareTextNode(c)
+        items.push(c)
+      }
+    }
+    for (const r of this.runs.slice(runs.length)) r.free()
+    this.runs = runs
+    // runs with nothing visible (formatting whitespace) take no space
+    const visible = items.filter((it) => !(it instanceof InlineRun) || it.update())
+    const prev = this.layoutItems
+    const same = !!prev && prev.length === visible.length && prev.every((p, i) => p === visible[i])
+    if (this.childrenDirty || !same) {
+      while (yoga.getChildCount() > 0) yoga.removeChild(yoga.getChild(0))
+      let i = 0
+      for (const it of visible) if (it.yoga) yoga.insertChild(it.yoga, i++)
+      this.childrenDirty = false
+    }
+    this.layoutItems = visible
   }
 
   calculateLayout(width: number, height: number) {
@@ -327,6 +444,50 @@ export class TElement extends NodeBase {
 
 const hasMeasure = new WeakSet<YogaNode>()
 
+/** Inline-level child of a web flow box: text, or an inline element laid out as text. */
+function isInlineMember(c: TNode, parent: TElement): boolean {
+  if (c.nodeType === 'text') return parent.computedStyle.whiteSpace !== undefined
+  if (c.nodeType !== 'element') return false
+  const s = c.computedStyle
+  if (s.display === 'none') return true
+  return !!s.inline && c.kind === 'text' && s.position !== 'absolute'
+}
+
+/** Consecutive inline children of a box, laid out and painted as one wrapped text block. */
+export class InlineRun {
+  readonly yoga: YogaNode = Yoga.Node.create(yogaConfig)
+  members: TNode[] = []
+  glyphs: Glyph[] = []
+  private sig = ''
+
+  constructor(readonly owner: TElement) {
+    this.yoga.setFlexShrink(1)
+    setTextMeasure(this.yoga, () => this.glyphs, () => owner.computedStyle.wrap)
+  }
+
+  /** Recollects glyphs; returns false when the run has nothing to show. */
+  update(): boolean {
+    const out: Glyph[] = []
+    collectList(this.owner, this.members, {}, out)
+    const ws = this.owner.computedStyle.whiteSpace
+    this.glyphs = ws === 'normal' || ws === 'nowrap' ? collapseSpaces(out) : out
+    let sig = ''
+    for (const g of this.glyphs) sig += g.ch
+    if (sig !== this.sig) {
+      this.sig = sig
+      this.yoga.markDirty()
+    }
+    return this.glyphs.length > 0
+  }
+
+  free() {
+    const p = this.yoga.getParent()
+    if (p) p.removeChild(this.yoga)
+    hasMeasure.delete(this.yoga)
+    this.yoga.free()
+  }
+}
+
 function setTextMeasure(yoga: YogaNode, glyphs: () => Glyph[], wrap: () => WrapMode | undefined) {
   hasMeasure.add(yoga)
   yoga.setMeasureFunc((width, widthMode) => {
@@ -346,19 +507,74 @@ function prepareTextNode(t: TTextNode) {
   t.yoga.setDisplay(/^\s*$/.test(t.text) ? Display.None : Display.Flex)
 }
 
+function pushSegments(segs: Segment[] | string, ink: Ink, out: Glyph[], src: TElement) {
+  const start = out.length
+  if (typeof segs === 'string') toGlyphs(segs, ink, out)
+  else for (const seg of segs) toGlyphs(seg.text, seg.ink ? mergeInk(ink, seg.ink) : ink, out)
+  // generated content (widget chrome, padding) is never collapsed
+  for (let i = start; i < out.length; i++) {
+    out[i].src = src
+    out[i].keep = true
+  }
+}
+
 function collectGlyphs(el: TElement, ink: Ink, out: Glyph[]) {
-  for (const c of el.children) {
-    if (c.nodeType === 'text') toGlyphs(c.text, ink, out)
-    else if (c.nodeType === 'element') {
+  const s = el.computedStyle
+  if (s.content !== undefined) return pushSegments(s.content, ink, out, el)
+  if (s.before) pushSegments(s.before, ink, out, el)
+  collectList(el, el.children, ink, out)
+  if (s.after) pushSegments(s.after, ink, out, el)
+}
+
+/** Glyphs of `nodes` (children of `el`, or a run of them). */
+function collectList(el: TElement, nodes: TNode[], ink: Ink, out: Glyph[]) {
+  const s = el.computedStyle
+  const collapse = s.whiteSpace === 'normal' || s.whiteSpace === 'nowrap'
+  for (const c of nodes) {
+    if (c.nodeType === 'text') {
+      const start = out.length
+      toGlyphs(collapse ? c.text.replace(/\s+/g, ' ') : c.text, ink, out)
+      for (let i = start; i < out.length; i++) out[i].src = el
+    } else if (c.nodeType === 'element') {
       if (c.computedStyle.display === 'none') continue
       if (c.tag === 'tui-newline' || c.tag === 'br') {
         const n = Number(c.props.count ?? 1)
         for (let i = 0; i < n; i++) out.push({ ch: '\n', w: 0, ink })
         continue
       }
-      collectGlyphs(c, mergeInk(ink, c.computedStyle), out)
+      const cs = c.computedStyle
+      const cink = mergeInk(ink, cs)
+      if (cs.whiteSpace !== undefined) {
+        // web flow: an inline element's horizontal margin / padding become spaces, a border brackets
+        const lead = ' '.repeat((cs.marginLeft ?? 0) + (cs.paddingLeft ?? 0))
+        const trail = ' '.repeat((cs.paddingRight ?? 0) + (cs.marginRight ?? 0))
+        const boxed = !!cs.border && cs.border !== 'none' && !c.computedStyle.content
+        if (lead) pushSegments(lead, ink, out, c)
+        if (boxed) pushSegments('[', mergeInk(ink, { color: cs.borderColor ?? cs.color }), out, c)
+        collectGlyphs(c, cink, out)
+        if (boxed) pushSegments(']', mergeInk(ink, { color: cs.borderColor ?? cs.color }), out, c)
+        if (trail) pushSegments(trail, ink, out, c)
+        continue
+      }
+      collectGlyphs(c, cink, out)
     }
   }
+}
+
+/** CSS white-space collapsing across inline boundaries: no leading/trailing or double spaces. */
+function collapseSpaces(glyphs: Glyph[]): Glyph[] {
+  const out: Glyph[] = []
+  for (const g of glyphs) {
+    if (g.ch === ' ' && !g.keep) {
+      const prev = out[out.length - 1]
+      if (!prev || prev.ch === ' ' || prev.ch === '\n') continue
+    } else if (g.ch === '\n') {
+      while (out.length && out[out.length - 1].ch === ' ' && !out[out.length - 1].keep) out.pop()
+    }
+    out.push(g)
+  }
+  while (out.length && out[out.length - 1].ch === ' ' && !out[out.length - 1].keep) out.pop()
+  return out
 }
 
 function detachYoga(n: TNode) {

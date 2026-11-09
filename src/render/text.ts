@@ -10,6 +10,10 @@ export interface Glyph {
   w: number
   /** Ink (own styles of the text element / nested spans). */
   ink: Ink
+  /** Element that produced the glyph (for hit-testing inline elements). */
+  src?: object
+  /** Generated content: never removed by white-space collapsing. */
+  keep?: boolean
 }
 
 export type Line = Glyph[]
