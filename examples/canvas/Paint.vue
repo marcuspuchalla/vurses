@@ -1,3 +1,24 @@
+<template>
+  <Box class="grow gap-1">
+    <Box class="flex-col" border="round" title="paint" :width="22" :padding-x="1">
+      <Text color="muted">tool</Text>
+      <RadioGroup v-model="tool" :options="tools" />
+      <Text color="muted">color</Text>
+      <Box :height="2"><Canvas :focusable="false" @ready="onSwatchesReady" @resize="drawSwatches" @pointer="pickColor" /></Box>
+      <Text color="muted">size {{ size }}px (wheel)</Text>
+      <RadioGroup v-model="size" horizontal :options="[1, 2, 4, 8]" />
+      <Spacer />
+      <Box class="gap-1">
+        <Button label="clear" variant="danger" @click="clear" />
+        <Button label="save" @click="save" />
+      </Box>
+    </Box>
+    <Box class="grow" border="round" title="left: draw · right: erase">
+      <Canvas :mode="mode" @ready="onReady" @resize="onResize" @pointer="onPointer" />
+    </Box>
+  </Box>
+</template>
+
 <script setup lang="ts">
 import { ref } from 'vue'
 import { writeFileSync } from 'node:fs'
@@ -147,24 +168,3 @@ function save() {
   emit('status', `saved ${file}`)
 }
 </script>
-
-<template>
-  <Box class="grow gap-1">
-    <Box class="flex-col" border="round" title="paint" :width="22" :padding-x="1">
-      <Text color="muted">tool</Text>
-      <RadioGroup v-model="tool" :options="tools" />
-      <Text color="muted">color</Text>
-      <Box :height="2"><Canvas :focusable="false" @ready="onSwatchesReady" @resize="drawSwatches" @pointer="pickColor" /></Box>
-      <Text color="muted">size {{ size }}px (wheel)</Text>
-      <RadioGroup v-model="size" horizontal :options="[1, 2, 4, 8]" />
-      <Spacer />
-      <Box class="gap-1">
-        <Button label="clear" variant="danger" @click="clear" />
-        <Button label="save" @click="save" />
-      </Box>
-    </Box>
-    <Box class="grow" border="round" title="left: draw · right: erase">
-      <Canvas :mode="mode" @ready="onReady" @resize="onResize" @pointer="onPointer" />
-    </Box>
-  </Box>
-</template>

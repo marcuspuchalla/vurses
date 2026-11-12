@@ -1,9 +1,3 @@
-<script setup lang="ts">
-import { usePathname, useRouter } from 'vuecli'
-const pathname = usePathname()
-const router = useRouter()
-</script>
-
 <template>
   <Box class="flex-col gap-1 p-1">
     <Text><Text bold color="warning">404</Text> <Text color="muted">│</Text> Nothing lives at <Text color="accent">{{ pathname }}</Text></Text>
@@ -13,3 +7,9 @@ const router = useRouter()
     </Box>
   </Box>
 </template>
+
+<script setup lang="ts">
+import { usePathname, useRouter } from 'vuecli'
+const pathname = usePathname()
+const router = useRouter()
+</script>

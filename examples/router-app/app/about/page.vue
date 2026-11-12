@@ -1,7 +1,3 @@
-<script lang="ts">
-export const metadata = { title: 'About' }
-</script>
-
 <template>
   <Box class="flex-col gap-1">
     <Text bold>About</Text>
@@ -13,3 +9,7 @@ export const metadata = { title: 'About' }
     <Link href="/">← Home</Link>
   </Box>
 </template>
+
+<script lang="ts">
+export const metadata = { title: 'About' }
+</script>

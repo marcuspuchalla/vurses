@@ -1,128 +1,3 @@
-<script setup lang="ts">
-import { defineComponent, h, ref } from 'vue'
-import { useApp, useInterval, useKeymap, type TreeNode } from 'vuecli'
-
-const { exit, size } = useApp()
-
-// ------------------------------------------------------------ navigation
-const tabs = ['Layout', 'Tree', 'Code', 'Diff', 'Charts', 'Text', 'Inputs', 'Errors']
-const tab = ref('Layout')
-const step = (d: number) => (tab.value = tabs[(tabs.indexOf(tab.value) + d + tabs.length) % tabs.length])
-
-useKeymap(
-  {
-    ']': { handler: () => step(1), description: 'Next page' },
-    '[': { handler: () => step(-1), description: 'Previous page' },
-    'ctrl+q': { handler: () => exit(), description: 'Quit' },
-  },
-  { group: 'Gallery' },
-)
-
-// ------------------------------------------------------------ layout
-const sidebar = ref<number | string>('30%')
-const collapsed = ref(false)
-
-// ------------------------------------------------------------ tree
-const files: TreeNode[] = [
-  {
-    label: 'src',
-    icon: '📁',
-    value: 'src',
-    expanded: true,
-    children: [
-      {
-        label: 'components',
-        icon: '📁',
-        value: 'src/components',
-        expanded: true,
-        children: [
-          { label: 'tree.ts', icon: '📄', value: 'src/components/tree.ts' },
-          { label: 'code.ts', icon: '📄', value: 'src/components/code.ts' },
-          { label: 'diff.ts', icon: '📄', value: 'src/components/diff.ts' },
-          { label: 'charts.ts', icon: '📄', value: 'src/components/charts.ts' },
-        ],
-      },
-      { label: 'fonts', icon: '📁', value: 'src/fonts', children: [{ label: 'figlet.ts', icon: '📄', value: 'src/fonts/figlet.ts' }] },
-      { label: 'index.ts', icon: '📄', value: 'src/index.ts' },
-    ],
-  },
-  { label: 'package.json', icon: '📦', value: 'package.json' },
-  { label: 'README.md', icon: '📝', value: 'README.md' },
-]
-const selectedFile = ref<unknown>('src/components/tree.ts')
-
-// ------------------------------------------------------------ code / diff
-const tsSample = `import { ref, computed } from 'vue'
-
-/** A tiny counter store. */
-export function useCounter(start = 0) {
-  const count = ref(start)
-  const double = computed(() => count.value * 2)
-  const inc = (by: number = 1) => (count.value += by)
-  return { count, double, inc } // reactive!
-}
-`
-// (the closing script tag below is escaped so it doesn't end this SFC's own script block)
-const vueSample = `<template>
-  <Box border="round" :padding="1">
-    <Text color="primary">Hello {{ name }}</Text>
-  </Box>
-</template>
-
-<script setup lang="ts">
-const name = 'vuecli'
-<\/script>`
-const before = `function greet(name) {
-  console.log("Hello " + name)
-  return true
-}
-
-greet("world")
-`
-const after = `function greet(name, punctuation = "!") {
-  console.log(\`Hello \${name}\${punctuation}\`)
-  return true
-}
-
-greet("world")
-greet("vuecli", "?")
-`
-const splitDiff = ref(false)
-
-// ------------------------------------------------------------ charts
-const cpu = ref(Array.from({ length: 60 }, (_, i) => 40 + Math.sin(i / 6) * 25 + Math.random() * 8))
-const mem = ref(Array.from({ length: 60 }, (_, i) => 30 + i * 0.6 + Math.random() * 4))
-useInterval(() => {
-  const t = cpu.value.length
-  cpu.value = [...cpu.value.slice(1), 40 + Math.sin(t / 6) * 25 + Math.random() * 8]
-  mem.value = [...mem.value.slice(1), Math.max(10, Math.min(95, mem.value[mem.value.length - 1] + (Math.random() - 0.48) * 4))]
-}, 500)
-
-// ------------------------------------------------------------ inputs
-const volume = ref(60)
-const ratio = ref(0.5)
-const level = ref(3)
-
-// ------------------------------------------------------------ errors / suspense
-const broken = ref(true)
-const Flaky = defineComponent({
-  setup() {
-    return () => {
-      if (broken.value) throw new Error('Widget exploded while rendering')
-      return h('tui-text', { color: 'success' }, '✓ The widget recovered')
-    }
-  },
-})
-const suspenseKey = ref(0)
-const SlowData = defineComponent({
-  async setup() {
-    await new Promise((r) => setTimeout(r, 1500))
-    const loadedAt = new Date().toTimeString().slice(0, 8)
-    return () => h('tui-text', { color: 'success' }, `✓ data loaded at ${loadedAt}`)
-  },
-})
-</script>
-
 <template>
   <Box class="flex-col" :height="size.rows" :width="size.columns">
     <Box class="px-1 shrink-0" bg="surface">
@@ -262,3 +137,128 @@ const SlowData = defineComponent({
     <KeyHelp :extra="[{ keys: 'tab|shift+tab', description: 'Move focus', group: 'Navigation' }]" />
   </Box>
 </template>
+
+<script setup lang="ts">
+import { defineComponent, h, ref } from 'vue'
+import { useApp, useInterval, useKeymap, type TreeNode } from 'vuecli'
+
+const { exit, size } = useApp()
+
+// ------------------------------------------------------------ navigation
+const tabs = ['Layout', 'Tree', 'Code', 'Diff', 'Charts', 'Text', 'Inputs', 'Errors']
+const tab = ref('Layout')
+const step = (d: number) => (tab.value = tabs[(tabs.indexOf(tab.value) + d + tabs.length) % tabs.length])
+
+useKeymap(
+  {
+    ']': { handler: () => step(1), description: 'Next page' },
+    '[': { handler: () => step(-1), description: 'Previous page' },
+    'ctrl+q': { handler: () => exit(), description: 'Quit' },
+  },
+  { group: 'Gallery' },
+)
+
+// ------------------------------------------------------------ layout
+const sidebar = ref<number | string>('30%')
+const collapsed = ref(false)
+
+// ------------------------------------------------------------ tree
+const files: TreeNode[] = [
+  {
+    label: 'src',
+    icon: '📁',
+    value: 'src',
+    expanded: true,
+    children: [
+      {
+        label: 'components',
+        icon: '📁',
+        value: 'src/components',
+        expanded: true,
+        children: [
+          { label: 'tree.ts', icon: '📄', value: 'src/components/tree.ts' },
+          { label: 'code.ts', icon: '📄', value: 'src/components/code.ts' },
+          { label: 'diff.ts', icon: '📄', value: 'src/components/diff.ts' },
+          { label: 'charts.ts', icon: '📄', value: 'src/components/charts.ts' },
+        ],
+      },
+      { label: 'fonts', icon: '📁', value: 'src/fonts', children: [{ label: 'figlet.ts', icon: '📄', value: 'src/fonts/figlet.ts' }] },
+      { label: 'index.ts', icon: '📄', value: 'src/index.ts' },
+    ],
+  },
+  { label: 'package.json', icon: '📦', value: 'package.json' },
+  { label: 'README.md', icon: '📝', value: 'README.md' },
+]
+const selectedFile = ref<unknown>('src/components/tree.ts')
+
+// ------------------------------------------------------------ code / diff
+const tsSample = `import { ref, computed } from 'vue'
+
+/** A tiny counter store. */
+export function useCounter(start = 0) {
+  const count = ref(start)
+  const double = computed(() => count.value * 2)
+  const inc = (by: number = 1) => (count.value += by)
+  return { count, double, inc } // reactive!
+}
+`
+// (the closing script tag below is escaped so it doesn't end this SFC's own script block)
+const vueSample = `<template>
+  <Box border="round" :padding="1">
+    <Text color="primary">Hello {{ name }}</Text>
+  </Box>
+</template>
+
+<script setup lang="ts">
+const name = 'vuecli'
+<\/script>`
+const before = `function greet(name) {
+  console.log("Hello " + name)
+  return true
+}
+
+greet("world")
+`
+const after = `function greet(name, punctuation = "!") {
+  console.log(\`Hello \${name}\${punctuation}\`)
+  return true
+}
+
+greet("world")
+greet("vuecli", "?")
+`
+const splitDiff = ref(false)
+
+// ------------------------------------------------------------ charts
+const cpu = ref(Array.from({ length: 60 }, (_, i) => 40 + Math.sin(i / 6) * 25 + Math.random() * 8))
+const mem = ref(Array.from({ length: 60 }, (_, i) => 30 + i * 0.6 + Math.random() * 4))
+useInterval(() => {
+  const t = cpu.value.length
+  cpu.value = [...cpu.value.slice(1), 40 + Math.sin(t / 6) * 25 + Math.random() * 8]
+  mem.value = [...mem.value.slice(1), Math.max(10, Math.min(95, mem.value[mem.value.length - 1] + (Math.random() - 0.48) * 4))]
+}, 500)
+
+// ------------------------------------------------------------ inputs
+const volume = ref(60)
+const ratio = ref(0.5)
+const level = ref(3)
+
+// ------------------------------------------------------------ errors / suspense
+const broken = ref(true)
+const Flaky = defineComponent({
+  setup() {
+    return () => {
+      if (broken.value) throw new Error('Widget exploded while rendering')
+      return h('tui-text', { color: 'success' }, '✓ The widget recovered')
+    }
+  },
+})
+const suspenseKey = ref(0)
+const SlowData = defineComponent({
+  async setup() {
+    await new Promise((r) => setTimeout(r, 1500))
+    const loadedAt = new Date().toTimeString().slice(0, 8)
+    return () => h('tui-text', { color: 'success' }, `✓ data loaded at ${loadedAt}`)
+  },
+})
+</script>

@@ -1,11 +1,3 @@
-<script lang="ts">
-export const metadata = { title: { default: 'Users', template: '%s · Users · vuecli router' } }
-</script>
-
-<script setup lang="ts">
-import { users } from './data.ts'
-</script>
-
 <template>
   <Box class="flex-1">
     <Box class="flex-col w-18 shrink-0 pr-1">
@@ -20,3 +12,11 @@ import { users } from './data.ts'
     </Box>
   </Box>
 </template>
+
+<script lang="ts">
+export const metadata = { title: { default: 'Users', template: '%s · Users · vuecli router' } }
+</script>
+
+<script setup lang="ts">
+import { users } from './data.ts'
+</script>

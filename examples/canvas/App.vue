@@ -1,21 +1,3 @@
-<script setup lang="ts">
-import { ref } from 'vue'
-import { fileURLToPath } from 'node:url'
-import { useApp, useKeymap, CANVAS_MODES, type CanvasMode } from 'vuecli'
-import Paint from './Paint.vue'
-import Particles from './Particles.vue'
-
-const { exit, size } = useApp()
-const tab = ref<'paint' | 'particles' | 'web page'>('paint')
-const mode = ref<CanvasMode>('halfblock')
-const status = ref('')
-// an unmodified browser canvas demo, rendered by tty-canvas inside the layout
-const starfield = fileURLToPath(new URL('./starfield.html', import.meta.url))
-const cellModes = CANVAS_MODES.filter((m) => !['kitty', 'sixel', 'iterm2'].includes(m))
-
-useKeymap({ 'ctrl+q|escape': () => exit() })
-</script>
-
 <template>
   <Box class="flex-col" :width="size.columns" :height="size.rows">
     <Box class="gap-2" :padding-x="1">
@@ -40,3 +22,21 @@ useKeymap({ 'ctrl+q|escape': () => exit() })
     </Box>
   </Box>
 </template>
+
+<script setup lang="ts">
+import { ref } from 'vue'
+import { fileURLToPath } from 'node:url'
+import { useApp, useKeymap, CANVAS_MODES, type CanvasMode } from 'vuecli'
+import Paint from './Paint.vue'
+import Particles from './Particles.vue'
+
+const { exit, size } = useApp()
+const tab = ref<'paint' | 'particles' | 'web page'>('paint')
+const mode = ref<CanvasMode>('halfblock')
+const status = ref('')
+// an unmodified browser canvas demo, rendered by tty-canvas inside the layout
+const starfield = fileURLToPath(new URL('./starfield.html', import.meta.url))
+const cellModes = CANVAS_MODES.filter((m) => !['kitty', 'sixel', 'iterm2'].includes(m))
+
+useKeymap({ 'ctrl+q|escape': () => exit() })
+</script>

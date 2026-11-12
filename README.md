@@ -1,6 +1,16 @@
 # vuecli
 
-**Native Vue 3 apps in the terminal.** Write ordinary Vue components (SFCs, `<script setup>`, TypeScript, `ref`, `computed`, `v-model`, slots, `v-for`, `v-if`, `v-show`, Teleport, Suspense) and they render as a real terminal UI: flexbox layout, borders, colors, themes, keyboard focus and mouse support.
+**Native Vue 3 apps in the terminal.** Write ordinary Vue components (SFCs, `<template>
+  <Box class="flex-col gap-1 p-1" border="round" title="counter">
+    <BigText :text="String(count)" color="primary" />
+    <Box class="gap-1">
+      <Button label="-1" @click="count--" />
+      <Button label="+1" variant="primary" @click="count++" />
+    </Box>
+  </Box>
+</template>
+
+<script setup>`, TypeScript, `ref`, `computed`, `v-model`, slots, `v-for`, `v-if`, `v-show`, Teleport, Suspense) and they render as a real terminal UI: flexbox layout, borders, colors, themes, keyboard focus and mouse support.
 
 **Already have a Vue web app?** `npx vuecli web` runs an existing Vite + Vue 3 app in the terminal, unchanged. It uses your CSS, links, forms and router. See [Existing web apps](#existing-web-apps).
 
@@ -16,16 +26,6 @@ Beyond the terminal:
 import { ref } from 'vue'
 const count = ref(0)
 </script>
-
-<template>
-  <Box class="flex-col gap-1 p-1" border="round" title="counter">
-    <BigText :text="String(count)" color="primary" />
-    <Box class="gap-1">
-      <Button label="-1" @click="count--" />
-      <Button label="+1" variant="primary" @click="count++" />
-    </Box>
-  </Box>
-</template>
 ```
 
 ```sh

@@ -5,19 +5,7 @@ import { pkg, type Command, type Flags } from '../shared.js'
 // ---------------------------------------------------------------- App Router
 
 const ROUTER_FILES: Record<string, string> = {
-  'app/layout.vue': `<script lang="ts">
-export const metadata = { title: { default: '__NAME__', template: '%s · __NAME__' } }
-</script>
-
-<script setup lang="ts">
-import { useApp, useMetadata, usePathname } from 'vuecli'
-
-const { size } = useApp()
-const pathname = usePathname()
-const meta = useMetadata()
-</script>
-
-<template>
+  'app/layout.vue': `<template>
   <Box class="flex-col" :height="size.rows" :width="size.columns">
     <Box class="px-1 gap-2 shrink-0" bg="surface">
       <Text bold color="primary">◆ __NAME__</Text>
@@ -35,17 +23,20 @@ const meta = useMetadata()
     </StatusBar>
   </Box>
 </template>
-`,
-  'app/page.vue': `<script lang="ts">
-export const metadata = { title: 'Home' }
+
+<script lang="ts">
+export const metadata = { title: { default: '__NAME__', template: '%s · __NAME__' } }
 </script>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-const count = ref(0)
-</script>
+import { useApp, useMetadata, usePathname } from 'vuecli'
 
-<template>
+const { size } = useApp()
+const pathname = usePathname()
+const meta = useMetadata()
+</script>
+`,
+  'app/page.vue': `<template>
   <Box class="flex-col gap-1">
     <BigText text="HELLO" color="primary" />
     <Text>Edit <Text color="accent">app/page.vue</Text>. Folders in <Text color="accent">app/</Text> become routes.</Text>
@@ -56,19 +47,38 @@ const count = ref(0)
     <Link href="/users/42">→ Open /users/42</Link>
   </Box>
 </template>
-`,
-  'app/about/page.vue': `<script lang="ts">
-export const metadata = { title: 'About' }
+
+<script lang="ts">
+export const metadata = { title: 'Home' }
 </script>
 
-<template>
+<script setup lang="ts">
+import { ref } from 'vue'
+const count = ref(0)
+</script>
+`,
+  'app/about/page.vue': `<template>
   <Box class="flex-col gap-1">
     <Text bold>About</Text>
     <Text color="muted">This page is app/about/page.vue. Press alt+left to go back.</Text>
   </Box>
 </template>
+
+<script lang="ts">
+export const metadata = { title: 'About' }
+</script>
 `,
-  'app/users/[id]/page.vue': `<script lang="ts">
+  'app/users/[id]/page.vue': `<template>
+  <Box class="flex-col gap-1">
+    <Text>User <Text bold color="primary">#{{ params.id }}</Text></Text>
+    <Box class="gap-2">
+      <Link :href="\`/users/\${Number(params.id) + 1}\`">next user →</Link>
+      <Link href="/users/nobody">a missing user</Link>
+    </Box>
+  </Box>
+</template>
+
+<script lang="ts">
 export function generateMetadata({ params }: { params: { id: string } }) {
   return { title: \`User \${params.id}\` }
 }
@@ -83,32 +93,22 @@ const props = defineProps<{ params: { id: string } }>()
 await new Promise((r) => setTimeout(r, 500))
 if (!/^\\d+$/.test(props.params.id)) notFound()
 </script>
-
-<template>
-  <Box class="flex-col gap-1">
-    <Text>User <Text bold color="primary">#{{ params.id }}</Text></Text>
-    <Box class="gap-2">
-      <Link :href="\`/users/\${Number(params.id) + 1}\`">next user →</Link>
-      <Link href="/users/nobody">a missing user</Link>
-    </Box>
-  </Box>
-</template>
 `,
   'app/loading.vue': `<template>
   <Spinner label="Loading…" />
 </template>
 `,
-  'app/not-found.vue': `<script setup lang="ts">
-import { usePathname } from 'vuecli'
-const pathname = usePathname()
-</script>
-
-<template>
+  'app/not-found.vue': `<template>
   <Box class="flex-col gap-1">
     <Text><Text bold color="warning">404</Text> Nothing at <Text color="accent">{{ pathname }}</Text></Text>
     <Link href="/">← Home</Link>
   </Box>
 </template>
+
+<script setup lang="ts">
+import { usePathname } from 'vuecli'
+const pathname = usePathname()
+</script>
 `,
   'app/api/hello/route.ts': `// Route handler (served over HTTP by \`vuecli dev\` / \`vuecli start\`).
 export function GET() {
@@ -130,22 +130,7 @@ export const config = { matcher: ['/home'] }
 
 // ------------------------------------------------------------- single file
 
-const TEMPLATE_APP = `<script setup lang="ts">
-import { ref } from 'vue'
-import { useApp, useKeymap } from 'vuecli'
-
-const { exit } = useApp()
-const count = ref(0)
-const name = ref('')
-
-useKeymap({
-  'q|escape': () => exit(),
-  '+|up': () => count.value++,
-  '-|down': () => count.value--,
-})
-</script>
-
-<template>
+const TEMPLATE_APP = `<template>
   <Box class="flex-col p-1 gap-1" border="round" title="__NAME__">
     <BigText text="HELLO" color="primary" />
     <Text>
@@ -162,6 +147,21 @@ useKeymap({
     <KeyHints :keys="[{ key: 'tab', label: 'focus' }, { key: 'q', label: 'quit' }, { key: 'f12', label: 'devtools' }]" />
   </Box>
 </template>
+
+<script setup lang="ts">
+import { ref } from 'vue'
+import { useApp, useKeymap } from 'vuecli'
+
+const { exit } = useApp()
+const count = ref(0)
+const name = ref('')
+
+useKeymap({
+  'q|escape': () => exit(),
+  '+|up': () => count.value++,
+  '-|down': () => count.value--,
+})
+</script>
 `
 
 function create(dir: string, flags: Flags) {

@@ -1,3 +1,25 @@
+<template>
+  <Box class="flex-col p-1 gap-1" :width="64">
+    <BigText text="TODOS" color="primary" gradient="accent" />
+    <TextInput v-model="draft" placeholder="What needs to be done? (enter to add)" auto-focus @submit="add" />
+
+    <Box class="flex-col" border="round" :padding-x="1" :title="`${left} left`">
+      <Box v-for="t in visible" :key="t.id" class="gap-1">
+        <Checkbox v-model="t.done" :label="t.title" />
+        <Spacer />
+        <Button label="✕" variant="danger" :border="false" @click="remove(t)" />
+      </Box>
+      <Text v-if="!visible.length" color="muted">Nothing here 🎉</Text>
+    </Box>
+
+    <Box class="gap-2">
+      <RadioGroup v-model="filter" horizontal :options="['all', 'active', 'done']" />
+      <Spacer />
+      <Text color="muted">ctrl+d clear done · esc quit</Text>
+    </Box>
+  </Box>
+</template>
+
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useApp, useKeymap } from 'vuecli'
@@ -29,25 +51,3 @@ function remove(t: Todo) {
 
 useKeymap({ escape: () => exit(), 'ctrl+d': () => (todos.value = todos.value.filter((t) => !t.done)) })
 </script>
-
-<template>
-  <Box class="flex-col p-1 gap-1" :width="64">
-    <BigText text="TODOS" color="primary" gradient="accent" />
-    <TextInput v-model="draft" placeholder="What needs to be done? (enter to add)" auto-focus @submit="add" />
-
-    <Box class="flex-col" border="round" :padding-x="1" :title="`${left} left`">
-      <Box v-for="t in visible" :key="t.id" class="gap-1">
-        <Checkbox v-model="t.done" :label="t.title" />
-        <Spacer />
-        <Button label="✕" variant="danger" :border="false" @click="remove(t)" />
-      </Box>
-      <Text v-if="!visible.length" color="muted">Nothing here 🎉</Text>
-    </Box>
-
-    <Box class="gap-2">
-      <RadioGroup v-model="filter" horizontal :options="['all', 'active', 'done']" />
-      <Spacer />
-      <Text color="muted">ctrl+d clear done · esc quit</Text>
-    </Box>
-  </Box>
-</template>

@@ -1,13 +1,3 @@
-<script lang="ts">
-export const metadata = { title: 'Home' }
-</script>
-
-<script setup lang="ts">
-import { ref } from 'vue'
-
-const count = ref(0)
-</script>
-
 <template>
   <Box class="flex-col gap-1">
     <Text bold>This page is a client route: it runs in your browser and renders into the devtools console.</Text>
@@ -20,3 +10,13 @@ const count = ref(0)
     <Text color="muted">Try: curl localhost:3000/api/quotes · curl -H 'accept: text/plain' localhost:3000/live</Text>
   </Box>
 </template>
+
+<script lang="ts">
+export const metadata = { title: 'Home' }
+</script>
+
+<script setup lang="ts">
+import { ref } from 'vue'
+
+const count = ref(0)
+</script>

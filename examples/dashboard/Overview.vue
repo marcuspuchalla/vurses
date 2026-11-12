@@ -1,21 +1,3 @@
-<script setup lang="ts">
-import { computed } from 'vue'
-
-const props = defineProps<{
-  service: { name: string; status: string; cpu: number[]; rps: number[]; mem: number }
-}>()
-
-const cpu = computed(() => props.service.cpu.at(-1) ?? 0)
-const rps = computed(() => props.service.rps.at(-1) ?? 0)
-const cpuColor = computed(() => (cpu.value > 80 ? 'error' : cpu.value > 60 ? 'warning' : 'success'))
-const regions = computed(() => [
-  { label: 'eu-central', value: Math.round(rps.value * 0.46) },
-  { label: 'us-east', value: Math.round(rps.value * 0.31) },
-  { label: 'ap-south', value: Math.round(rps.value * 0.16), color: 'accent' },
-  { label: 'sa-east', value: Math.round(rps.value * 0.07), color: 'warning' },
-])
-</script>
-
 <template>
   <Box class="flex-col gap-1">
     <Box class="gap-1">
@@ -52,3 +34,21 @@ const regions = computed(() => [
     </Box>
   </Box>
 </template>
+
+<script setup lang="ts">
+import { computed } from 'vue'
+
+const props = defineProps<{
+  service: { name: string; status: string; cpu: number[]; rps: number[]; mem: number }
+}>()
+
+const cpu = computed(() => props.service.cpu.at(-1) ?? 0)
+const rps = computed(() => props.service.rps.at(-1) ?? 0)
+const cpuColor = computed(() => (cpu.value > 80 ? 'error' : cpu.value > 60 ? 'warning' : 'success'))
+const regions = computed(() => [
+  { label: 'eu-central', value: Math.round(rps.value * 0.46) },
+  { label: 'us-east', value: Math.round(rps.value * 0.31) },
+  { label: 'ap-south', value: Math.round(rps.value * 0.16), color: 'accent' },
+  { label: 'sa-east', value: Math.round(rps.value * 0.07), color: 'warning' },
+])
+</script>

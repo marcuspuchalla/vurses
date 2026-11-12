@@ -1,7 +1,3 @@
-<script lang="ts">
-export const metadata = { title: 'Home' }
-</script>
-
 <template>
   <Box class="flex-col gap-1">
     <Text bold color="primary">Folders in app/ become routes and layouts.</Text>
@@ -21,3 +17,7 @@ export const metadata = { title: 'Home' }
     <Text color="muted">Deep link: vuecli run examples/router-app --route /users/3</Text>
   </Box>
 </template>
+
+<script lang="ts">
+export const metadata = { title: 'Home' }
+</script>

@@ -1,3 +1,24 @@
+<template>
+  <Box class="flex-col gap-1">
+    <Box class="gap-2">
+      <Stat label="server time" :value="now.toLocaleTimeString('en-GB')" color="accent" />
+      <Stat label="session uptime" :value="`${uptime}s`" />
+      <Stat label="upstream calls" :value="upstreamCalls" />
+    </Box>
+    <Box class="gap-2">
+      <Table :rows="rows" :columns="['symbol', 'price', 'change']" title="quotes · cache()" />
+      <Box class="flex-col" border="round" title="VUE" :width="44">
+        <Sparkline :data="history" :width="40" color="primary" />
+        <Text color="muted">fetched {{ new Date(fetchedAt).toLocaleTimeString('en-GB') }}</Text>
+      </Box>
+    </Box>
+    <Box class="gap-1">
+      <Text color="muted">type here →</Text>
+      <Text bold color="primary">{{ typed }}▏</Text>
+    </Box>
+  </Box>
+</template>
+
 <script lang="ts">
 // Rendered on the server: one headless vuecli runtime per browser session,
 // frames stream over SSE as row deltas, keys come back via POST.
@@ -40,24 +61,3 @@ useInput((e) => {
 const uptime = computed(() => Math.floor((now.value.getTime() - started) / 1000))
 const rows = computed(() => quotes.value.map((q) => ({ symbol: q.symbol, price: q.price.toFixed(2), change: `${q.change >= 0 ? '▲' : '▼'} ${q.change.toFixed(2)}%` })))
 </script>
-
-<template>
-  <Box class="flex-col gap-1">
-    <Box class="gap-2">
-      <Stat label="server time" :value="now.toLocaleTimeString('en-GB')" color="accent" />
-      <Stat label="session uptime" :value="`${uptime}s`" />
-      <Stat label="upstream calls" :value="upstreamCalls" />
-    </Box>
-    <Box class="gap-2">
-      <Table :rows="rows" :columns="['symbol', 'price', 'change']" title="quotes · cache()" />
-      <Box class="flex-col" border="round" title="VUE" :width="44">
-        <Sparkline :data="history" :width="40" color="primary" />
-        <Text color="muted">fetched {{ new Date(fetchedAt).toLocaleTimeString('en-GB') }}</Text>
-      </Box>
-    </Box>
-    <Box class="gap-1">
-      <Text color="muted">type here →</Text>
-      <Text bold color="primary">{{ typed }}▏</Text>
-    </Box>
-  </Box>
-</template>

@@ -140,35 +140,35 @@ export function pageTemplate(segments: Segment[]): string {
   const shown = ps.map((p) =>
     p.type === 'dynamic' ? `{{ params.${p.name} }}` : `{{ params.${p.name}${p.type === 'optionalCatchAll' ? '?' : ''}.join('/') }}`,
   )
-  return `<script lang="ts">
+  return `<template>
+  <Box class="flex-col gap-1">
+    <Text bold color="primary">${escapeTemplate(title)}${shown.length ? ' ' + shown.join(' / ') : ''}</Text>
+    <Text color="muted">Edit ${escapeTemplate(file)}</Text>
+  </Box>
+</template>
+
+<script lang="ts">
 export const metadata = { title: ${JSON.stringify(title)} }
 </script>
 
 <script setup lang="ts">
 defineProps<{ params: ${paramsType(segments)}; searchParams: Record<string, string> }>()
 </script>
-
-<template>
-  <Box class="flex-col gap-1">
-    <Text bold color="primary">${escapeTemplate(title)}${shown.length ? ' ' + shown.join(' / ') : ''}</Text>
-    <Text color="muted">Edit ${escapeTemplate(file)}</Text>
-  </Box>
-</template>
 `
 }
 
 export function layoutTemplate(segments: Segment[]): string {
   const title = segments.length ? titleFor(segments) : 'App'
-  return `<script setup lang="ts">
-// Layouts wrap every page below this folder. The page renders in <slot />.
-</script>
-
-<template>
+  return `<template>
   <Box class="flex-col gap-1">
     <Text bold color="accent">${escapeTemplate(title)}</Text>
     <slot />
   </Box>
 </template>
+
+<script setup lang="ts">
+// Layouts wrap every page below this folder. The page renders in <slot />.
+</script>
 `
 }
 

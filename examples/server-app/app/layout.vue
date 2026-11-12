@@ -1,15 +1,3 @@
-<script lang="ts">
-export const metadata = { title: { default: 'vuecli server app', template: '%s · vuecli server app' } }
-</script>
-
-<script setup lang="ts">
-import { useApp, useMetadata, usePathname } from 'vuecli'
-
-const { size } = useApp()
-const pathname = usePathname()
-const meta = useMetadata()
-</script>
-
 <template>
   <Box class="flex-col" :height="size.rows" :width="size.columns">
     <Box class="px-1 shrink-0 gap-1" bg="surface">
@@ -33,3 +21,15 @@ const meta = useMetadata()
     </StatusBar>
   </Box>
 </template>
+
+<script lang="ts">
+export const metadata = { title: { default: 'vuecli server app', template: '%s · vuecli server app' } }
+</script>
+
+<script setup lang="ts">
+import { useApp, useMetadata, usePathname } from 'vuecli'
+
+const { size } = useApp()
+const pathname = usePathname()
+const meta = useMetadata()
+</script>

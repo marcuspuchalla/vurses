@@ -1,3 +1,125 @@
+<template>
+  <Box class="flex-col" :height="size.rows" :width="size.columns">
+    <!-- header -->
+    <Box class="px-1 shrink-0" bg="surface">
+      <Text bold color="primary">▼ vuecli</Text>
+      <Text color="muted"> · ops dashboard · {{ settings.name }}</Text>
+      <Spacer />
+      <Text color="muted">{{ theme.name }} · {{ time }}</Text>
+    </Box>
+
+    <Box class="flex-1">
+      <!-- sidebar -->
+      <Box class="flex-col w-26 shrink-0" border="round" title="Services" :padding-x="1">
+        <ServiceList :services="services" v-model="selected" />
+        <Spacer />
+        <Divider />
+        <Text color="muted">
+          <Text color="success">●</Text> {{ services.filter((s) => s.status === 'healthy').length }} ok
+          <Text color="warning">●</Text> {{ services.filter((s) => s.status === 'degraded').length }}
+          <Text color="error">●</Text> {{ services.filter((s) => s.status === 'down').length }}
+        </Text>
+      </Box>
+
+      <!-- main -->
+      <Box class="flex-col flex-1 px-1">
+        <Tabs v-model="tab" :tabs="tabs">
+          <template #Overview>
+            <Overview :service="service" />
+          </template>
+
+          <template #Deploys>
+            <Table
+              :rows="deploys"
+              :columns="deployColumns"
+              selectable
+              v-model="deployIndex"
+              title="Recent deploys"
+              @select="showDeploy = true"
+            />
+            <Text color="muted">↑↓ select · enter for details</Text>
+          </template>
+
+          <template #Logs>
+            <Box class="flex-col flex-1" border="round" :title="`Logs (${logs.length})`" :padding-x="1">
+              <ScrollBox stick-to-bottom>
+                <Text v-for="(l, i) in logs" :key="i" wrap="truncate">
+                  <Text color="muted">{{ l.time }} </Text>
+                  <Text :color="levelColor(l.level)" bold>{{ l.level.padEnd(5) }}</Text>
+                  {{ l.msg }}
+                </Text>
+              </ScrollBox>
+            </Box>
+          </template>
+
+          <template #Settings>
+            <Box class="flex-col gap-1">
+              <TextInput v-model="settings.name" label="Environment name" :width="40" />
+              <Switch v-model="settings.notifications" label="Notifications" />
+              <Checkbox v-model="settings.autoDeploy" label="Auto-deploy main branch" />
+              <Box class="gap-4">
+                <Box class="flex-col">
+                  <Text bold>Theme</Text>
+                  <RadioGroup :model-value="themeName" :options="['dark', 'light', 'dracula']" @update:model-value="switchTheme" />
+                </Box>
+                <Box class="flex-col">
+                  <Text bold>Region</Text>
+                  <Select v-model="settings.region" :options="regions" />
+                </Box>
+              </Box>
+            </Box>
+          </template>
+        </Tabs>
+      </Box>
+    </Box>
+
+    <StatusBar>
+      <KeyHints
+        :keys="[
+          { key: 'tab', label: 'focus' },
+          { key: '1-4', label: 'tabs' },
+          { key: 'ctrl+k', label: 'commands' },
+          { key: 't', label: 'theme' },
+          { key: 'f12', label: 'devtools' },
+          { key: 'q', label: 'quit' },
+        ]"
+      />
+      <template #right>
+        <Text color="muted">{{ size.columns }}×{{ size.rows }}</Text>
+      </template>
+    </StatusBar>
+
+    <Dialog v-model:open="showDeploy" :title="`Deploy ${deploy?.id}`" :width="54">
+      <Text>
+        <Text bold>{{ deploy?.service }}</Text> @ <Text color="accent">{{ deploy?.version }}</Text>
+      </Text>
+      <Text>
+        Status: <Text :color="statusColor(deploy?.status ?? '')" bold>{{ deploy?.status }}</Text> · by {{ deploy?.author }} · {{ deploy?.age }} ago
+      </Text>
+      <Markdown
+        source="Changes:
+- **feat:** new caching layer
+- **fix:** race condition in `scheduler`
+- chore: bump dependencies"
+      />
+      <template #footer>
+        <Button label="Close" @click="showDeploy = false" />
+        <Button label="Rollback" variant="danger" @click="(deploy.status = 'rolled back'), (showDeploy = false)" />
+      </template>
+    </Dialog>
+
+    <Dialog v-model:open="confirmQuit" title="Quit?" :width="36">
+      <Text>Really leave the dashboard?</Text>
+      <template #footer>
+        <Button label="Cancel" @click="confirmQuit = false" />
+        <Button label="Quit" variant="primary" auto-focus @click="exit()" />
+      </template>
+    </Dialog>
+
+    <CommandPalette :commands="commands" />
+  </Box>
+</template>
+
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import { useApp, useInterval, useKeymap, type Command } from 'vuecli'
@@ -134,125 +256,3 @@ const commands: Command[] = [
 const levelColor = (l: string) => (l === 'ERROR' ? 'error' : l === 'WARN' ? 'warning' : l === 'DEBUG' ? 'muted' : 'info')
 const time = computed(() => now.value.toTimeString().slice(0, 8))
 </script>
-
-<template>
-  <Box class="flex-col" :height="size.rows" :width="size.columns">
-    <!-- header -->
-    <Box class="px-1 shrink-0" bg="surface">
-      <Text bold color="primary">▼ vuecli</Text>
-      <Text color="muted"> · ops dashboard · {{ settings.name }}</Text>
-      <Spacer />
-      <Text color="muted">{{ theme.name }} · {{ time }}</Text>
-    </Box>
-
-    <Box class="flex-1">
-      <!-- sidebar -->
-      <Box class="flex-col w-26 shrink-0" border="round" title="Services" :padding-x="1">
-        <ServiceList :services="services" v-model="selected" />
-        <Spacer />
-        <Divider />
-        <Text color="muted">
-          <Text color="success">●</Text> {{ services.filter((s) => s.status === 'healthy').length }} ok
-          <Text color="warning">●</Text> {{ services.filter((s) => s.status === 'degraded').length }}
-          <Text color="error">●</Text> {{ services.filter((s) => s.status === 'down').length }}
-        </Text>
-      </Box>
-
-      <!-- main -->
-      <Box class="flex-col flex-1 px-1">
-        <Tabs v-model="tab" :tabs="tabs">
-          <template #Overview>
-            <Overview :service="service" />
-          </template>
-
-          <template #Deploys>
-            <Table
-              :rows="deploys"
-              :columns="deployColumns"
-              selectable
-              v-model="deployIndex"
-              title="Recent deploys"
-              @select="showDeploy = true"
-            />
-            <Text color="muted">↑↓ select · enter for details</Text>
-          </template>
-
-          <template #Logs>
-            <Box class="flex-col flex-1" border="round" :title="`Logs (${logs.length})`" :padding-x="1">
-              <ScrollBox stick-to-bottom>
-                <Text v-for="(l, i) in logs" :key="i" wrap="truncate">
-                  <Text color="muted">{{ l.time }} </Text>
-                  <Text :color="levelColor(l.level)" bold>{{ l.level.padEnd(5) }}</Text>
-                  {{ l.msg }}
-                </Text>
-              </ScrollBox>
-            </Box>
-          </template>
-
-          <template #Settings>
-            <Box class="flex-col gap-1">
-              <TextInput v-model="settings.name" label="Environment name" :width="40" />
-              <Switch v-model="settings.notifications" label="Notifications" />
-              <Checkbox v-model="settings.autoDeploy" label="Auto-deploy main branch" />
-              <Box class="gap-4">
-                <Box class="flex-col">
-                  <Text bold>Theme</Text>
-                  <RadioGroup :model-value="themeName" :options="['dark', 'light', 'dracula']" @update:model-value="switchTheme" />
-                </Box>
-                <Box class="flex-col">
-                  <Text bold>Region</Text>
-                  <Select v-model="settings.region" :options="regions" />
-                </Box>
-              </Box>
-            </Box>
-          </template>
-        </Tabs>
-      </Box>
-    </Box>
-
-    <StatusBar>
-      <KeyHints
-        :keys="[
-          { key: 'tab', label: 'focus' },
-          { key: '1-4', label: 'tabs' },
-          { key: 'ctrl+k', label: 'commands' },
-          { key: 't', label: 'theme' },
-          { key: 'f12', label: 'devtools' },
-          { key: 'q', label: 'quit' },
-        ]"
-      />
-      <template #right>
-        <Text color="muted">{{ size.columns }}×{{ size.rows }}</Text>
-      </template>
-    </StatusBar>
-
-    <Dialog v-model:open="showDeploy" :title="`Deploy ${deploy?.id}`" :width="54">
-      <Text>
-        <Text bold>{{ deploy?.service }}</Text> @ <Text color="accent">{{ deploy?.version }}</Text>
-      </Text>
-      <Text>
-        Status: <Text :color="statusColor(deploy?.status ?? '')" bold>{{ deploy?.status }}</Text> · by {{ deploy?.author }} · {{ deploy?.age }} ago
-      </Text>
-      <Markdown
-        source="Changes:
-- **feat:** new caching layer
-- **fix:** race condition in `scheduler`
-- chore: bump dependencies"
-      />
-      <template #footer>
-        <Button label="Close" @click="showDeploy = false" />
-        <Button label="Rollback" variant="danger" @click="(deploy.status = 'rolled back'), (showDeploy = false)" />
-      </template>
-    </Dialog>
-
-    <Dialog v-model:open="confirmQuit" title="Quit?" :width="36">
-      <Text>Really leave the dashboard?</Text>
-      <template #footer>
-        <Button label="Cancel" @click="confirmQuit = false" />
-        <Button label="Quit" variant="primary" auto-focus @click="exit()" />
-      </template>
-    </Dialog>
-
-    <CommandPalette :commands="commands" />
-  </Box>
-</template>

@@ -1,9 +1,3 @@
-<script setup lang="ts">
-defineProps<{ services: { name: string; status: string; cpu: number[] }[] }>()
-const model = defineModel<number>({ default: 0 })
-const color = (s: string) => (s === 'healthy' ? 'success' : s === 'degraded' ? 'warning' : 'error')
-</script>
-
 <template>
   <List :items="services.map((s) => s.name)" v-model="model">
     <template #item="{ index, selected, active }">
@@ -15,3 +9,9 @@ const color = (s: string) => (s === 'healthy' ? 'success' : s === 'degraded' ? '
     </template>
   </List>
 </template>
+
+<script setup lang="ts">
+defineProps<{ services: { name: string; status: string; cpu: number[] }[] }>()
+const model = defineModel<number>({ default: 0 })
+const color = (s: string) => (s === 'healthy' ? 'success' : s === 'degraded' ? 'warning' : 'error')
+</script>

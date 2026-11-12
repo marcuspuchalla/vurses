@@ -1,7 +1,3 @@
-<script lang="ts">
-export const metadata = { title: 'Users' }
-</script>
-
 <template>
   <Box class="flex-col gap-1">
     <Text bold>Pick a user</Text>
@@ -10,3 +6,7 @@ export const metadata = { title: 'Users' }
     <Text color="muted">so app/users/loading.vue is shown in the meantime.</Text>
   </Box>
 </template>
+
+<script lang="ts">
+export const metadata = { title: 'Users' }
+</script>

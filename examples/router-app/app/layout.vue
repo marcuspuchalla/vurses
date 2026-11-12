@@ -1,17 +1,3 @@
-<script lang="ts">
-// Named exports go in a plain <script> block. Child titles are rendered through the template.
-export const metadata = { title: { default: 'vuecli router', template: '%s · vuecli router' } }
-</script>
-
-<script setup lang="ts">
-import { useApp, useMetadata, usePathname, useRouter } from 'vuecli'
-
-const { size } = useApp()
-const router = useRouter()
-const pathname = usePathname()
-const meta = useMetadata()
-</script>
-
 <template>
   <Box class="flex-col" :height="size.rows" :width="size.columns">
     <!-- header -->
@@ -62,3 +48,17 @@ const meta = useMetadata()
     </StatusBar>
   </Box>
 </template>
+
+<script lang="ts">
+// Named exports go in a plain <script> block. Child titles are rendered through the template.
+export const metadata = { title: { default: 'vuecli router', template: '%s · vuecli router' } }
+</script>
+
+<script setup lang="ts">
+import { useApp, useMetadata, usePathname, useRouter } from 'vuecli'
+
+const { size } = useApp()
+const router = useRouter()
+const pathname = usePathname()
+const meta = useMetadata()
+</script>

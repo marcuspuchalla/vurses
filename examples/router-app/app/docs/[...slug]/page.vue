@@ -1,13 +1,3 @@
-<script lang="ts">
-export function generateMetadata({ params }: { params: { slug: string[] } }) {
-  return { title: `Docs: ${params.slug.join(' / ')}` }
-}
-</script>
-
-<script setup lang="ts">
-defineProps<{ params: { slug: string[] } }>()
-</script>
-
 <template>
   <Box class="flex-col gap-1">
     <Text bold>Catch-all route <Text color="accent">app/docs/[...slug]</Text></Text>
@@ -19,3 +9,13 @@ defineProps<{ params: { slug: string[] } }>()
     </Box>
   </Box>
 </template>
+
+<script lang="ts">
+export function generateMetadata({ params }: { params: { slug: string[] } }) {
+  return { title: `Docs: ${params.slug.join(' / ')}` }
+}
+</script>
+
+<script setup lang="ts">
+defineProps<{ params: { slug: string[] } }>()
+</script>

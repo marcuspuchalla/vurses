@@ -1,3 +1,18 @@
+<template>
+  <Box class="grow gap-1">
+    <Box class="flex-col gap-1" border="round" title="particles" :width="22" :padding-x="1">
+      <Checkbox v-model="gravity" label="gravity" />
+      <Checkbox v-model="trails" label="trails" />
+      <Text color="muted" wrap="wrap">click: burst, drag: attract</Text>
+      <Spacer />
+      <Button label="burst!" variant="primary" @click="canvas && burst(canvas.width / 2, canvas.height / 3, 200)" />
+    </Box>
+    <Box class="grow" border="round" title="@frame animation">
+      <Canvas :mode="mode" :fps="30" @ready="onReady" @frame="onFrame" @pointer="onPointer" />
+    </Box>
+  </Box>
+</template>
+
 <script setup lang="ts">
 import { ref } from 'vue'
 import type { CanvasPointerEvent, CanvasMode } from 'vuecli'
@@ -68,18 +83,3 @@ function onPointer(e: CanvasPointerEvent) {
   if (e.type === 'down') burst(e.x, e.y)
 }
 </script>
-
-<template>
-  <Box class="grow gap-1">
-    <Box class="flex-col gap-1" border="round" title="particles" :width="22" :padding-x="1">
-      <Checkbox v-model="gravity" label="gravity" />
-      <Checkbox v-model="trails" label="trails" />
-      <Text color="muted" wrap="wrap">click: burst, drag: attract</Text>
-      <Spacer />
-      <Button label="burst!" variant="primary" @click="canvas && burst(canvas.width / 2, canvas.height / 3, 200)" />
-    </Box>
-    <Box class="grow" border="round" title="@frame animation">
-      <Canvas :mode="mode" :fps="30" @ready="onReady" @frame="onFrame" @pointer="onPointer" />
-    </Box>
-  </Box>
-</template>
