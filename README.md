@@ -161,6 +161,21 @@ form controls (`v-model` included) and vue-router navigation.
 the first. In the terminal, `:hover` follows keyboard focus, which is why the focused row shows
 its `[ × ]` delete button.</sub>
 
+<table>
+  <tr>
+    <th width="50%">In the browser (<code>npm run dev</code>)</th>
+    <th width="50%">In the terminal (<code>npx vuecli web</code>)</th>
+  </tr>
+  <tr>
+    <td><img src="docs/images/conduit-browser.png" alt="Conduit in Chrome: the global feed with article previews, avatars, like buttons, tag pills and a Popular Tags sidebar"></td>
+    <td><img src="docs/images/conduit-terminal.png" alt="The same Conduit feed in a terminal: author and date beside an avatar marker, like buttons on the right, tag pills in brackets and the Popular Tags sidebar"></td>
+  </tr>
+</table>
+
+<sub>[Conduit](https://github.com/mutoe/vue3-realworld-example-app), the RealWorld demo app,
+unmodified, with live data fetched from the public RealWorld API (its remote stylesheet, grid,
+floats and icon font included). The avatar images become `▣` markers.</sub>
+
 ```sh
 cd my-vue-app
 npm install -D vuecli
