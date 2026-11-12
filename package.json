@@ -3,7 +3,15 @@
   "version": "0.1.0",
   "description": "Build native Vue 3 apps that render in the terminal",
   "type": "module",
-  "license": "MIT",
+  "license": "GPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/marcuspuchalla/vuecli.git"
+  },
+  "homepage": "https://github.com/marcuspuchalla/vuecli#readme",
+  "bugs": {
+    "url": "https://github.com/marcuspuchalla/vuecli/issues"
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
@@ -83,6 +91,9 @@
     "zod": "^4.6.7",
     "tty-canvas": "^0.1.0"
   },
+  "bundleDependencies": [
+    "tty-canvas"
+  ],
   "devDependencies": {
     "@types/node": "^26.6.6",
     "typescript": "^7.0.2",
