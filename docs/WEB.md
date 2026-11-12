@@ -10,6 +10,10 @@ npm install -D vuecli          # or: npm link /path/to/vuecli
 npx vuecli web                 # build + run in the terminal
 ```
 
+> **The app runs in Node, outside the browser sandbox**, with your user's privileges (files,
+> environment variables, network without CORS). Only run apps you'd also run with `node`.
+> See [Security](SECURITY.md#running-existing-web-apps-vuecli-web).
+
 Add a script if you use it often:
 
 ```json
@@ -68,23 +72,26 @@ and checkbox arrays and sets.
 
 ## Browser APIs
 
-The app runs in Node with small browser globals: `window` (which is `globalThis`),
-`document` (`title`, `body`, `querySelector`, `activeElement`, `addEventListener`),
-`location`, `history`, `matchMedia`, `requestAnimationFrame` and `getComputedStyle`.
+The app runs in Node with browser globals: `window`, `document`, `location` (navigation
+goes through the router), `history`, `localStorage` / `sessionStorage`, `matchMedia`,
+`getComputedStyle`, `requestAnimationFrame`, DOM event classes, `navigator`, cookies and
+more; elements support the common DOM members. The full list, and what's missing, is in
+[Compatibility](COMPATIBILITY.md#browser-apis).
 
-`localStorage` is saved to `node_modules/.vuecli-web-cache/localStorage.json`, so it
-persists between runs. `IntersectionObserver` reports every element as visible.
-`fetch` is Node's own, so apps that call real APIs work.
-
-Elements returned by template refs and `event.target` support the common DOM members:
-`value`, `checked`, `focus()`, `blur()`, `click()`, `classList`, `getAttribute`,
-`addEventListener`, `getBoundingClientRect()`, `closest()` and `querySelector()`.
+- **`localStorage`** is saved to `node_modules/.vuecli-web-cache/localStorage.json`
+  (readable only by you), so logins and settings survive restarts.
+- **`fetch`** is Node's own, so apps that call real APIs work. Relative URLs
+  (`fetch('/api/users')`) go through the app's Vite `server.proxy` rules, otherwise to
+  `--origin`.
+- **Errors** thrown in timers or handlers are logged and the app keeps running, like in a
+  browser tab.
 
 ## Options
 
 ```
 vuecli web [dir]
   --route /path          initial route (vue-router apps)
+  --origin https://…     where relative fetch('/api/…') URLs go when no Vite proxy rule matches
   --theme light|dark     terminal theme; also decides prefers-color-scheme
   --watch                rebuild and restart on every file change
   --no-mouse             no mouse tracking
@@ -107,19 +114,7 @@ replaced.
 
 ## Limitations
 
-- **Vite + Vue 3 only.** The app needs an `index.html` with a `<script type="module">`
-  entry and `vite` installed. Vue CLI (webpack) and Nuxt are not supported.
-- **CSS:** no transforms, animations, shadows, background images or `calc()`. Fixed and
-  sticky positioning become static. Elements pushed outside their box with negative
-  offsets stay in normal flow. Pixel heights are ignored.
-- **Images and SVG:** `<img>` shows `▣` and its `alt` text, like a browser's broken
-  image. If the image has a CSS or `width` size and the alt text doesn't fit, only `▣` is
-  shown, so a 32px avatar doesn't repeat the author's name. Inline SVG is hidden. Icon fonts
-  (ionicons, font-awesome, bootstrap icons, ...) are mapped to Unicode symbols by class
-  name.
-- **DOM:** there is no full DOM. Code that builds UI imperatively with
-  `document.createElement` / `innerHTML` on elements outside Vue may not render. `v-html`
-  works.
-- **Libraries** that need real layout measurements (virtual scrollers, positioning
-  engines like Popper or Floating UI) get approximate values.
-- CSS `v-bind()` (`useCssVars`) is ignored.
+The main ones: `position: fixed` content (modals) is laid out in normal flow, inline SVG is
+hidden, images show their alt text, and CSS animations, transforms and shadows are ignored.
+Vue CLI (webpack), Nuxt and Vue 2 apps aren't supported. The complete, current list with
+workarounds is in [Compatibility → Known gaps](COMPATIBILITY.md#known-gaps).

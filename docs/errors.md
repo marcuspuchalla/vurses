@@ -4,7 +4,7 @@ Errors that vuecli raises on purpose carry a stable `VC###` code and link to thi
 
 ```
 VuecliError: [VC001] useApp() was called outside a vuecli app. Call it from setup() of a component rendered by createApp(...).mount().
-  → https://github.com/marcuspuchalla/vuecli/blob/main/docs/errors.md#vc001
+  → https://github.com/marcuspuchalla/vuecli/blob/HEAD/docs/errors.md#vc001
 ```
 
 In code:
