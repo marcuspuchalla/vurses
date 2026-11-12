@@ -10,6 +10,7 @@
  * - elements get a small DOM facade (`value`, `checked`, `focus()`,
  *   `classList`, `getAttribute`, `addEventListener`, ...) for app code
  */
+import { parseHTML } from './html.js'
 import { ref, type Ref } from 'vue'
 import { TComment, TElement, TTextNode, type StyleScope, type TNode } from '../dom/nodes.js'
 import type { FocusEntry, FocusManager } from '../app/focus.js'
@@ -269,6 +270,16 @@ export class WebScope implements StyleScope {
     return false
   }
 
+  /**
+   * The color scheme the page is painted in: dark only when the terminal theme is dark AND
+   * the site has dark styles (otherwise it is shown on white, like a browser would).
+   * `matchMedia('(prefers-color-scheme: dark)')` reports the same, so class-based dark
+   * modes (useDark, Tailwind `dark:`) agree with the canvas.
+   */
+  get prefersDark(): boolean {
+    return this.opts.dark && this.opts.sheet.supportsDark
+  }
+
   get env(): MediaEnv & { columns: number; rows: number } {
     const { columns, rows } = this.opts.size()
     return { width: columns * 8, height: rows * 16, dark: this.opts.dark, columns, rows }
@@ -278,10 +289,28 @@ export class WebScope implements StyleScope {
     const env = this.env
     const key = `${env.width}x${env.height}:${env.dark}`
     if (!this.index || key !== this.indexEnv) {
-      this.index = new RuleIndex(this.opts.sheet.activeRules(env))
+      const runtime = this.runtimeSheet ? this.runtimeSheet.activeRules(env) : []
+      this.index = new RuleIndex([...this.opts.sheet.activeRules(env), ...runtime])
       this.indexEnv = key
     }
     return this.index
+  }
+
+  /** <style> elements in the page (added at runtime by component libraries, useStyleTag, ...). */
+  private styleEls = new Set<TElement>()
+  private runtimeSheet: StyleSheet | null = null
+  private runtimeCss = ''
+
+  /** Rebuilds the runtime sheet when a <style> element was added, removed or changed. */
+  private syncRuntimeStyles() {
+    let css = ''
+    for (const el of this.styleEls) if (el.computedStyle !== undefined && el.parent) css += el.textContent + '\n'
+    if (css === this.runtimeCss) return
+    this.runtimeCss = css
+    // ordered after the app's own CSS, like a <style> appended to <head>
+    this.runtimeSheet = css.trim() ? new StyleSheet(css, 1e9) : null
+    this.index = null
+    this.restyleAll = true
   }
 
   // ---------------------------------------------------------------- StyleScope
@@ -294,6 +323,8 @@ export class WebScope implements StyleScope {
     const ua = this.ua.match(t, classes)
     const main = author.filter((r) => !r.selector.pseudoElement)
     const inline = inlineDecls(el.props.style)
+    // `el.style.x = ...` / `style.setProperty()` win over the style attribute, like a browser's CSSOM
+    if (el.styleOverrides?.size) for (const [prop, value] of el.styleOverrides) inline.push({ prop, value, important: false })
     const parentVars = parent?.vars ?? this.rootVars()
     const { values, vars } = cascade(main, ua.filter((r) => !r.selector.pseudoElement), inline, parentVars)
     const env = this.env
@@ -368,6 +399,7 @@ export class WebScope implements StyleScope {
     }
     if (node.nodeType !== 'element') return
     for (const el of node.walk()) {
+      if (el.tag === 'style') this.styleEls.add(el)
       this.dirty.add(el)
       ;(el as unknown as { _style: unknown })._style = null
       this.setupElement(el)
@@ -378,6 +410,7 @@ export class WebScope implements StyleScope {
   detached(node: TNode) {
     if (node.nodeType !== 'element') return
     for (const el of node.walk()) {
+      this.styleEls.delete(el)
       const st = states.get(el)
       if (st?.entry) {
         this.opts.focus.unregister(st.entry)
@@ -394,6 +427,10 @@ export class WebScope implements StyleScope {
   }
 
   propChanged(el: TElement, key: string, value: unknown) {
+    if (key === 'style:override') {
+      this.restyleAll = true
+      return
+    }
     if (key === 'class' || key === 'id' || (key.startsWith('data-') && !key.startsWith('data-v-')) || key === 'open' || key === 'disabled' || key === 'hidden' || key === 'type') {
       // descendant / sibling selectors may depend on it
       this.restyleAll = true
@@ -421,6 +458,7 @@ export class WebScope implements StyleScope {
   flush() {
     this.flushing = true
     try {
+      if (this.styleEls.size || this.runtimeSheet) this.syncRuntimeStyles()
       if (this.restyleAll) {
         this.restyleAll = false
         for (const el of this.root.walk()) {
@@ -1232,6 +1270,14 @@ let facadeInstalled = false
 /** Adds DOM-like members to terminal elements (used by app code via template refs / event.target). */
 function installFacade(el: TElement, scope: WebScope) {
   facadeScopes.set(el, scope)
+  installFacadeProto()
+}
+
+/**
+ * Installed once, when this module loads: libraries call DOM methods on elements they
+ * create before the app is mounted (PrimeVue / Element Plus during `app.use()`).
+ */
+function installFacadeProto() {
   if (facadeInstalled) return
   facadeInstalled = true
   const proto = TElement.prototype as unknown as Record<string, unknown>
@@ -1326,6 +1372,9 @@ function installFacade(el: TElement, scope: WebScope) {
     get(this: TElement) {
       return this.props.id ?? ''
     },
+    set(this: TElement, v: unknown) {
+      this.setProp('id', String(v))
+    },
   })
   def('className', {
     get(this: TElement) {
@@ -1371,7 +1420,9 @@ function installFacade(el: TElement, scope: WebScope) {
       const self = this
       const list = () => String(self.props.class ?? '').split(/\s+/).filter(Boolean)
       const write = (l: string[]) => self.setProp('class', l.join(' '))
-      return {
+      // an array of the current classes (iterable, indexable: `Array.from(el.classList)`)
+      // with the DOMTokenList methods, which always act on the live class attribute
+      return Object.assign([...list()], {
         add: (...c: string[]) => write([...new Set([...list(), ...c])]),
         remove: (...c: string[]) => write(list().filter((x) => !c.includes(x))),
         toggle: (c: string, force?: boolean) => {
@@ -1383,11 +1434,12 @@ function installFacade(el: TElement, scope: WebScope) {
         },
         contains: (c: string) => list().includes(c),
         replace: (a: string, b: string) => write(list().map((x) => (x === a ? b : x))),
-        get length() {
-          return list().length
+        item: (i: number) => list()[i] ?? null,
+        get value() {
+          return list().join(' ')
         },
         toString: () => list().join(' '),
-      }
+      })
     },
   })
   def('dataset', {
@@ -1397,20 +1449,40 @@ function installFacade(el: TElement, scope: WebScope) {
       return out
     },
   })
+  type Listener = (e: unknown) => unknown
+  type Owner = { __listeners?: Map<string, Set<Listener>>; __wrapped?: Map<string, Map<unknown, Listener>> }
   def('addEventListener', {
-    value(this: TElement, type: string, fn: (e: unknown) => unknown) {
-      const self = this as unknown as { __listeners?: Map<string, Set<(e: unknown) => unknown>> }
+    value(this: TElement, type: string, fn: Listener | { handleEvent(e: unknown): unknown }, opts?: boolean | { once?: boolean }) {
+      if (!fn) return
+      const self = this as unknown as Owner
       self.__listeners ??= new Map()
+      self.__wrapped ??= new Map()
       let set = self.__listeners.get(type)
       if (!set) self.__listeners.set(type, (set = new Set()))
-      if (typeof fn === 'function') set.add(fn)
-      else if (fn && typeof (fn as { handleEvent?: unknown }).handleEvent === 'function') set.add((e) => (fn as { handleEvent(e: unknown): unknown }).handleEvent(e))
+      let wrapped = self.__wrapped.get(type)
+      if (!wrapped) self.__wrapped.set(type, (wrapped = new Map()))
+      if (wrapped.has(fn)) return // like the DOM: the same listener is added once
+      const once = typeof opts === 'object' && !!opts?.once
+      const call: Listener = typeof fn === 'function' ? fn : (e) => fn.handleEvent(e)
+      const listener: Listener = once
+        ? (e) => {
+            set!.delete(listener)
+            wrapped!.delete(fn)
+            return call(e)
+          }
+        : call
+      wrapped.set(fn, listener)
+      set.add(listener)
       if (type === 'click' || type === 'keydown') scopeOf(this)?.ensureEntry(this)
     },
   })
   def('removeEventListener', {
-    value(this: TElement, type: string, fn: (e: unknown) => unknown) {
-      ;(this as unknown as { __listeners?: Map<string, Set<unknown>> }).__listeners?.get(type)?.delete(fn)
+    value(this: TElement, type: string, fn: unknown) {
+      const self = this as unknown as Owner
+      const listener = self.__wrapped?.get(type)?.get(fn)
+      if (!listener) return
+      self.__wrapped!.get(type)!.delete(fn)
+      self.__listeners?.get(type)?.delete(listener)
     },
   })
   def('dispatchEvent', {
@@ -1494,6 +1566,190 @@ function installFacade(el: TElement, scope: WebScope) {
       this.parent?.removeChild(this)
     },
   })
+  // shadow DOM: content attached to a shadow root isn't displayed (libraries use it for
+  // banners / isolation), but attaching must not throw
+  def('attachShadow', {
+    value(this: TElement, init?: { mode?: string }) {
+      const root = new TElement('div')
+      if (init?.mode !== 'closed') Object.defineProperty(this, 'shadowRoot', { value: root, configurable: true })
+      return root
+    },
+  })
+  def('shadowRoot', { value: null, writable: true })
+  def('prepend', {
+    value(this: TElement, ...nodes: (TNode | string)[]) {
+      const first = this.children[0] ?? null
+      for (const n of nodes) this.insertBefore(typeof n === 'string' ? new TTextNode(n) : n, first)
+    },
+  })
+  def('insertAdjacentElement', {
+    value(this: TElement, where: string, el: TElement) {
+      const w = where.toLowerCase()
+      if (w === 'beforebegin') this.parent?.insertBefore(el, this)
+      else if (w === 'afterbegin') this.insertBefore(el, this.children[0] ?? null)
+      else if (w === 'beforeend') this.insertBefore(el, null)
+      else if (w === 'afterend') this.parent?.insertBefore(el, siblingOf(this, 1))
+      return el
+    },
+  })
+  def('replaceChildren', {
+    value(this: TElement, ...nodes: (TNode | string)[]) {
+      for (const c of [...this.children]) this.removeChild(c)
+      for (const n of nodes) this.insertBefore(typeof n === 'string' ? new TTextNode(n) : n, null)
+    },
+  })
+  def('innerHTML', {
+    get(this: TElement) {
+      return this.children.map(serializeNode).join('')
+    },
+    set(this: TElement, v: unknown) {
+      for (const c of [...this.children]) this.removeChild(c)
+      for (const n of parseHTML(v === null || v === undefined ? '' : String(v))) this.insertBefore(n, null)
+    },
+  })
+  def('outerHTML', {
+    get(this: TElement) {
+      return serializeNode(this)
+    },
+  })
+  def('firstElementChild', {
+    get(this: TElement) {
+      return this.children.find((c) => c.nodeType === 'element') ?? null
+    },
+  })
+  def('lastElementChild', {
+    get(this: TElement) {
+      return [...this.children].reverse().find((c) => c.nodeType === 'element') ?? null
+    },
+  })
+  def('childElementCount', {
+    get(this: TElement) {
+      return this.children.filter((c) => c.nodeType === 'element').length
+    },
+  })
+  def('firstChild', {
+    get(this: TElement) {
+      return this.children[0] ?? null
+    },
+  })
+  def('lastChild', {
+    get(this: TElement) {
+      return this.children[this.children.length - 1] ?? null
+    },
+  })
+  def('childNodes', {
+    get(this: TElement) {
+      return this.children
+    },
+  })
+  def('hasChildNodes', {
+    value(this: TElement) {
+      return this.children.length > 0
+    },
+  })
+  // writable textContent: replaces the children with one text node (Naive UI writes <style> text this way)
+  const text = Object.getOwnPropertyDescriptor(TElement.prototype, 'textContent')
+  if (text?.get && !text.set)
+    Object.defineProperty(TElement.prototype, 'textContent', {
+      configurable: true,
+      get: text.get,
+      set(this: TElement, v: unknown) {
+        for (const c of [...this.children]) this.removeChild(c)
+        if (v !== null && v !== undefined && v !== '') this.insertBefore(new TTextNode(String(v)), null)
+      },
+    })
+  // node relationships for every node type (text and comment nodes too)
+  for (const P of [TElement.prototype, TTextNode.prototype, TComment.prototype] as unknown as Record<string, unknown>[]) {
+    const nodeDef = (name: string, desc: PropertyDescriptor) => {
+      if (!(name in P)) Object.defineProperty(P, name, { configurable: true, ...desc })
+    }
+    nodeDef('parentNode', {
+      get(this: TNode) {
+        return this.parent
+      },
+    })
+    nodeDef('nextSibling', {
+      get(this: TNode) {
+        return siblingOf(this, 1)
+      },
+    })
+    nodeDef('previousSibling', {
+      get(this: TNode) {
+        return siblingOf(this, -1)
+      },
+    })
+    nodeDef('nextElementSibling', {
+      get(this: TNode) {
+        return siblingOf(this, 1, true)
+      },
+    })
+    nodeDef('previousElementSibling', {
+      get(this: TNode) {
+        return siblingOf(this, -1, true)
+      },
+    })
+    nodeDef('isConnected', {
+      get(this: TNode) {
+        let n: TNode = this
+        while (n.parent) n = n.parent
+        return n.nodeType === 'element' && n.kind === 'root'
+      },
+    })
+    nodeDef('ownerDocument', {
+      get() {
+        return (globalThis as { document?: unknown }).document ?? null
+      },
+    })
+    nodeDef('before', {
+      value(this: TNode, ...nodes: (TNode | string)[]) {
+        for (const n of nodes) this.parent?.insertBefore(typeof n === 'string' ? new TTextNode(n) : n, this)
+      },
+    })
+    nodeDef('after', {
+      value(this: TNode, ...nodes: (TNode | string)[]) {
+        const anchor = siblingOf(this, 1)
+        for (const n of nodes) this.parent?.insertBefore(typeof n === 'string' ? new TTextNode(n) : n, anchor)
+      },
+    })
+  }
+  for (const P of [TTextNode.prototype, TComment.prototype] as unknown as Record<string, unknown>[]) {
+    for (const name of ['nodeValue', 'data'])
+      if (!(name in P))
+        Object.defineProperty(P, name, {
+          configurable: true,
+          get(this: { text?: string }) {
+            return this.text ?? ''
+          },
+          set(this: { text?: string }, v: unknown) {
+            if ('text' in this) this.text = String(v)
+          },
+        })
+  }
 }
+
+function siblingOf(n: TNode, dir: 1 | -1, elementsOnly = false): TNode | null {
+  const list = n.parent?.children
+  if (!list) return null
+  for (let i = list.indexOf(n) + dir; i >= 0 && i < list.length; i += dir) if (!elementsOnly || list[i].nodeType === 'element') return list[i]
+  return null
+}
+
+const VOID_TAGS = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'source', 'track', 'wbr'])
+const escapeHtml = (s: string, attr = false) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(attr ? /"/g : /$^/, '&quot;')
+
+/** Simple HTML serialization (for `innerHTML` / `outerHTML` reads). */
+function serializeNode(n: TNode): string {
+  if (n.nodeType === 'text') return escapeHtml(n.text)
+  if (n.nodeType !== 'element') return ''
+  let attrs = ''
+  for (const [k, v] of Object.entries(n.props)) {
+    if (v === undefined || v === null || v === false || typeof v === 'function' || typeof v === 'object' || k.startsWith('on')) continue
+    attrs += v === true ? ` ${k}` : ` ${k}="${escapeHtml(String(v), true)}"`
+  }
+  if (VOID_TAGS.has(n.tag)) return `<${n.tag}${attrs}>`
+  return `<${n.tag}${attrs}>${n.children.map(serializeNode).join('')}</${n.tag}>`
+}
+
+installFacadeProto()
 
 export type { Model }

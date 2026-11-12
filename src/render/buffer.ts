@@ -4,6 +4,8 @@
  * plus a continuation cell holding ''.
  */
 
+import { isControlChar } from './sanitize.js'
+
 export const enum Flag {
   Bold = 1,
   Dim = 2,
@@ -58,6 +60,11 @@ export class CellBuffer {
     if (clip && !contains(clip, x, y)) return
     // a no-break space only matters for line breaking; on screen it is a space
     if (ch === '\u00a0') ch = ' '
+    // control characters (ESC, BEL, C1, ...) must never reach the terminal, whoever painted them
+    else if (isControlChar(ch)) {
+      ch = ' '
+      w = 1
+    }
     if (w === 2 && (x + 1 >= this.width || (clip && !contains(clip, x + 1, y)))) {
       ch = ' '
       w = 1

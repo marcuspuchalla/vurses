@@ -42,7 +42,7 @@ dialog:not([open]) { display: none }
 details:not([open]) > :not(summary) { display: none }
 input, button, select, textarea, img, meter, progress { display: inline-block }
 input[type=hidden] { display: none }
-h1 { font-weight: bold; color: theme(primary); margin-bottom: 16px }
+h1 { font-weight: bold; margin-bottom: 16px }
 h2 { font-weight: bold; margin-bottom: 16px }
 h3, h4, h5, h6 { font-weight: bold }
 p, pre, blockquote, ul, ol, dl, table, figure, fieldset { margin-bottom: 16px }
@@ -88,6 +88,14 @@ export function length(v: string, axis: 'x' | 'y', env: LengthEnv): Dimension | 
   const s = v.trim().toLowerCase()
   if (s === 'auto') return 'auto'
   if (s === '0') return 0
+  if (/^(calc|min|max|clamp)\(/.test(s)) {
+    // Tailwind v4 spacing is calc(var(--spacing) * 4): evaluate in CSS px
+    const r = evalMath(s, axis, env)
+    if (!r) return undefined
+    if (r.px === 0 && r.pct !== 0) return `${round3(r.pct)}%`
+    if (r.pct !== 0) return undefined // px + % needs the container size, which Yoga can't mix
+    return pxToCells(r.px, axis)
+  }
   const m = /^(-?[\d.]+)(px|rem|em|%|vw|vh|ch|ex|pt|vmin|vmax|lh)?$/.exec(s)
   if (!m) return undefined
   const n = parseFloat(m[1])
@@ -100,7 +108,115 @@ export function length(v: string, axis: 'x' | 'y', env: LengthEnv): Dimension | 
   if (unit === 'ch') return axis === 'x' ? Math.round(n) : undefined
   if (unit === 'lh') return axis === 'y' ? Math.round(n) : undefined
   const pxv = unit === 'rem' || unit === 'em' ? n * 16 : unit === 'ex' ? n * 8 : unit === 'pt' ? (n * 4) / 3 : n
-  return axis === 'x' ? Math.round(pxv / 8) : Math.floor(pxv / 16 + 0.4)
+  return pxToCells(pxv, axis)
+}
+
+const pxToCells = (px: number, axis: 'x' | 'y') => (axis === 'x' ? Math.round(px / 8) : Math.floor(px / 16 + 0.4))
+const round3 = (n: number) => Math.round(n * 1000) / 1000
+
+/** A math value: `px` CSS pixels plus `pct` percent of the container. */
+interface MathValue {
+  px: number
+  pct: number
+  /** A plain number (no unit): only these can multiply / divide. */
+  unitless: boolean
+}
+
+/** Evaluates calc() / min() / max() / clamp() with +, -, *, / and nesting. Undefined if unsupported. */
+export function evalMath(src: string, axis: 'x' | 'y', env: LengthEnv): MathValue | undefined {
+  let i = 0
+  const ws = () => {
+    while (i < src.length && /\s/.test(src[i])) i++
+  }
+  const fail = (): never => {
+    throw new Error('unsupported')
+  }
+  const unitPx = (n: number, unit: string): MathValue => {
+    switch (unit) {
+      case '': return { px: n, pct: 0, unitless: true }
+      case 'px': return { px: n, pct: 0, unitless: false }
+      case 'rem': case 'em': return { px: n * 16, pct: 0, unitless: false }
+      case 'ex': case 'ch': return { px: n * 8, pct: 0, unitless: false }
+      case 'pt': return { px: (n * 4) / 3, pct: 0, unitless: false }
+      case 'lh': return { px: n * 16, pct: 0, unitless: false }
+      case 'vw': return { px: (env.columns * 8 * n) / 100, pct: 0, unitless: false }
+      case 'vh': return { px: (env.rows * 16 * n) / 100, pct: 0, unitless: false }
+      case '%': return { px: 0, pct: n, unitless: false }
+      default: return fail()
+    }
+  }
+  const fn = (name: string): MathValue => {
+    const args: MathValue[] = [sum()]
+    ws()
+    while (src[i] === ',') {
+      i++
+      args.push(sum())
+      ws()
+    }
+    if (src[i++] !== ')') fail()
+    if (name === 'calc') return args.length === 1 ? args[0] : fail()
+    if (args.some((a) => a.pct !== 0)) fail() // min/max of percentages needs the container
+    if (name === 'min') return { px: Math.min(...args.map((a) => a.px)), pct: 0, unitless: args.every((a) => a.unitless) }
+    if (name === 'max') return { px: Math.max(...args.map((a) => a.px)), pct: 0, unitless: args.every((a) => a.unitless) }
+    if (name === 'clamp' && args.length === 3) return { px: Math.min(Math.max(args[1].px, args[0].px), args[2].px), pct: 0, unitless: false }
+    return fail()
+  }
+  const atom = (): MathValue => {
+    ws()
+    if (src[i] === '(') {
+      i++
+      const v = sum()
+      ws()
+      if (src[i++] !== ')') fail()
+      return v
+    }
+    const f = /^(calc|min|max|clamp)\(/.exec(src.slice(i))
+    if (f) {
+      i += f[0].length
+      return fn(f[1])
+    }
+    const m = /^([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)(%|[a-z]+)?/.exec(src.slice(i))
+    if (!m) return fail()
+    i += m[0].length
+    return unitPx(parseFloat(m[1]), m[2] ?? '')
+  }
+  const product = (): MathValue => {
+    let v = atom()
+    for (;;) {
+      ws()
+      const op = src[i]
+      if (op !== '*' && op !== '/') return v
+      i++
+      const r = atom()
+      if (op === '*') {
+        if (r.unitless) v = { px: v.px * r.px, pct: v.pct * r.px, unitless: v.unitless }
+        else if (v.unitless) v = { px: r.px * v.px, pct: r.pct * v.px, unitless: false }
+        else fail()
+      } else {
+        if (!r.unitless || r.px === 0) fail()
+        v = { px: v.px / r.px, pct: v.pct / r.px, unitless: v.unitless }
+      }
+    }
+  }
+  const sum = (): MathValue => {
+    let v = product()
+    for (;;) {
+      ws()
+      const op = src[i]
+      if (op !== '+' && op !== '-') return v
+      i++
+      const r = product()
+      const k = op === '+' ? 1 : -1
+      v = { px: v.px + k * r.px, pct: v.pct + k * r.pct, unitless: v.unitless && r.unitless }
+    }
+  }
+  try {
+    const v = atom()
+    ws()
+    return i === src.length ? v : undefined
+  } catch {
+    return undefined
+  }
 }
 
 function cells(v: string, axis: 'x' | 'y', env: LengthEnv): number | undefined {

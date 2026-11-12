@@ -1,0 +1,60 @@
+/**
+ * Types for the components vuecli registers globally, so Volar / vue-tsc know
+ * <Box>, <Button>, ... in templates without imports. Keep in sync with ./index.ts
+ * (test/components2/global-types.test.ts checks it).
+ */
+declare module 'vue' {
+  interface GlobalComponents {
+    Box: typeof import('./primitives.js')['Box']
+    Center: typeof import('./primitives.js')['Center']
+    Divider: typeof import('./primitives.js')['Divider']
+    HStack: typeof import('./primitives.js')['HStack']
+    Newline: typeof import('./primitives.js')['Newline']
+    Spacer: typeof import('./primitives.js')['Spacer']
+    Text: typeof import('./primitives.js')['Text']
+    VStack: typeof import('./primitives.js')['VStack']
+    Button: typeof import('./inputs.js')['Button']
+    Checkbox: typeof import('./inputs.js')['Checkbox']
+    List: typeof import('./inputs.js')['List']
+    RadioGroup: typeof import('./inputs.js')['RadioGroup']
+    ScrollbarTrack: typeof import('./inputs.js')['ScrollbarTrack']
+    Select: typeof import('./inputs.js')['Select']
+    Switch: typeof import('./inputs.js')['Switch']
+    TextInput: typeof import('./inputs.js')['TextInput']
+    Badge: typeof import('./display.js')['Badge']
+    BarChart: typeof import('./display.js')['BarChart']
+    KeyHints: typeof import('./display.js')['KeyHints']
+    ProgressBar: typeof import('./display.js')['ProgressBar']
+    Sparkline: typeof import('./display.js')['Sparkline']
+    Spinner: typeof import('./display.js')['Spinner']
+    Stat: typeof import('./display.js')['Stat']
+    StatusBar: typeof import('./display.js')['StatusBar']
+    Table: typeof import('./display.js')['Table']
+    CommandPalette: typeof import('./containers.js')['CommandPalette']
+    DevTools: typeof import('./containers.js')['DevTools']
+    Dialog: typeof import('./containers.js')['Dialog']
+    ScrollBox: typeof import('./containers.js')['ScrollBox']
+    Tabs: typeof import('./containers.js')['Tabs']
+    BigText: typeof import('./bigtext.js')['BigText']
+    Markdown: typeof import('./markdown.js')['Markdown']
+    Grid: typeof import('./layout.js')['Grid']
+    SplitPane: typeof import('./layout.js')['SplitPane']
+    Stack: typeof import('./layout.js')['Stack']
+    Tree: typeof import('./tree.js')['Tree']
+    Code: typeof import('./code.js')['Code']
+    Diff: typeof import('./diff.js')['Diff']
+    LineChart: typeof import('./charts.js')['LineChart']
+    Gradient: typeof import('./gradient.js')['Gradient']
+    Slider: typeof import('./slider.js')['Slider']
+    KeyHelp: typeof import('./keyhelp.js')['KeyHelp']
+    AsciiFont: typeof import('./asciifont.js')['AsciiFont']
+    ErrorBoundary: typeof import('./boundary.js')['ErrorBoundary']
+    Canvas: typeof import('./canvas.js')['Canvas']
+    Image: typeof import('./image.js')['Image']
+    Link: typeof import('./router.js')['Link']
+    NavLink: typeof import('./router.js')['NavLink']
+    Outlet: typeof import('./router.js')['Outlet']
+  }
+}
+
+export {}

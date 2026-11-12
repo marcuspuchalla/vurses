@@ -3,6 +3,7 @@
  * Streams response bodies (SSE), aborts `request.signal` and cancels the
  * body stream when the client disconnects.
  */
+import { setClientAddress } from './client.js'
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import { connect, createServer as createNetServer } from 'node:net'
 import { Readable } from 'node:stream'
@@ -69,6 +70,7 @@ export function toNodeListener(handler: FetchHandler, onError?: (e: unknown) => 
     let request: Request
     try {
       request = toRequest(req, controller.signal)
+      setClientAddress(request, req.socket.remoteAddress)
     } catch (e) {
       res.statusCode = 400
       res.end('bad request')

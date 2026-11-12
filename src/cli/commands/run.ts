@@ -1,3 +1,4 @@
+import { printSnapshot, requireTerminal, snapshotMount } from '../snapshot.js'
 import { existsSync, statSync } from 'node:fs'
 import { register } from 'node:module'
 import { resolve } from 'node:path'
@@ -14,10 +15,21 @@ function mountOptions(flags: Flags): MountOptions {
   }
 }
 
+/** Mounts in the terminal, or headless for --snapshot (prints one frame and exits). */
+async function mountApp(app: import('../../app/app.js').TuiApp, flags: Flags) {
+  const snap = snapshotMount(flags, typeof flags.theme === 'string' ? flags.theme : undefined)
+  if (snap) {
+    app.mount(snap)
+    await printSnapshot(app.runtime!, flags)
+  }
+  requireTerminal('run')
+  await waitAndExit(app.mount(mountOptions(flags)))
+}
+
 async function waitAndExit(app: { waitUntilExit(): Promise<void> }) {
   try {
     await app.waitUntilExit()
-    process.exit(0)
+    process.exit(typeof process.exitCode === "number" ? process.exitCode : 0) // 128+n after a signal
   } catch {
     process.exit(1)
   }
@@ -30,7 +42,7 @@ async function runEntry(file: string, flags: Flags) {
   const component = mod.default
   if (!component) return // the module mounted itself
   const { createApp } = await import('../../index.js')
-  await waitAndExit(createApp(component as never).mount(mountOptions(flags)))
+  await mountApp(createApp(component as never), flags)
 }
 
 /**
@@ -54,7 +66,7 @@ export async function runRouterApp(appDir: string, flags: Flags = {}) {
     initialPath: route.startsWith('/') ? route : '/' + route,
     terminalTitle: flags.title !== false,
   })
-  await waitAndExit(createApp(router.component).mount(mountOptions(flags)))
+  await mountApp(createApp(router.component), flags)
 }
 
 async function run(entry: string | undefined, flags: Flags) {
@@ -77,7 +89,7 @@ async function run(entry: string | undefined, flags: Flags) {
 
 const command: Command = {
   summary: 'Run an app in the terminal: an entry file, or a directory with app/ (App Router)',
-  usage: 'vuecli run <entry|dir> [--route /path] [--theme name] [--no-mouse] [--fps n] [--no-alt-screen]',
+  usage: 'vuecli run <entry|dir> [--route /path] [--theme name] [--no-mouse] [--fps n] [--no-alt-screen] [--snapshot --size 80x24 --keys tab,enter]',
   run: (args, flags) => run(args[0], flags),
 }
 export default command

@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 import { transformSync } from 'esbuild'
-import { compileScript, compileTemplate, parse } from 'vue/compiler-sfc'
+import { compileScript, compileTemplate, generateCodeFrame, parse } from 'vue/compiler-sfc'
 import { compilerOptions } from '../compiler-options.js'
 import { vuecliError } from '../errors.js'
 
@@ -8,6 +8,8 @@ import { vuecliError } from '../errors.js'
  * Compiles a Vue single-file component into an ES module for the terminal
  * renderer. `<style>` blocks are ignored (style with props/classes instead).
  */
+const warnedStyles = new Set<string>()
+
 export function compileSFC(source: string, filename: string): string {
   const { descriptor, errors } = parse(source, {
     filename,
@@ -16,8 +18,15 @@ export function compileSFC(source: string, filename: string): string {
     templateParseOptions: { whitespace: compilerOptions.whitespace, isCustomElement: compilerOptions.isCustomElement },
   })
   if (errors.length) {
-    const e = errors[0]
-    throw vuecliError('VC030', { file: filename, reason: e instanceof Error ? e.message : String(e) })
+    const e = errors[0] as Error & { loc?: { start: { line: number; column: number; offset: number }; end: { offset: number } } }
+    const where = e.loc ? `${filename}:${e.loc.start.line}:${e.loc.start.column}` : filename
+    const frame = e.loc ? '\n' + generateCodeFrame(source, e.loc.start.offset, e.loc.end.offset) : ''
+    throw vuecliError('VC030', { file: where, reason: (e instanceof Error ? e.message : String(e)) + frame })
+  }
+  if (descriptor.styles.length && !warnedStyles.has(filename)) {
+    // every Vue developer writes <style> first: say why nothing happens
+    warnedStyles.add(filename)
+    process.stderr.write(`vuecli: ${filename}: <style> blocks are ignored in the terminal; style with classes (class="p-1 bold") or props instead.\n`)
   }
   const id = createHash('sha256').update(filename).digest('hex').slice(0, 8)
   const opts = { ...compilerOptions }

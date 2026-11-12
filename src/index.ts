@@ -25,6 +25,8 @@ export type { UseFocusOptions, UseFocusReturn, UseInputOptions, Keymap } from '.
 
 // Components
 export * from './components/index.js'
+// template types for the globally registered components (Volar / vue-tsc)
+export type {} from './components/global-types.js'
 
 // Input
 export { matchKey, formatKey, InputParser, createKeyEvent } from './input/keys.js'

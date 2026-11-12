@@ -117,6 +117,12 @@ abstract class NodeBase {
   }
 }
 
+/**
+ * Like DOM nodes, tree nodes are never made reactive: a template ref held in `ref()`
+ * must be the node itself, not a proxy (identity checks, WeakMap lookups, the DOM facade).
+ */
+;(NodeBase.prototype as unknown as Record<string, unknown>).__v_skip = true
+
 export class TTextNode extends NodeBase {
   readonly nodeType = 'text' as const
   private _text: string
@@ -184,28 +190,39 @@ export class TElement extends NodeBase {
   layout: LayoutInfo = { x: 0, y: 0, width: 0, height: 0, innerWidth: 0, innerHeight: 0, scrollWidth: 0, scrollHeight: 0 }
   private lastLayoutKey = ''
 
-  /** Minimal `style` shim so Vue's `v-show` directive works on terminal elements. */
-  readonly style: { display: string }
+  /**
+   * Inline style written through `el.style` (directives, libraries, `style.setProperty('--x')`),
+   * kebab-case property → value. Web pages apply it after the `style` attribute.
+   */
+  styleOverrides: Map<string, string> | null = null
+  private _styleDecl: CSSStyleLike | null = null
 
   constructor(public readonly tag: string) {
     super()
     this.kind = kindOfTag(tag)
-    const self = this
-    this.style = {
-      get display() {
-        return self._vshowDisplay
-      },
-      set display(v: string) {
-        if (v === self._vshowDisplay) return
-        self._vshowDisplay = v
-        self.invalidateStyle()
-      },
-    }
+  }
+
+  /** A `CSSStyleDeclaration`-like object (`display` drives Vue's `v-show`). */
+  get style(): CSSStyleLike {
+    return (this._styleDecl ??= createStyleDecl(this))
+  }
+
+  /** @internal used by the `el.style` object */
+  _setVshowDisplay(v: string) {
+    if (v === this._vshowDisplay) return
+    this._vshowDisplay = v
+    this.invalidateStyle()
+  }
+  /** @internal */
+  _getVshowDisplay() {
+    return this._vshowDisplay
   }
 
   // ---------------------------------------------------------------- tree
 
   insertBefore(child: TNode, anchor: TNode | null) {
+    // like the DOM (HierarchyRequestError): a node can't go inside itself or its descendants
+    if (child.nodeType === 'element' && child.contains(this)) throw new Error('HierarchyRequestError: the new child element contains the parent')
     if (child.parent) child.parent.removeChild(child, false)
     child.parent = this
     const i = anchor ? this.children.indexOf(anchor) : -1
@@ -491,6 +508,63 @@ export class TElement extends NodeBase {
 }
 
 const hasMeasure = new WeakSet<YogaNode>()
+
+/** What `el.style` offers: named properties plus the CSSStyleDeclaration methods. */
+export type CSSStyleLike = Record<string, unknown> & {
+  display: string
+  cssText: string
+  setProperty(name: string, value: string | null, priority?: string): void
+  removeProperty(name: string): string
+  getPropertyValue(name: string): string
+}
+
+const kebab = (p: string) => (p.startsWith('--') ? p : p.replace(/[A-Z]/g, (c) => '-' + c.toLowerCase()))
+
+function createStyleDecl(el: TElement): CSSStyleLike {
+  const write = (prop: string, value: unknown) => {
+    const k = kebab(prop)
+    const v = value === null || value === undefined ? '' : String(value).trim()
+    const map = (el.styleOverrides ??= new Map())
+    if ((map.get(k) ?? '') === v) return
+    if (v) map.set(k, v)
+    else map.delete(k)
+    el.invalidateStyle()
+    // inherited values and custom properties reach the whole subtree
+    scopeOf(el)?.propChanged?.(el, 'style:override', k)
+  }
+  const methods = {
+    setProperty: (name: string, value: string | null) => write(name, value),
+    removeProperty: (name: string) => {
+      const old = el.styleOverrides?.get(kebab(name)) ?? ''
+      write(name, '')
+      return old
+    },
+    getPropertyValue: (name: string) => el.styleOverrides?.get(kebab(name)) ?? '',
+  }
+  return new Proxy(methods as unknown as CSSStyleLike, {
+    get(t, key) {
+      if (typeof key !== 'string') return undefined
+      if (key in t) return (t as Record<string, unknown>)[key]
+      if (key === 'display') return el._getVshowDisplay()
+      if (key === 'cssText') return [...(el.styleOverrides ?? [])].map(([k, v]) => `${k}: ${v}`).join('; ')
+      if (key === 'length') return el.styleOverrides?.size ?? 0
+      return el.styleOverrides?.get(kebab(key)) ?? ''
+    },
+    set(_t, key, value) {
+      if (typeof key !== 'string') return true
+      if (key === 'display') el._setVshowDisplay(String(value ?? ''))
+      else if (key === 'cssText') {
+        el.styleOverrides?.clear()
+        for (const part of String(value ?? '').split(';')) {
+          const i = part.indexOf(':')
+          if (i > 0) write(part.slice(0, i).trim(), part.slice(i + 1))
+        }
+        el.invalidateStyle()
+      } else write(key, value)
+      return true
+    },
+  })
+}
 
 /** Inline-level child of a web flow box: text, or an inline element laid out as text. */
 function isInlineMember(c: TNode, parent: TElement): boolean {

@@ -44,7 +44,12 @@ export interface Rule {
   selector: Selector
   decls: Declaration[]
   order: number
+  /** Cascade layer rank: earlier layers lose; unlayered rules (the default) beat all layers. */
+  layer?: number
 }
+
+/** Layer rank of rules outside any `@layer`. */
+export const UNLAYERED = Number.MAX_SAFE_INTEGER
 
 export interface MediaEnv {
   /** Viewport width/height in CSS px. */
@@ -344,17 +349,27 @@ export class StyleSheet {
   supportsDark = false
   /** Rules inside @media, re-evaluated when the environment changes. */
   private conditional: { media: string; rules: Rule[] }[] = []
-  private order = 0
+  private order: number
 
-  constructor(css = '') {
+  /** `startOrder`: source order of the first rule (a later sheet starts after an earlier one). */
+  constructor(css = '', startOrder = 0) {
+    this.order = startOrder
     if (css) this.add(css)
   }
 
   add(css: string) {
-    this.parseBlock(stripComments(css), null)
+    this.parseBlock(stripComments(css), null, UNLAYERED, '')
   }
 
-  private parseBlock(css: string, media: string | null) {
+  /** Layer names in order of first appearance (`@layer theme, base, utilities;` declares the order). */
+  private layerRanks = new Map<string, number>()
+  private layerRank(name: string) {
+    let r = this.layerRanks.get(name)
+    if (r === undefined) this.layerRanks.set(name, (r = this.layerRanks.size))
+    return r
+  }
+
+  private parseBlock(css: string, media: string | null, layer: number, layerName: string) {
     let i = 0
     while (i < css.length) {
       while (i < css.length && /\s/.test(css[i])) i++
@@ -363,7 +378,10 @@ export class StyleSheet {
         const semi = css.indexOf(';', i)
         const brace = css.indexOf('{', i)
         if (brace < 0 || (semi >= 0 && semi < brace)) {
-          // statement at-rule: @import, @charset, @layer a, b;
+          // statement at-rule: @import, @charset, @layer a, b; (the latter fixes the layer order)
+          const stmt = css.slice(i, semi < 0 ? css.length : semi)
+          const lm = /^@layer\s+(.+)$/is.exec(stmt.trim())
+          if (lm) for (const n of lm[1].split(',')) this.layerRank(layerName ? `${layerName}.${n.trim()}` : n.trim())
           i = semi < 0 ? css.length : semi + 1
           continue
         }
@@ -375,11 +393,18 @@ export class StyleSheet {
         const mm = /^@media\s+(.+)$/is.exec(prelude)
         if (mm) {
           if (/prefers-color-scheme\s*:\s*dark/i.test(mm[1])) this.supportsDark = true
-          this.parseBlock(body, media ? `${media} and ${mm[1]}` : mm[1])
+          this.parseBlock(body, media ? `${media} and ${mm[1]}` : mm[1], layer, layerName)
           continue
         }
-        // @supports, @layer, @container, @scope, @document: use the contents
-        this.parseBlock(body, media)
+        const lb = /^@layer(?:\s+([^{]+))?$/is.exec(prelude)
+        if (lb) {
+          const name = lb[1]?.trim() || `<anonymous ${this.layerRanks.size}>`
+          const full = layerName ? `${layerName}.${name}` : name
+          this.parseBlock(body, media, this.layerRank(full), full)
+          continue
+        }
+        // @supports, @container, @scope, @document: use the contents
+        this.parseBlock(body, media, layer, layerName)
         continue
       }
       const brace = css.indexOf('{', i)
@@ -393,14 +418,14 @@ export class StyleSheet {
       const decls = parseDecls(nested ? body.replace(/[^;{}]*\{[^{}]*\}/g, '') : body)
       const selectors = parseSelectorList(selectorText)
       const rules: Rule[] = []
-      for (const selector of selectors) rules.push({ selector, decls, order: this.order++ })
+      for (const selector of selectors) rules.push({ selector, decls, order: this.order++, layer })
       if (nested) {
         for (const m of body.matchAll(/([^;{}]+)\{([^{}]*)\}/g)) {
           const inner = m[1].trim()
           const combined = splitTop(selectorText, ',')
             .flatMap((outer) => splitTop(inner, ',').map((s) => (s.includes('&') ? s.replace(/&/g, outer.trim()) : `${outer.trim()} ${s.trim()}`)))
             .join(',')
-          for (const selector of parseSelectorList(combined)) rules.push({ selector, decls: parseDecls(m[2]), order: this.order++ })
+          for (const selector of parseSelectorList(combined)) rules.push({ selector, decls: parseDecls(m[2]), order: this.order++, layer })
         }
       }
       if (media) this.conditional.push({ media, rules })
@@ -644,7 +669,7 @@ export class RuleIndex {
     for (const c of classes) cand.push(...(this.byClass.get(c) ?? []))
     cand.push(...(this.byTag.get(el.tag) ?? []))
     const out = cand.filter((r) => matches(r.selector, el))
-    return out.sort((a, b) => a.selector.specificity - b.selector.specificity || a.order - b.order)
+    return out.sort((a, b) => (a.layer ?? UNLAYERED) - (b.layer ?? UNLAYERED) || a.selector.specificity - b.selector.specificity || a.order - b.order)
   }
 }
 
@@ -721,7 +746,70 @@ export function cssColor(value: string, alpha?: { a: number }): string | undefin
     if (alpha && parts[3] !== undefined) alpha.a = parts[3].endsWith('%') ? parseFloat(parts[3]) / 100 : parseFloat(parts[3])
     return hslToHex(((h % 360) + 360) % 360, parseFloat(parts[1]), parseFloat(parts[2]))
   }
+  // oklch() / oklab(): Tailwind v4's whole palette
+  m = /^ok(lch|lab)\(\s*([^)]+)\)$/.exec(v)
+  if (m) {
+    const parts = m[2].split(/[\s,/]+/).filter(Boolean)
+    if (parts.length < 3) return undefined
+    const num = (s: string, pct = 1) => (s === 'none' ? 0 : s.endsWith('%') ? (parseFloat(s) / 100) * pct : parseFloat(s))
+    const L = num(parts[0])
+    let a: number
+    let b: number
+    if (m[1] === 'lch') {
+      const C = num(parts[1], 0.4)
+      const H = (num(parts[2]) * Math.PI) / 180
+      a = C * Math.cos(H)
+      b = C * Math.sin(H)
+    } else {
+      a = num(parts[1], 0.4)
+      b = num(parts[2], 0.4)
+    }
+    if (![L, a, b].every(Number.isFinite)) return undefined
+    if (alpha && parts[3] !== undefined) alpha.a = num(parts[3])
+    return oklabToHex(L, a, b)
+  }
+  // color-mix(in <space>, c1 [p1], c2 [p2]): mixed in sRGB, alpha carried (`/50` = mix with transparent)
+  m = /^color-mix\(\s*in\s+[a-z-]+(?:\s+[a-z]+\s+hue)?\s*,(.*)\)$/.exec(v)
+  if (m) {
+    const args = splitTop(m[1], ',').map((x) => x.trim())
+    if (args.length !== 2) return undefined
+    const parsed = args.map((arg) => {
+      const pm = /\s(\d*\.?\d+)%$/.exec(arg)
+      const color = (pm ? arg.slice(0, pm.index) : arg).trim()
+      const al = { a: 1 }
+      const hex = cssColor(color, al)
+      return { hex, a: hex === 'transparent' ? 0 : al.a, p: pm ? parseFloat(pm[1]) / 100 : undefined }
+    })
+    if (parsed.some((x) => !x.hex)) return undefined
+    let [p1, p2] = [parsed[0].p, parsed[1].p]
+    if (p1 === undefined && p2 === undefined) p1 = p2 = 0.5
+    else if (p1 === undefined) p1 = 1 - p2!
+    else if (p2 === undefined) p2 = 1 - p1
+    const sum = p1 + p2!
+    const w1 = p1 / sum
+    const w2 = p2! / sum
+    const a1 = parsed[0].a * w1
+    const a2 = parsed[1].a * w2
+    const outA = (a1 + a2) * Math.min(1, sum)
+    if (alpha) alpha.a = outA
+    // premultiplied: a transparent side contributes no color
+    const rgb = (h: string) => (h === 'transparent' ? [0, 0, 0] : [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)))
+    const [c1, c2] = [rgb(parsed[0].hex!), rgb(parsed[1].hex!)]
+    if (a1 + a2 === 0) return 'transparent'
+    const ch = (i: number) => (c1[i] * a1 + c2[i] * a2) / (a1 + a2)
+    return `#${hex2(ch(0))}${hex2(ch(1))}${hex2(ch(2))}`
+  }
   return undefined
+}
+
+/** OKLab → sRGB hex (https://bottosson.github.io/posts/oklab/), clamped to the gamut. */
+function oklabToHex(L: number, a: number, b: number): string {
+  const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3
+  const m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3
+  const s = (L - 0.0894841775 * a - 1.291485548 * b) ** 3
+  const lin = [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s, -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s, -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s]
+  const enc = (x: number) => 255 * (x <= 0.0031308 ? 12.92 * x : 1.055 * Math.pow(x, 1 / 2.4) - 0.055)
+  return `#${lin.map((x) => hex2(Math.max(0, Math.min(255, enc(Math.max(0, x)))))).join('')}`
 }
 
 /** Finds the first color token in a shorthand (`background`, `border`). */

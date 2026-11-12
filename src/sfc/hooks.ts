@@ -30,5 +30,16 @@ export async function load(url: string, context: { format?: string | null }, nex
     const source = await readFile(filename, 'utf8')
     return { format: 'module', source: compileSFC(source, filename), shortCircuit: true }
   }
+  // the app's own TypeScript (route handlers, middleware, stores): compiled here, so every
+  // supported Node version runs it the same way (Node's own type stripping arrived in 22.18
+  // and doesn't support enums or parameter properties)
+  if (/\.[mc]?ts$/.test(url) && url.startsWith('file:') && !url.includes('/node_modules/')) {
+    const filename = fileURLToPath(url)
+    const source = await readFile(filename, 'utf8')
+    const cjs = url.endsWith('.cts')
+    const { transform } = await import('esbuild')
+    const out = await transform(source, { loader: 'ts', format: cjs ? 'cjs' : 'esm', sourcefile: filename, sourcemap: 'inline', target: 'node20' })
+    return { format: cjs ? 'commonjs' : 'module', source: out.code, shortCircuit: true }
+  }
   return next(url, context)
 }

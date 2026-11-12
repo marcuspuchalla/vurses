@@ -1,6 +1,7 @@
 /**
  * Runs a web app built by `buildWebApp` in the terminal.
  */
+import { safeTitle } from '../render/sanitize.js'
 import { register } from 'node:module'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -13,6 +14,8 @@ export interface RunWebOptions {
   dark?: boolean
   /** Root of the app (localStorage is persisted under node_modules/.vuecli-web-cache). */
   root: string
+  /** Where relative fetch() URLs go when no Vite proxy rule matches (`--origin`). */
+  origin?: string
 }
 
 export async function runWebApp(build: WebBuild, o: RunWebOptions): Promise<TuiApp> {
@@ -21,6 +24,10 @@ export async function runWebApp(build: WebBuild, o: RunWebOptions): Promise<TuiA
     data: { appParent: pathToFileURL(join(o.root, 'package.json')).href, vueParent: pathToFileURL(join(build.vueDir, 'index.js')).href },
   })
   process.env.NODE_ENV ??= 'production'
+  // like a browser tab: an error thrown in a timer or an unhandled rejection is logged,
+  // the page keeps running (in Node it would end the process)
+  process.on('uncaughtException', (e) => console.error('[vuecli web] uncaught error:', e))
+  process.on('unhandledRejection', (e) => console.error('[vuecli web] unhandled rejection:', e))
   const { setWebConfig, current } = await import('./app.js')
   const { installGlobals } = await import('./globals.js')
   const dark = o.dark ?? true
@@ -39,10 +46,12 @@ export async function runWebApp(build: WebBuild, o: RunWebOptions): Promise<TuiA
     storageFile: join(o.root, 'node_modules', '.vuecli-web-cache', 'localStorage.json'),
     url: `http://localhost${o.route ?? '/'}`,
     scope: () => current.scope,
+    proxy: build.proxy,
+    origin: o.origin,
     size: () => current.runtime?.ctx.size ?? { columns: process.stdout.columns ?? 80, rows: process.stdout.rows ?? 24 },
     dark,
     onTitle: (t) => {
-      if (process.stdout.isTTY) process.stdout.write(`\x1b]2;${t.replace(/[\x00-\x1f]/g, '')}\x07`)
+      if (process.stdout.isTTY) process.stdout.write(`\x1b]2;${safeTitle(t)}\x07`)
     },
   })
   await import(pathToFileURL(build.entry).href)

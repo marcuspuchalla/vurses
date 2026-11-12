@@ -1,3 +1,4 @@
+import { safeLogText } from '../render/sanitize.js'
 import { defineComponent, h, reactive, ref, shallowReactive, shallowRef, type App, type Component } from 'vue'
 import { createRoot, type TElement } from '../dom/nodes.js'
 import type { CellBuffer } from '../render/buffer.js'
@@ -388,7 +389,8 @@ export class Runtime {
     if (this.scheduled) clearTimeout(this.scheduled)
     if (this.escTimer) clearTimeout(this.escTimer)
     try {
-      this.app.unmount()
+      // an app that crashed before mounting has nothing to unmount (Vue would warn)
+      if ((this.app as { _instance?: unknown })._instance) this.app.unmount()
     } catch {
       // ignore
     }
@@ -401,14 +403,14 @@ export class Runtime {
     if (this.opts.patchConsole && isTty) {
       for (const l of this.ctx.logs) {
         const stream = l.level === 'error' || l.level === 'warn' ? proc.stderr : proc.stdout
-        stream.write(l.message + '\n')
+        stream.write(safeLogText(l.message) + '\n')
       }
     }
     this.events.emit('exit', { error })
     if (error) {
       if (isTty) {
         const msg = error instanceof Error ? (error.stack ?? error.message) : String(error)
-        proc.stderr.write(`\n[vuecli] app crashed:\n${msg}\n`)
+        proc.stderr.write(`\n[vuecli] app crashed:\n${safeLogText(msg)}\n`)
         proc.exitCode = 1
       }
       this.exitResolvers?.reject(error)

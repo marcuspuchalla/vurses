@@ -26,7 +26,12 @@ export function decodeEntities(s: string): string {
   return s.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+\d*);/gi, (m, e: string) => {
     if (e[0] === '#') {
       const code = e[1] === 'x' || e[1] === 'X' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10)
-      return Number.isFinite(code) ? String.fromCodePoint(code) : m
+      if (!Number.isFinite(code)) return m
+      // like a browser: out-of-range code points, surrogates and NUL become U+FFFD;
+      // control characters are dropped (they would only reach the terminal)
+      if (code === 0 || code > 0x10ffff || (code >= 0xd800 && code <= 0xdfff)) return '\ufffd'
+      if ((code < 0x20 && code !== 0x09 && code !== 0x0a && code !== 0x0d) || (code >= 0x7f && code <= 0x9f)) return ''
+      return String.fromCodePoint(code)
     }
     return ENTITIES[e.toLowerCase()] ?? m
   })

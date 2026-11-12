@@ -24,6 +24,8 @@ export interface SessionManagerOptions {
   createRoot: RootFactory
   /** Max concurrent sessions (503 above). Default: 200. */
   maxSessions?: number
+  /** Max concurrent sessions per client address (429 above), when the adapter knows it. Default: 8. */
+  maxSessionsPerClient?: number
   /** End a session after this many ms without input. Default: 30 minutes. 0 = never. */
   idleTimeout?: number
   /** Frame rate cap for streamed sessions. Default: 30. */
@@ -55,6 +57,8 @@ function randomId() {
 
 export class SessionManager {
   private sessions = new Map<string, Session>()
+  /** Open session ids per client address. */
+  private byClient = new Map<string, Set<string>>()
   constructor(readonly options: SessionManagerOptions) {}
 
   get size() {
@@ -71,10 +75,15 @@ export class SessionManager {
    * Opens a session for `pathname` and returns the SSE response. `extra`
    * events (e.g. title) can be sent by the caller through `onOpen`.
    */
-  async open(pathname: string, opts: { columns?: number; rows?: number; request?: Request; signal?: AbortSignal } = {}): Promise<Response> {
+  async open(pathname: string, opts: { columns?: number; rows?: number; request?: Request; signal?: AbortSignal; client?: string } = {}): Promise<Response> {
     const o = this.options
     if (this.sessions.size >= (o.maxSessions ?? 200)) {
       return new Response('too many sessions', { status: 503, headers: { 'retry-after': '5' } })
+    }
+    // one client must not be able to take every session (each one is a whole Vue app)
+    const mine = opts.client ? (this.byClient.get(opts.client) ?? new Set<string>()) : null
+    if (mine && mine.size >= (o.maxSessionsPerClient ?? 8)) {
+      return new Response('too many sessions from this client', { status: 429, headers: { 'retry-after': '5' } })
     }
     const columns = clampSize(opts.columns ?? NaN, 10, 500, 80)
     const rows = clampSize(opts.rows ?? NaN, 4, 300, 24)
@@ -108,6 +117,10 @@ export class SessionManager {
       ended = true
       if (idle) clearTimeout(idle)
       this.sessions.delete(id)
+      if (mine && opts.client) {
+        mine.delete(id)
+        if (!mine.size) this.byClient.delete(opts.client)
+      }
       const msg = error && o.exposeErrors ? String((error as Error)?.message ?? error) : undefined
       sse.send('bye', JSON.stringify({ reason, error: msg }))
       sse.close()
@@ -132,6 +145,10 @@ export class SessionManager {
       close: (reason = 'closed') => end(reason),
     }
     this.sessions.set(id, session)
+    if (mine && opts.client) {
+      mine.add(id)
+      this.byClient.set(opts.client, mine)
+    }
     opts.signal?.addEventListener('abort', () => end('disconnect'), { once: true })
     sse.send('hello', JSON.stringify({ sid: id, columns, rows, path: pathname }))
     touch()

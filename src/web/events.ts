@@ -6,6 +6,7 @@
  * `withModifiers`) and libraries (vue-router's RouterLink) inspect the event
  * object, so it has to look like a DOM event.
  */
+import { eventClassFor } from './event-classes.js'
 import type { TElement } from '../dom/nodes.js'
 import type { KeyEvent } from '../input/keys.js'
 
@@ -77,6 +78,8 @@ export function createEvent(type: string, target: TElement, init: Partial<WebEve
     },
     ...init,
   }
+  // instanceof KeyboardEvent / InputEvent / MouseEvent ... like a browser's events
+  Object.setPrototypeOf(ev, eventClassFor(type).prototype)
   return ev
 }
 

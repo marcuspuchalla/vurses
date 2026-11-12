@@ -125,7 +125,7 @@ export function middleware(request: RouteRequest) {
 
 export const config = { matcher: ['/home'] }
 `,
-  '.gitignore': 'node_modules\ndist\n',
+  '.gitignore': 'node_modules\ndist\n.vuecli\n',
 }
 
 // ------------------------------------------------------------- single file
@@ -164,6 +164,17 @@ useKeymap({
 </script>
 `
 
+/** Editor support: loads vuecli's types, which declare the global components (<Box>, <Button>, ...). */
+const TSCONFIG = JSON.stringify(
+  {
+    compilerOptions: { target: 'ES2022', module: 'ESNext', moduleResolution: 'Bundler', strict: true, noEmit: true, jsx: 'preserve', types: ['vuecli'] },
+    include: ['**/*.ts', '**/*.vue'],
+    exclude: ['node_modules', 'dist', '.vuecli'],
+  },
+  null,
+  2,
+) + '\n'
+
 function create(dir: string, flags: Flags) {
   const target = resolve(dir)
   if (existsSync(target) && existsSync(join(target, 'package.json'))) {
@@ -172,7 +183,7 @@ function create(dir: string, flags: Flags) {
   }
   const name = basename(target)
   const single = flags.single === true || flags.template === 'single'
-  const files: Record<string, string> = single ? { 'App.vue': TEMPLATE_APP } : ROUTER_FILES
+  const files: Record<string, string> = { ...(single ? { 'App.vue': TEMPLATE_APP } : ROUTER_FILES), 'tsconfig.json': TSCONFIG }
   const scripts = single ? { start: 'vuecli App.vue' } : { start: 'vuecli run .', 'start:about': 'vuecli run . --route /about', dev: 'vuecli dev' }
   mkdirSync(target, { recursive: true })
   writeFileSync(
@@ -185,7 +196,7 @@ function create(dir: string, flags: Flags) {
     writeFileSync(out, content.replaceAll('__NAME__', name))
   }
   const tree = single
-    ? '  App.vue'
+    ? '  App.vue\n  tsconfig.json'
     : [
         '  app/',
         '    layout.vue          header + status bar around every page',
@@ -196,6 +207,7 @@ function create(dir: string, flags: Flags) {
         '    not-found.vue       404',
         '    api/hello/route.ts  GET /api/hello (vuecli dev)',
         '  middleware.ts         redirects /home → /',
+        '  tsconfig.json         editor support (component types)',
       ].join('\n')
   console.log(`\nCreated ${name}:\n\n${tree}\n\n  cd ${dir}\n  npm install\n  npm start\n`)
 }

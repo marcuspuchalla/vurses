@@ -90,8 +90,33 @@ export async function startDevServer(options: DevServerOptions = {}): Promise<Ru
   } catch (e) {
     handler = errorHandler(e, buildId)
   }
-  const server = await serve(handler, { port: options.port ?? 3000, host: options.host })
+  const server = await serve(guardHost(handler, options.host), { port: options.port ?? 3000, host: options.host })
   return Object.assign(server, { buildId })
+}
+
+/**
+ * DNS rebinding protection: a web page on some domain can point that domain at
+ * 127.0.0.1 and read the dev server's responses (route handlers, stack traces, live
+ * sessions). Requests must name the server by `localhost`, an IP address, or the
+ * configured host.
+ */
+export function guardHost(handler: FetchHandler, configured?: string): FetchHandler {
+  return async (req) => {
+    if (!allowedHost(req.headers.get('host'), configured))
+      return new Response('Blocked request: unknown Host header (vuecli dev only answers to localhost, IP addresses and --host).\n', {
+        status: 403,
+        headers: { 'content-type': 'text/plain; charset=utf-8' },
+      })
+    return handler(req)
+  }
+}
+
+export function allowedHost(header: string | null, configured?: string): boolean {
+  if (!header) return true // HTTP/1.0 clients; browsers always send Host
+  const name = header.replace(/:\d+$/, '').replace(/^\[|\]$/g, '').toLowerCase()
+  if (name === 'localhost' || name.endsWith('.localhost')) return true
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(name) || name.includes(':')) return true // IPv4 / IPv6 literal
+  return !!configured && name === configured.toLowerCase()
 }
 
 const IGNORED = /(^|[\\/])(node_modules|\.git|\.vuecli|\.vercel|dist|\.wrangler)([\\/]|$)/

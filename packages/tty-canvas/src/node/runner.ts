@@ -16,7 +16,17 @@ import { BrowserEnvironment, type EnvironmentOptions } from '../dom.js'
 import type { Element } from '../element.js'
 import { parseHtml } from './html.js'
 
+/**
+ * Pages run with the privileges of the Node process (a `vm` context is not a sandbox):
+ * only run pages you trust, as you would any script. By default a page can't reach
+ * beyond itself, though: scripts load from the page's own files only (`file:`), and
+ * module scripts can't import Node built-ins or npm packages.
+ */
 export interface RunOptions extends EnvironmentOptions {
+  /** Load `https:` scripts and modules (never plain `http:`). Default: false. */
+  allowRemote?: boolean
+  /** Let module scripts import Node built-ins (`node:fs`) and installed packages. Default: false. */
+  allowHostImports?: boolean
   /** Reuse an existing environment instead of creating one. */
   env?: BrowserEnvironment
   /** Fire DOMContentLoaded / load after the scripts ran (default true). */
@@ -69,9 +79,35 @@ interface Ctx {
   context: vm.Context
   errors: unknown[]
   restoreGlobals?: () => void
+  allowRemote: boolean
+  allowHostImports: boolean
 }
 
-function createContext(env: BrowserEnvironment): Ctx {
+/** Checks a script / module URL against the page's policy; throws when it isn't allowed. */
+function checkSource(ctx: Ctx, href: string) {
+  const u = new URL(href)
+  if (u.protocol === 'file:' || u.protocol === 'data:') return
+  if (u.protocol === 'https:' && ctx.allowRemote) return
+  throw new Error(
+    u.protocol === 'https:' ? `tty-canvas: blocked remote script ${href} (pass allowRemote: true to load it)` : `tty-canvas: blocked script ${href} (only file: and, with allowRemote, https: scripts load)`,
+  )
+}
+
+/** Bare imports (`node:fs`, `lodash`) reach the host process: only with allowHostImports. */
+function checkHostImport(ctx: Ctx, spec: string) {
+  if (!ctx.allowHostImports) throw new Error(`tty-canvas: blocked import of "${spec}" (pages can't import Node built-ins or packages unless allowHostImports: true)`)
+}
+
+const STATIC_IMPORT = /(?:\bimport\s*(?:[\w*{][^'"]*?\bfrom\s*)?|\bexport\s*[^'"]*?\bfrom\s*|\bimport\s*\(\s*)(['"])([^'"]+)\1/g
+
+/** Specifiers of a module's imports that aren't relative or absolute URLs. */
+function hostImports(code: string): string[] {
+  const out: string[] = []
+  for (const m of code.matchAll(STATIC_IMPORT)) if (!/^(\.{0,2}\/|file:|https?:|data:)/.test(m[2])) out.push(m[2])
+  return out
+}
+
+function createContext(env: BrowserEnvironment, options: RunOptions = {}): Ctx {
   const sandbox = env.window as Record<string, unknown>
   const context = vm.createContext(sandbox, { name: 'tty-canvas page' })
   // `window`, `self`, `globalThis` should all be the global object inside the page
@@ -82,7 +118,7 @@ function createContext(env: BrowserEnvironment): Ctx {
     sandbox[k] = f.bind(env.window)
   }
   // the vm global is a proxy to `sandbox`; make window/self refer to it for identity checks
-  return { env, context, errors: [] }
+  return { env, context, errors: [], allowRemote: !!options.allowRemote, allowHostImports: !!options.allowHostImports }
 }
 
 function report(ctx: Ctx, err: unknown) {
@@ -128,10 +164,12 @@ async function runModule(ctx: Ctx, code: string, url: string) {
         const id = new URL(spec, ref.identifier ?? url).href
         const hit = cache.get(id)
         if (hit) return hit
-        const text = id.startsWith('http') ? await (await fetch(id)).text() : await readFile(fileURLToPath(id), 'utf8')
+        checkSource(ctx, id)
+        const text = id.startsWith('https:') ? await (await fetch(id)).text() : await readFile(fileURLToPath(id), 'utf8')
         return load(text, id)
       }
       // bare specifier / node builtin: import from the host realm
+      checkHostImport(ctx, spec)
       const ns = (await import(spec)) as Record<string, unknown>
       const names = Object.keys(ns)
       return new v.SyntheticModule!(names, function () {
@@ -150,6 +188,8 @@ async function runModule(ctx: Ctx, code: string, url: string) {
   // fallback: run in the main realm with the browser globals installed
   ctx.restoreGlobals ??= ctx.env.installGlobals()
   try {
+    // the main realm resolves imports itself: apply the policy to the module's imports up front
+    for (const spec of hostImports(code)) checkHostImport(ctx, spec)
     if (url.startsWith('file:') && isFile(fileURLToPath(url)) && (await readFile(fileURLToPath(url), 'utf8')) === code) {
       await import(url)
     } else {
@@ -162,8 +202,9 @@ async function runModule(ctx: Ctx, code: string, url: string) {
   }
 }
 
-async function fetchText(src: string, base: string): Promise<{ code: string; url: string }> {
+async function fetchText(ctx: Ctx, src: string, base: string): Promise<{ code: string; url: string }> {
   const u = new URL(src, base)
+  checkSource(ctx, u.href)
   if (u.protocol === 'file:') return { code: await readFile(fileURLToPath(u), 'utf8'), url: u.href }
   const res = await fetch(u)
   if (!res.ok) throw new Error(`HTTP ${res.status} loading ${u.href}`)
@@ -203,7 +244,7 @@ export async function runHtml(file: string | URL | { html: string; url?: string 
   }
   const baseDir = pageUrl.startsWith('file:') ? dirname(fileURLToPath(pageUrl)) : pageUrl
   const env = options.env ?? new BrowserEnvironment({ ...options, url: options.url ?? pageUrl, baseURL: options.baseURL ?? baseDir })
-  const ctx = createContext(env)
+  const ctx = createContext(env, options)
   const els = parseHtml(html, env.document)
   bindInlineHandlers(ctx, els)
   for (const el of els) {
@@ -216,7 +257,7 @@ export async function runHtml(file: string | URL | { html: string; url?: string 
     let url = pageUrl
     if (src) {
       try {
-        ;({ code, url } = await fetchText(src, pageUrl))
+        ;({ code, url } = await fetchText(ctx, src, pageUrl))
       } catch (err) {
         report(ctx, err)
         el.dispatchEvent(new (env.window.Event as typeof import('../events.js').Event)('error'))
@@ -252,7 +293,7 @@ export async function runScript(file: string | URL | { code: string; url?: strin
   }
   const baseDir = url.startsWith('file:') ? dirname(fileURLToPath(url)) : url
   const env = options.env ?? new BrowserEnvironment({ ...options, url: options.url ?? url, baseURL: options.baseURL ?? baseDir })
-  const ctx = createContext(env)
+  const ctx = createContext(env, options)
   if (options.createCanvas !== false) {
     // a page with one canvas filling the viewport, like a typical sketch template
     const c = env.document.createElement('canvas') as Canvas

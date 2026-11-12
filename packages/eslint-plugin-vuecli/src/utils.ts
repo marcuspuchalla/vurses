@@ -46,4 +46,4 @@ export function matchesTag(el: VElement, names: Set<string>): boolean {
   return names.has(t) || names.has(kebab(t))
 }
 
-export const DOCS = 'https://github.com/marcuspuchalla/vuecli/blob/main/packages/eslint-plugin-vuecli/README.md'
+export const DOCS = 'https://github.com/marcuspuchalla/vuecli/blob/HEAD/packages/eslint-plugin-vuecli/README.md'

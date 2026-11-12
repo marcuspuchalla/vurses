@@ -170,6 +170,26 @@ describe('runHtml / runScript', () => {
     expect((page.window as Record<string, unknown>).after).toBe(1)
     page.dispose()
   })
+
+  it('blocks remote scripts and host imports unless allowed', async () => {
+    const errors: unknown[] = []
+    const quiet = { ...console, error: (e: unknown) => errors.push(e) } as Console
+    const remote = await runHtml({ html: '<script src="http://example.invalid/x.js"></script><script src="https://example.invalid/y.js"></script>' }, { console: quiet })
+    expect(remote.errors.map(String).join(' ')).toMatch(/blocked script http:.*blocked remote script https:/s)
+    remote.dispose()
+
+    const dir = mkdtempSync(join(tmpdir(), 'ttyc-policy-'))
+    writeFileSync(join(dir, 'm.js'), "import { readFileSync } from 'node:fs'\nwindow.leak = typeof readFileSync")
+    writeFileSync(join(dir, 'index.html'), '<script type="module" src="./m.js"></script>')
+    const blocked = await runHtml(join(dir, 'index.html'), { console: quiet })
+    expect(String(blocked.errors[0])).toContain('blocked import of "node:fs"')
+    expect((blocked.window as Record<string, unknown>).leak).toBeUndefined()
+    blocked.dispose()
+
+    const allowed = await runHtml(join(dir, 'index.html'), { console: quiet, allowHostImports: true })
+    expect(allowed.errors).toEqual([])
+    allowed.dispose()
+  })
 })
 
 describe('terminal input parser', () => {

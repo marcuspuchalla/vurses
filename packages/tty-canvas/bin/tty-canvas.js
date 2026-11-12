@@ -9,6 +9,9 @@ const HELP = `tty-canvas — run HTML canvas code in the terminal
 Usage:
   tty-canvas <page.html | sketch.js | sketch.ts | image.png> [options]
 
+  The page's scripts run with your user's privileges (this is not a browser sandbox):
+  only run pages you trust.
+
 Options:
   -m, --mode <mode>    halfblock (default) | quadrant | sextant | braille | ascii
                        | kitty | sixel | iterm2 | auto
@@ -18,6 +21,9 @@ Options:
       --status         show a status line (mode, size, fps)
       --size <WxH>     fixed viewport size in canvas pixels
       --print          render one frame to stdout and exit (no full-screen)
+      --allow-remote   load https: scripts the page references (off by default)
+      --allow-host-imports
+                       let module scripts import Node built-ins and packages (off by default)
   -h, --help           show this help
 
 Mouse and keys are delivered to the page as DOM events. Press ctrl+c to quit.`
@@ -34,6 +40,8 @@ try {
       status: { type: 'boolean' },
       size: { type: 'string' },
       print: { type: 'boolean' },
+      'allow-remote': { type: 'boolean' },
+      'allow-host-imports': { type: 'boolean' },
       help: { type: 'boolean', short: 'h' },
     },
   })
@@ -101,8 +109,8 @@ const pageConsole = new Proxy(console, {
   },
 })
 const page = isHtml
-  ? await lib.runHtml(file, { width, height, console: flags.print ? console : pageConsole })
-  : await lib.runScript(file, { width, height, console: flags.print ? console : pageConsole })
+  ? await lib.runHtml(file, { width, height, console: flags.print ? console : pageConsole, allowRemote: flags['allow-remote'], allowHostImports: flags['allow-host-imports'] })
+  : await lib.runScript(file, { width, height, console: flags.print ? console : pageConsole, allowRemote: flags['allow-remote'], allowHostImports: flags['allow-host-imports'] })
 
 if (flags.print || !process.stdout.isTTY) {
   // let a few frames run, then print one

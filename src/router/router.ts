@@ -5,6 +5,7 @@
  * browser) and navigation guards. URL matching uses `matchRoute` from
  * ./match.ts so the server resolves URLs identically.
  */
+import { safeTitle } from '../render/sanitize.js'
 import {
   Fragment,
   Suspense,
@@ -681,7 +682,7 @@ export function createAppRouter(options: AppRouterOptions): AppRouter {
         const fmt = typeof options.terminalTitle === 'function' ? options.terminalTitle : (t: string) => t
         watch(
           () => current.value?.meta.metadata.title,
-          (t) => t && ctx.writeRaw(`\x1b]0;${fmt(t).replace(/[\x00-\x1f\x7f]/g, '')}\x07`),
+          (t) => t && ctx.writeRaw(`\x1b]0;${safeTitle(fmt(t))}\x07`),
           { immediate: true },
         )
       }

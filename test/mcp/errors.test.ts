@@ -8,7 +8,7 @@ describe('error codes', () => {
     expect(e).toBeInstanceOf(VuecliError)
     expect(e).toBeInstanceOf(Error)
     expect(e.code).toBe('VC001')
-    expect(e.docsUrl).toBe('https://github.com/marcuspuchalla/vuecli/blob/main/docs/errors.md#vc001')
+    expect(e.docsUrl).toBe('https://github.com/marcuspuchalla/vuecli/blob/HEAD/docs/errors.md#vc001')
     expect(e.message).toMatch(/^\[VC001\] useApp\(\) was called outside a vuecli app/)
     expect(e.message).toContain('\n  → https://')
     expect(e.reason).toMatch(/^useApp\(\) was called/)

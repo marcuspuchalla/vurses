@@ -52,6 +52,7 @@ export function ttyTarget(options: TtyTargetOptions = {}): RenderTarget & { stdo
     if (mouse) s += `${ESC}?1006l${ESC}?1003l${ESC}?1002l${ESC}?1000l`
     s += `${ESC}?2004l${ESC}?25h`
     if (alt) s += `${ESC}?1049l`
+    s += `${ESC}23;0t` // restore the window title saved at start (apps may set their own)
     stdout.write(s)
   }
 
@@ -61,19 +62,31 @@ export function ttyTarget(options: TtyTargetOptions = {}): RenderTarget & { stdo
     rows: options.rows ?? stdout.rows ?? 24,
     colorDepth: options.colorDepth,
     start(rt: Runtime) {
-      let setup = ''
+      let setup = `${ESC}22;0t` // save the window title (terminals without a title stack ignore it)
       if (alt) setup += `${ESC}?1049h`
       setup += `${ESC}?25l${ESC}?2004h`
       if (mouse) setup += `${ESC}?1000h${ESC}?1002h${ESC}?1003h${ESC}?1006h`
       stdout.write(setup)
       if (proc?.on) {
         const onExit = () => restore()
-        const onTerm = () => rt.exit()
+        // a signal from outside (kill, a watcher, an IDE task runner, a closed terminal) must
+        // leave the terminal usable: exit through the runtime, which restores it
+        const signals = { SIGTERM: 15, SIGINT: 2, SIGHUP: 1, SIGQUIT: 3 } as const
+        const handlers = Object.entries(signals).map(([sig, n]) => {
+          const h = () => {
+            proc.exitCode = 128 + n
+            rt.exit()
+            // timers or sockets of the app may keep the process alive: don't hang
+            const t = setTimeout(() => proc.exit(128 + n), 1000)
+            ;(t as { unref?: () => void }).unref?.()
+          }
+          proc.on(sig, h)
+          return [sig, h] as const
+        })
         proc.on('exit', onExit)
-        proc.on('SIGTERM', onTerm)
         cleanups.push(() => {
           proc.off('exit', onExit)
-          proc.off('SIGTERM', onTerm)
+          for (const [sig, h] of handlers) proc.off(sig, h)
         })
       }
       if (stdin.isTTY && stdin.setRawMode) stdin.setRawMode(true)

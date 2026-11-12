@@ -24,7 +24,9 @@ async function dev(args: string[], flags: Flags) {
   }
   const { supervise, startDevServer } = await import('../../server/dev.js')
   const port = Number(flags.port ?? process.env.PORT ?? 3000)
-  const host = typeof flags.host === 'string' ? flags.host : undefined
+  // like Vite: only this machine can reach the dev server unless --host says otherwise
+  // (`--host` alone: every interface)
+  const host = typeof flags.host === 'string' ? flags.host : flags.host === true ? '::' : 'localhost'
 
   // worker: one build, serve until the supervisor replaces us
   if (flags.worker) {
@@ -44,13 +46,15 @@ async function dev(args: string[], flags: Flags) {
   const { findFreePort } = await import('../../server/node.js')
   const free = await findFreePort(port, host)
   if (free !== port) console.log(`\n  port ${port} is in use (by another process on localhost) — using ${free}`)
-  console.log(`\n  vuecli dev — ${entry}\n  http://${host && host !== '0.0.0.0' ? host : 'localhost'}:${free}  (watching for changes)\n`)
-  await supervise({ watchDir, args: [bin, 'dev', entry, '--worker', `--port=${free}`, ...(host ? [`--host=${host}`] : []), ...passthrough(flags, ['app'])] })
+  const everywhere = host === '::' || host === '0.0.0.0'
+  console.log(`\n  vuecli dev — ${entry}\n  http://${everywhere ? 'localhost' : host}:${free}  (watching for changes)`)
+  console.log(everywhere ? `  exposed on all network interfaces (--host): anyone on your network can open it\n` : `  local only; use --host to expose it on your network\n`)
+  await supervise({ watchDir, args: [bin, 'dev', entry, '--worker', `--port=${free}`, `--host=${host}`, ...passthrough(flags, ['app'])] })
 }
 
 const command: Command = {
   summary: 'Dev server: browser console target + server routes, live reload (or --terminal)',
-  usage: 'vuecli dev [dir|entry] [--port 3000] [--host h] [--terminal]',
+  usage: 'vuecli dev [dir|entry] [--port 3000] [--host [addr]] [--terminal]',
   run: dev,
 }
 export default command

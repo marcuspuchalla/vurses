@@ -6,12 +6,12 @@
  *
  *   throw vuecliError('VC001', { name: 'useApp' })
  *   // VuecliError: [VC001] useApp() was called outside a vuecli app ...
- *   //   → https://github.com/marcuspuchalla/vuecli/blob/main/docs/errors.md#vc001
+ *   //   → https://github.com/marcuspuchalla/vuecli/blob/HEAD/docs/errors.md#vc001
  *
  * Browser-safe: no Node.js imports.
  */
 
-export const DOCS_BASE = 'https://github.com/marcuspuchalla/vuecli/blob/main/docs/errors.md'
+export const DOCS_BASE = 'https://github.com/marcuspuchalla/vuecli/blob/HEAD/docs/errors.md'
 
 type Params = Record<string, unknown>
 

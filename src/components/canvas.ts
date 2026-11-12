@@ -102,6 +102,12 @@ export const Canvas = defineComponent({
     background: String,
     /** Run an existing browser page (`.html`) or canvas script (`.js` / `.ts`) in this canvas. Paths resolve from the working directory. */
     src: String,
+    /**
+     * `src` / `script` pages run with this process's privileges: only run code you trust.
+     * Remote (https) scripts and Node / package imports are off unless allowed here.
+     */
+    allowRemote: Boolean,
+    allowHostImports: Boolean,
     /** A script file to run (like `src`), or a function called once with `(ctx, canvas)`. */
     script: [String, Function] as PropType<string | ((ctx: CanvasRenderingContext2D, canvas: PixelCanvas) => void)>,
     /** Keep the pixels when the component is resized (default true). Browsers clear on resize; set false for that behavior. */
@@ -269,7 +275,7 @@ export const Canvas = defineComponent({
         const nodeEntry = 'tty-canvas/node'
         const node = (await import(/* @vite-ignore */ nodeEntry)) as typeof import('tty-canvas/node')
         const path = file.startsWith('file:') ? new URL(file) : file
-        const opts = { width: size.columns * cw, height: size.rows * ch }
+        const opts = { width: size.columns * cw, height: size.rows * ch, allowRemote: props.allowRemote, allowHostImports: props.allowHostImports }
         const loaded = /\.html?$/i.test(file) ? await node.runHtml(path, opts) : await node.runScript(path, opts)
         if (token !== pageToken || disposed) {
           loaded.dispose()

@@ -18,6 +18,7 @@
  *   ─ pages           HTML shell -> app bundle (client routes) or frame player (server routes)
  *   ─ 404             not-found
  */
+import { clientAddress } from './client.js'
 import { cached, pathTag } from '../cache/index.js'
 import { createRouteRequest, matchMiddleware, runMiddleware, type MiddlewareModule } from '../router/middleware.js'
 import { matchRoute, type RouteMatch } from '../router/match.js'
@@ -245,6 +246,7 @@ export function createHandler(options: HandlerOptions): VuecliHandler {
       rows: Number(url.searchParams.get('rows')),
       request,
       signal: request.signal,
+      client: clientAddress(request),
     })
   }
 

@@ -14,7 +14,8 @@ export type Color =
   | { kind: 'rgb'; r: number; g: number; b: number }
   | { kind: '256'; n: number }
 
-export type ColorDepth = 16 | 256 | 'truecolor'
+/** `'none'`: no colors at all (NO_COLOR); bold, underline, inverse etc. still apply. */
+export type ColorDepth = 'none' | 16 | 256 | 'truecolor'
 
 const ANSI_NAMES: Record<string, number> = {
   black: 0,
@@ -121,6 +122,7 @@ function rgbTo16(r: number, g: number, b: number): number {
 
 /** Returns the SGR parameter list (without ESC[ and m) for a color. */
 export function colorSgr(c: Color, layer: 'fg' | 'bg', depth: ColorDepth): string {
+  if (depth === 'none') return ''
   if (c.kind === 'ansi') return ansiSgr(c.code, layer)
   if (c.kind === '256') {
     if (depth === 16) {
@@ -150,16 +152,29 @@ export function mix(a: string, b: string, t: number): string {
   return `#${h(r1 + (r2 - r1) * t)}${h(g1 + (g2 - g1) * t)}${h(b1 + (b2 - b1) * t)}`
 }
 
+/**
+ * Color support of the terminal, from (in order): VUECLI_COLOR (none|16|256|truecolor),
+ * NO_COLOR / FORCE_COLOR (https://no-color.org, the chalk convention), TERM=dumb, then
+ * COLORTERM / TERM / TERM_PROGRAM hints.
+ */
 export function detectColorDepth(env: NodeJS.ProcessEnv = process.env): ColorDepth {
-  if (env.VUECLI_COLOR === '16') return 16
-  if (env.VUECLI_COLOR === '256') return 256
-  if (env.VUECLI_COLOR === 'truecolor') return 'truecolor'
-  const ct = (env.COLORTERM || '').toLowerCase()
-  if (ct === 'truecolor' || ct === '24bit') return 'truecolor'
-  const term = (env.TERM || '').toLowerCase()
-  if (term.includes('truecolor') || term.includes('direct') || env.TERM_PROGRAM === 'iTerm.app' || env.WT_SESSION) {
+  const own = env.VUECLI_COLOR
+  if (own === 'none' || own === '16' || own === '256' || own === 'truecolor') return own === '16' ? 16 : own === '256' ? 256 : own
+  const force = env.FORCE_COLOR
+  if (force !== undefined && force !== '') {
+    if (force === '0' || force === 'false') return 'none'
+    if (force === '1' || force === 'true') return 16
+    if (force === '2') return 256
     return 'truecolor'
   }
+  if (env.NO_COLOR) return 'none'
+  const term = (env.TERM || '').toLowerCase()
+  if (term === 'dumb') return 'none'
+  const ct = (env.COLORTERM || '').toLowerCase()
+  if (ct === 'truecolor' || ct === '24bit') return 'truecolor'
+  if (term.includes('truecolor') || term.includes('direct') || env.TERM_PROGRAM === 'iTerm.app' || env.WT_SESSION) return 'truecolor'
   if (term.includes('256')) return 256
+  // classic terminal types without a 256-color variant
+  if (/^(xterm|linux|vt\d+|ansi|cygwin|screen|tmux|rxvt|putty)$/.test(term)) return 16
   return 256
 }

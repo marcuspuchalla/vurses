@@ -9,7 +9,7 @@
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
-import { dirname, join, resolve } from 'node:path'
+import { dirname, join, resolve, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 export interface WebBuild {
@@ -21,7 +21,12 @@ export interface WebBuild {
   css: string
   /** Absolute path of the app's `vue` package directory. */
   vueDir: string
+  /** The app's Vite `server.proxy` (relative fetch('/api/…') goes where the dev server would send it). */
+  proxy?: Record<string, ProxyRule>
 }
+
+/** A Vite proxy entry: a target URL, or options with `target` and an optional `rewrite`. */
+export type ProxyRule = string | { target?: string; rewrite?: (path: string) => string }
 
 const SHIM = fileURLToPath(new URL('./vue-shim.js', import.meta.url))
 
@@ -60,24 +65,27 @@ async function linkedCss(root: string, html: string, cacheDir: string): Promise<
     if (!href) continue
     try {
       if (/^(https?:)?\/\//.test(href)) {
-        const url = href.startsWith('//') ? `https:${href}` : href
+        // remote stylesheets: HTTPS only (http:// is upgraded), size-capped, cached for a week
+        const url = href.replace(/^(https?:)?\/\//, 'https://')
         const { createHash } = await import('node:crypto')
-        const { mkdirSync, writeFileSync } = await import('node:fs')
-        const file = join(cacheDir, 'remote-css', createHash('sha1').update(url).digest('hex') + '.css')
-        if (existsSync(file)) out += readFileSync(file, 'utf8') + '\n'
+        const { mkdirSync, statSync, writeFileSync } = await import('node:fs')
+        const file = join(cacheDir, 'remote-css', createHash('sha256').update(url).digest('hex') + '.css')
+        const fresh = existsSync(file) && Date.now() - statSync(file).mtimeMs < REMOTE_CSS_MAX_AGE
+        if (fresh) out += readFileSync(file, 'utf8') + '\n'
         else {
-          const res = await fetch(url, { signal: AbortSignal.timeout(8000) })
-          if (res.ok) {
-            const text = await res.text()
+          const text = await fetchText(url, REMOTE_CSS_MAX_BYTES)
+          if (text !== null) {
             mkdirSync(dirname(file), { recursive: true })
             writeFileSync(file, text)
             out += text + '\n'
-          }
+          } else if (existsSync(file)) out += readFileSync(file, 'utf8') + '\n' // offline: use the stale copy
         }
       } else {
-        const rel = href.replace(/^\//, '').split('?')[0]
+        const rel = href.replace(/^\//, '').split(/[?#]/)[0]
         for (const base of [join(root, 'public'), root]) {
-          const f = join(base, rel)
+          const f = resolve(base, rel)
+          // a stylesheet link never reads outside the project
+          if (!f.startsWith(resolve(root) + sep)) continue
           if (existsSync(f)) {
             out += readFileSync(f, 'utf8') + '\n'
             break
@@ -111,9 +119,13 @@ export async function buildWebApp(root: string, options: { outDir?: string; log?
   const vite = (await import(pathToFileURL(vitePath).href)) as { version: string; build(config: unknown): Promise<unknown> }
   const routerId = '\0vuecli-web:vue-router'
 
+  let proxy: Record<string, ProxyRule> | undefined
   const plugin = {
     name: 'vuecli-web',
     enforce: 'pre' as const,
+    configResolved(cfg: { server?: { proxy?: Record<string, ProxyRule> } }) {
+      proxy = cfg.server?.proxy
+    },
     async resolveId(this: { resolve: (id: string, importer?: string, o?: { skipSelf?: boolean }) => Promise<{ id: string } | null> }, id: string) {
       if (id === 'vue' || id === '@vue/runtime-dom' || id === '@vue/runtime-core' || id === '@vue/reactivity') return { id: SHIM, external: true }
       if (id === 'vue-router') return routerId
@@ -124,8 +136,14 @@ export async function buildWebApp(root: string, options: { outDir?: string; log?
       const real = await this.resolve('vue-router', join(root, 'index.html'), { skipSelf: true })
       if (!real) throw new Error('cannot resolve vue-router')
       const r = JSON.stringify(real.id)
-      return `import { createMemoryHistory } from ${r}
+      return `import { createMemoryHistory, createRouter as realCreateRouter } from ${r}
 export * from ${r}
+// remember the router: location.href = '/x' navigates through it
+export function createRouter(options) {
+  const router = realCreateRouter(options)
+  if (globalThis.__VUECLI_WEB__) globalThis.__VUECLI_WEB__.router = router
+  return router
+}
 // the terminal has no URL bar: web and hash histories become memory histories
 export function createWebHistory(base) {
   const history = createMemoryHistory(base)
@@ -173,5 +191,26 @@ export { createWebHistory as createWebHashHistory }
   const assets = join(outDir, 'assets')
   if (existsSync(assets)) for (const f of readdirSync(assets).sort()) if (f.endsWith('.css')) css += readFileSync(join(assets, f), 'utf8') + '\n'
   for (const f of readdirSync(outDir)) if (f.endsWith('.css')) css += readFileSync(join(outDir, f), 'utf8') + '\n'
-  return { entry: join(outDir, 'app.mjs'), html, css, vueDir }
+  return { entry: join(outDir, 'app.mjs'), html, css, vueDir, proxy }
+}
+
+const REMOTE_CSS_MAX_AGE = 7 * 24 * 3600 * 1000
+const REMOTE_CSS_MAX_BYTES = 2 * 1024 * 1024
+
+/** GET `url` as text; null on errors, non-2xx, or a body over `maxBytes`. */
+async function fetchText(url: string, maxBytes: number): Promise<string | null> {
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) })
+    if (!res.ok || !res.body) return null
+    const chunks: Uint8Array[] = []
+    let size = 0
+    for await (const chunk of res.body as unknown as AsyncIterable<Uint8Array>) {
+      size += chunk.byteLength
+      if (size > maxBytes) return null
+      chunks.push(chunk)
+    }
+    return new TextDecoder().decode(Buffer.concat(chunks))
+  } catch {
+    return null
+  }
 }

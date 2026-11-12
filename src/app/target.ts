@@ -29,7 +29,7 @@ export interface RenderTarget {
   /** Called on exit; restore whatever `start` changed. */
   stop?(runtime: Runtime): void
   /** Color depth the target supports. */
-  readonly colorDepth?: 16 | 256 | 'truecolor'
+  readonly colorDepth?: 'none' | 16 | 256 | 'truecolor'
 }
 
 export interface FrameInfo {
