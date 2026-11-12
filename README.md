@@ -1,6 +1,40 @@
 # vuecli
 
-**Native Vue 3 apps in the terminal.** Write ordinary Vue components (SFCs, `<template>
+**Vue 3 in the terminal.** Write ordinary Vue components (SFCs, `<script setup>`, TypeScript,
+`ref`, `computed`, `v-model`, slots, `v-for`, `v-if`, `v-show`, Teleport, Suspense) and they
+render as a real terminal UI: flexbox layout, borders, colors, themes, keyboard focus and
+mouse support.
+
+![The examples/dashboard app running in a terminal: a service list, tabs, live stats, sparklines, bar charts and a key bar](docs/images/dashboard.png)
+
+<sub>`npm run example:dashboard`, captured from a real terminal session.</sub>
+
+The same app can also run in other places:
+
+- **Existing Vue web apps run in the terminal unchanged:** `npx vuecli web` builds a Vite + Vue 3 app and renders it with its own CSS, links, forms and router.
+- **Inside the browser devtools console**, or **streamed from a server** to a tiny frame player.
+- **With a file-based App Router**, a **Canvas 2D API**, deploy adapters, an **MCP server** for coding agents, DevTools and VS Code extensions, and an ESLint plugin.
+
+## Contents
+
+- [Getting started](#getting-started)
+  - [Your first app](#your-first-app) · [Examples](#examples) · [CLI](#cli) · [Mounting manually](#mounting-manually)
+- [Where your app runs](#where-your-app-runs)
+  - [Existing web apps in the terminal](#existing-web-apps-in-the-terminal) · [In the browser devtools console](#in-the-browser-devtools-console) · [Server rendering and deployment](#server-rendering-and-deployment)
+- [Building apps](#building-apps)
+  - [How it works](#how-it-works) · [Layout and styling](#layout-and-styling) · [Components](#components) · [Composables](#composables) · [Keyboard, focus and mouse](#keyboard-focus-and-mouse) · [Themes](#themes) · [App Router](#app-router) · [Canvas and images](#canvas-and-images) · [Plain JavaScript](#plain-javascript--render-functions)
+- [Tooling and testing](#tooling-and-testing)
+- [Limitations](#limitations)
+- [Development](#development)
+
+---
+
+## Getting started
+
+### Your first app
+
+```vue
+<template>
   <Box class="flex-col gap-1 p-1" border="round" title="counter">
     <BigText :text="String(count)" color="primary" />
     <Box class="gap-1">
@@ -10,18 +44,6 @@
   </Box>
 </template>
 
-<script setup>`, TypeScript, `ref`, `computed`, `v-model`, slots, `v-for`, `v-if`, `v-show`, Teleport, Suspense) and they render as a real terminal UI: flexbox layout, borders, colors, themes, keyboard focus and mouse support.
-
-**Already have a Vue web app?** `npx vuecli web` runs an existing Vite + Vue 3 app in the terminal, unchanged. It uses your CSS, links, forms and router. See [Existing web apps](#existing-web-apps).
-
-Beyond the terminal:
-- a file-based **App Router**
-- a **canvas** you can draw on with the standard HTML Canvas 2D API
-- the same app rendered **inside the browser devtools console**, or **streamed from a server**
-- deploy adapters
-- an **MCP server** for coding agents, DevTools / VS Code extensions and an ESLint plugin
-
-```vue
 <script setup lang="ts">
 import { ref } from 'vue'
 const count = ref(0)
@@ -46,33 +68,28 @@ npx vuecli App.vue
 ╰────────────────────────────────╯
 ```
 
-## Contents
-
-- [Quick start](#quick-start)
-- [How it works](#how-it-works)
-- [Layout and styling](#layout-and-styling)
-- [Components](#components)
-- [Existing web apps](#existing-web-apps)
-- [App Router](#app-router)
-- [Canvas and images](#canvas-and-images)
-- [Browser console, server rendering and deployment](#browser-console-server-rendering-and-deployment)
-- [Developer tooling](#developer-tooling)
-- [Composables](#composables)
-- [Keyboard, focus and mouse](#keyboard-focus-and-mouse)
-- [Themes](#themes)
-- [Testing](#testing)
-- [Plain JavaScript / render functions](#plain-javascript--render-functions)
-- [Limitations](#limitations)
-
-## Quick start
+To start a project:
 
 ```sh
-npx vuecli create my-app     # scaffold
+npx vuecli create my-app     # scaffold (App Router; --single for one App.vue)
 cd my-app && npm install
-npm start                    # → vuecli App.vue
+npm start
 ```
 
-Or in this repository:
+### Examples
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/images/todo.png" alt="The examples/todo app: a big TODOS heading, an input, a list with checkboxes and delete buttons, and radio filters"></td>
+    <td width="50%"><img src="docs/images/gallery-charts.png" alt="The component gallery's Charts page: a braille line chart with axes and a legend"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub><code>npm run example:todo</code></sub></td>
+    <td align="center"><sub><code>npm run example:gallery</code> (Charts page)</sub></td>
+  </tr>
+</table>
+
+In this repository:
 
 ```sh
 npm install
@@ -92,9 +109,9 @@ vuecli run <entry|dir>     Run an app in the terminal (.vue/.js/.ts entry, or a 
 vuecli dev [dir]           Dev server: browser console target + live reload (--terminal: in the terminal)
 vuecli build [dir]         Production build (--adapter node|bun|static|vercel|cloudflare)
 vuecli start [dir]         Serve a node/bun build
+vuecli web [dir]           Run an existing Vite + Vue web app in the terminal
 vuecli mcp <entry|dir>     MCP server so coding agents can drive and read the app
 vuecli create <dir>        Scaffold an App Router project (--single for one App.vue)
-vuecli web [dir]           Run an existing Vite + Vue web app in the terminal
 vuecli <entry>             Shorthand for `vuecli run <entry>`
 
 --theme <name>             dark | light | dracula
@@ -118,7 +135,80 @@ await app.waitUntilExit()
 To import `.vue` files from your own Node entry point, register the loader:
 `node --import vuecli/register main.js`. The `vuecli` CLI does this automatically.
 
-## How it works
+---
+
+## Where your app runs
+
+### Existing web apps in the terminal
+
+`vuecli web` runs an existing **Vite + Vue 3** web app in the terminal without changing its
+code. The app is built with its own Vite config and then rendered with real CSS (selectors,
+`@media`, `var()`, flexbox, block and inline flow), with keyboard-operable links, buttons and
+form controls (`v-model` included) and vue-router navigation.
+
+<table>
+  <tr>
+    <th width="50%">In the browser (<code>npm run dev</code>)</th>
+    <th width="50%">In the terminal (<code>npx vuecli web</code>)</th>
+  </tr>
+  <tr>
+    <td><img src="docs/images/todomvc-browser.png" alt="TodoMVC in Chrome: three todos, the first one completed, 2 items left"></td>
+    <td><img src="docs/images/todomvc-terminal.png" alt="The same TodoMVC app in a terminal: the same three todos, the first one completed and focused with its delete button visible, 2 items left"></td>
+  </tr>
+</table>
+
+<sub>TodoMVC's Vue example, unmodified, with the same steps in both: add three todos, complete
+the first. In the terminal, `:hover` follows keyboard focus, which is why the focused row shows
+its `[ × ]` delete button.</sub>
+
+```sh
+cd my-vue-app
+npm install -D vuecli
+npx vuecli web                      # Tab / Enter / Space, PgUp/PgDn, mouse
+npx vuecli web --route /about       # deep link
+npx vuecli web --snapshot --size 100x40 --keys "tab,enter"   # one frame as text (CI)
+```
+
+Details, key bindings, CSS support and limitations: [docs/WEB.md](docs/WEB.md).
+
+### In the browser devtools console
+
+The browser console target renders the whole app **inside the devtools console**. Here is
+`examples/server-app`, unchanged, in both places:
+
+<table>
+  <tr>
+    <th width="50%">In the terminal (<code>vuecli run</code>)</th>
+    <th width="50%">In the Chrome devtools console (<code>vuecli dev</code>)</th>
+  </tr>
+  <tr>
+    <td><img src="docs/images/server-app-terminal.png" alt="examples/server-app in a terminal: a routes sidebar, a page with -1/+1 buttons and a key bar"></td>
+    <td><img src="docs/images/server-app-console.png" alt="The same app rendered as styled text inside the Chrome devtools console, followed by a click: {} object"></td>
+  </tr>
+</table>
+
+- A changed frame becomes one `console.log` with run-length `%c` styling. Frames are appended at least 66 ms apart, and the console is never cleared, so there are no blank flashes.
+- **Typing:** click the page (not the console); keys arrive through a hidden textarea. Or drive the app from the console with `await vuecli.press('tab', 'enter')`.
+- **Clicking:** buttons and links can be clicked in the console itself. Expand `click: {…}` under a frame and click `(...)`, or enable DevTools → Settings → Console → "Enable custom formatters" for one-click links.
+- An optional **DOM view** mirrors the frames into the page.
+
+### Server rendering and deployment
+
+- **Server routes.** Routes with `export const runtime = 'server'` run on the server. They stream row deltas over SSE to a 5.6 kB (gzipped) frame player.
+- **Server features.** Route handlers, middleware, `cache()` / `revalidateTag()` / `revalidatePath()` with stale-while-revalidate, and partial prerendering.
+- **Commands.**
+  - `vuecli dev` is the dev server with live reload.
+  - `vuecli build --adapter node|bun|static|vercel|cloudflare` builds for production.
+  - `vuecli start` serves a node/bun build.
+- **Live server routes need `node` or `bun`.** On static, Vercel and Cloudflare, they serve their prerendered frame only.
+
+Details: [docs/SERVER.md](docs/SERVER.md).
+
+---
+
+## Building apps
+
+### How it works
 
 ```
 Vue component tree
@@ -140,7 +230,7 @@ diff(prev, next) ──► only changed spans of changed rows, wrapped in synchr
 - **Templates.** `.vue` files are compiled by `@vue/compiler-sfc` in a Node loader hook, with TypeScript stripped by esbuild. `template:` strings are compiled at runtime. Both use terminal-aware compiler options: whitespace that contains a newline is formatting, while plain spaces are kept.
 - **Input.** Raw stdin is parsed into key, paste and SGR-mouse events. These go to the focused component first, then to global `useInput` handlers. Mouse events are hit-tested against painted regions and bubble like DOM events.
 
-## Layout and styling
+### Layout and styling
 
 Every element is a flexbox container. You can set style in three ways (later wins):
 
@@ -171,31 +261,22 @@ Utility classes include `flex-row`, `flex-col`, `flex-1`, `grow`, `shrink-0`, `i
 
 Colors can be theme tokens (`primary`, `accent`, `muted`, `surface`, `border`, `focus`, `success`, `warning`, `error`, `info`, `selection`, `text`), ANSI names (`red`, `brightCyan`, `gray`), `#rgb` or `#rrggbb`, `rgb(r,g,b)` or `ansi256(n)`. Truecolor is downsampled automatically on 256- and 16-color terminals.
 
-## Components
+### Components
 
 All components are registered globally, so you can use them in templates without importing them. You can also import them from `vuecli`.
 
-**Layout:** `Box`, `Text`, `Newline`, `Spacer`, `Center`, `Stack`, `VStack`, `HStack`, `Grid` (track templates like `'1fr 2fr 20'`), `SplitPane` (drag or keyboard resize, collapsible), `Divider`, `ScrollBox`, `Tabs`, `Dialog`, `StatusBar`
-
-**Forms:** `Button`, `TextInput`, `Checkbox`, `Switch`, `RadioGroup`, `Select`, `List`, `Slider`
-
-**Data and display:**
-- data: `Table`, `Tree` (virtualized), `Code` (syntax highlighting for js/ts/json/vue/html/css/bash/python/markdown), `Diff` (unified or side-by-side, word-level highlights)
-- charts: `LineChart` (braille resolution, axes, legend), `BarChart`, `Sparkline`
-- status: `ProgressBar`, `Spinner`, `Badge`, `Stat`
-- text: `BigText`, `AsciiFont` (real FIGlet fonts), `Gradient`, `Markdown`
-
-**Graphics:** `Canvas` (the HTML Canvas 2D API), `Image` (PNG). See [Canvas and images](#canvas-and-images).
-
-**Navigation:** `Link`, `NavLink`, `Outlet`. See [App Router](#app-router).
-
-**Robustness:** `ErrorBoundary` (`#fallback="{ error, reset }"`). Vue's built-in `<Suspense>` works too.
-
-**Chrome:**
-- `CommandPalette` (ctrl+k)
-- `KeyHelp` (`?`: lists every `useKeymap` binding that has a description)
-- `KeyHints`
-- `DevTools` (F12 overlay: fps, frame time, bytes per frame, focus and captured `console.*` output)
+| Group | Components |
+| ----- | ---------- |
+| Layout | `Box`, `Text`, `Newline`, `Spacer`, `Center`, `Stack`, `VStack`, `HStack`, `Grid` (track templates like `'1fr 2fr 20'`), `SplitPane` (drag or keyboard resize, collapsible), `Divider`, `ScrollBox`, `Tabs`, `Dialog`, `StatusBar` |
+| Forms | `Button`, `TextInput`, `Checkbox`, `Switch`, `RadioGroup`, `Select`, `List`, `Slider` |
+| Data | `Table`, `Tree` (virtualized), `Code` (syntax highlighting for js/ts/json/vue/html/css/bash/python/markdown), `Diff` (unified or side-by-side, word-level highlights) |
+| Charts | `LineChart` (braille resolution, axes, legend), `BarChart`, `Sparkline` |
+| Status | `ProgressBar`, `Spinner`, `Badge`, `Stat` |
+| Text | `BigText`, `AsciiFont` (real FIGlet fonts), `Gradient`, `Markdown` |
+| Graphics | `Canvas` (the HTML Canvas 2D API), `Image` (PNG). See [Canvas and images](#canvas-and-images) |
+| Navigation | `Link`, `NavLink`, `Outlet`. See [App Router](#app-router) |
+| Robustness | `ErrorBoundary` (`#fallback="{ error, reset }"`). Vue's built-in `<Suspense>` works too |
+| Chrome | `CommandPalette` (ctrl+k), `KeyHelp` (`?`: lists every `useKeymap` binding that has a description), `KeyHints`, `DevTools` (F12 overlay: fps, frame time, bytes per frame, focus and captured `console.*` output) |
 
 Right-to-left text (Hebrew, Arabic) is laid out with the Unicode Bidirectional Algorithm (`dir="auto|ltr|rtl"`).
 
@@ -227,104 +308,7 @@ Right-to-left text (Hebrew, Arabic) is laid out with the Unicode Bidirectional A
 <Markdown source="# Hello\n- **bold** and `code`" />
 ```
 
-## Existing web apps
-
-`vuecli web` runs an existing **Vite + Vue 3** web app in the terminal without changing
-its code. The app is built with its own Vite config and then rendered with real CSS
-(selectors, `@media`, `var()`, flexbox, block and inline flow), with keyboard-operable
-links, buttons and form controls (`v-model` included) and vue-router navigation.
-
-```sh
-cd my-vue-app
-npm install -D vuecli
-npx vuecli web                      # Tab / Enter / Space, PgUp/PgDn, mouse
-npx vuecli web --route /about       # deep link
-npx vuecli web --snapshot --size 100x40 --keys "tab,enter"   # one frame as text (CI)
-```
-
-```
-                                           todos
-
-                   What needs to be done?
-           ─────────────────────────────────────────────────────────────────────
-           [x]     Buy milk                                               [ × ]
-           ─────────────────────────────────────────────────────────────────────
-           [ ]     Walk the dog
-           ─────────────────────────────────────────────────────────────────────
-             1 item left         [All]  Active  Completed     [ Clear completed ]
-```
-
-<sub>TodoMVC's Vue example, unmodified.</sub>
-
-Details, key bindings, CSS support and limitations: [docs/WEB.md](docs/WEB.md).
-
-## App Router
-
-Folders in `app/` become routes and nested layouts (Next.js conventions):
-
-```
-app/layout.vue            root layout (renders <Outlet/> or its default slot)
-app/page.vue              /
-app/users/[id]/page.vue   /users/:id          app/docs/[...slug]/page.vue  catch-all
-app/(group)/x/page.vue    route group         app/x/loading.vue / error.vue / not-found.vue
-app/api/hello/route.ts    route handler (GET/POST/… → Response)
-middleware.ts             redirects / rewrites, with `export const config = { matcher }`
-```
-
-```sh
-vuecli run my-app --route /users/42     # deep link
-```
-
-- **Navigation:** `<Link href="/about">`, `useRouter()` (`push`, `replace`, `back`, `forward`, `refresh`) and alt+←/→ for history.
-- **Route state:** `useParams()`, `useSearchParams()` and `usePathname()`.
-- **Control flow:** `redirect()` and `notFound()`.
-- **Pages** can export `metadata` (sets the terminal title), `runtime = 'server'` and `revalidate`.
-
-The full API is documented at the top of `src/router/index.ts`.
-
-## Canvas and images
-
-`<Canvas>` gives you a real `CanvasRenderingContext2D`: paths, gradients, transforms, text, images and composite modes. It is drawn in the terminal with block or braille characters, or as true pixels on kitty, sixel and iTerm2 terminals.
-
-```vue
-<Canvas mode="sextant" @ready="(canvas, ctx) => { ctx.fillStyle = 'tomato'; ctx.fillRect(10, 10, 80, 40) }"
-        @frame="(ctx, dt) => draw(ctx, dt)" />
-<Canvas src="./starfield.html" />          <!-- run existing browser canvas code, unmodified -->
-<Image src="logo.png" :width="40" fit="contain" />
-```
-
-The engine is a standalone library, **[`tty-canvas`](packages/tty-canvas/README.md)**, with no dependencies. It works without vuecli:
-
-```sh
-npx tty-canvas index.html            # run an HTML page with a <canvas> + scripts in the terminal
-npx tty-canvas sketch.js -m braille  # or a script that uses document/requestAnimationFrame
-```
-
-## Browser console, server rendering and deployment
-
-- **Browser console target.** The whole app renders inside the browser devtools console. A changed frame becomes one `console.log` with run-length `%c` styling. Frames are appended at least 66 ms apart, and the console is never cleared, so there are no blank flashes. Input arrives through a hidden textarea, and buttons and links can be clicked in the console itself (one click with DevTools custom formatters enabled). An optional DOM view mirrors the frames.
-- **Server rendering.** Routes with `export const runtime = 'server'` run on the server. They stream row deltas over SSE to a 5.6 kB (gzipped) frame player.
-- **Server features.** Route handlers, middleware, `cache()` / `revalidateTag()` / `revalidatePath()` with stale-while-revalidate, and partial prerendering.
-- **Commands.**
-  - `vuecli dev` is the dev server with live reload.
-  - `vuecli build --adapter node|bun|static|vercel|cloudflare` builds for production.
-  - `vuecli start` serves a node/bun build.
-- **Live server routes need `node` or `bun`.** On static, Vercel and Cloudflare, they serve their prerendered frame only.
-
-Details: [docs/SERVER.md](docs/SERVER.md).
-
-## Developer tooling
-
-| Tool | What it does |
-|------|--------------|
-| `vuecli mcp <app>` ([docs](src/mcp/README.md)) | MCP server for coding agents: `read_frame`, `press`, `type`, `click`, `wait_for`, `get_tree`, `navigate`, … |
-| `window.vuecli` REPL ([docs](src/devtools/README.md)) | `pause()`, `step()`, `resize()`, `wireframe()`, `copy()`, `tree()`, `stats()` in Node or the browser |
-| [Chrome DevTools panel](packages/devtools-extension/README.md) | component tree, frame inspector, per-frame timeline, pause/step/wireframe |
-| [VS Code extension](packages/vscode-vuecli/README.md) | live frame preview next to the code (⌘K V), App Router scaffolding |
-| [eslint-plugin-vuecli](packages/eslint-plugin-vuecli/README.md) | `no-dom-elements`, `no-box-in-text`, `no-unsupported-glyphs` |
-| [Error codes](docs/errors.md) | every error is `VC###` with an explanation and fix |
-
-## Composables
+### Composables
 
 | Composable | Purpose |
 | ---------- | ------- |
@@ -362,7 +346,7 @@ export const Counter = defineComponent({
 })
 ```
 
-## Keyboard, focus and mouse
+### Keyboard, focus and mouse
 
 - **Tab / Shift+Tab** moves focus between focusable components in layout order. Focus stays inside open dialogs.
 - Keys go to the **focused component first**. Anything it does not stop then goes to `useInput` / `useKeymap` handlers (higher `priority` first).
@@ -370,7 +354,7 @@ export const Counter = defineComponent({
 - Key combos: `ctrl+`, `alt+`/`meta+`, `shift+`, named keys (`enter`, `escape`, `tab`, `space`, `backspace`, `delete`, `up`, `down`, `left`, `right`, `home`, `end`, `pageup`, `pagedown`, `f1`–`f12`). Use `|` for alternatives.
 - Bracketed paste arrives as one `paste` event. **Ctrl+C** exits (pass `exitOnCtrlC: false` to turn this off). **F12** toggles devtools.
 
-## Themes
+### Themes
 
 Built-in themes: `dark` (default), `light` and `dracula`. To switch at runtime, call `useApp().setTheme('light')`. To define your own theme:
 
@@ -380,26 +364,49 @@ const ocean = defineTheme(darkTheme, { name: 'ocean', primary: '#4fc3f7', backgr
 createApp(App).mount({ theme: ocean })
 ```
 
-## Testing
+### App Router
 
-`vuecli/testing` renders offscreen, so you can drive the app and assert on frames:
+Folders in `app/` become routes and nested layouts (Next.js conventions):
 
-```ts
-import { render } from 'vuecli/testing'
-
-const r = await render(App, { columns: 60, rows: 20 })
-await r.press('tab', 'enter')        // key combos: 'ctrl+s', 'shift+tab', 'down', ...
-await r.type('hello')
-const { x, y } = r.locate('Save')!   // find text on screen
-await r.click(x, y)
-expect(r.lastFrame()).toContain('Saved!')
-r.buffer()                            // cell buffer with colors and attributes
-r.unmount()
+```
+app/layout.vue            root layout (renders <Outlet/> or its default slot)
+app/page.vue              /
+app/users/[id]/page.vue   /users/:id          app/docs/[...slug]/page.vue  catch-all
+app/(group)/x/page.vue    route group         app/x/loading.vue / error.vue / not-found.vue
+app/api/hello/route.ts    route handler (GET/POST/… → Response)
+middleware.ts             redirects / rewrites, with `export const config = { matcher }`
 ```
 
-This repo's own suite (`npm test`) covers layout, wrapping, input parsing, diffing and every interactive component.
+```sh
+vuecli run my-app --route /users/42     # deep link
+```
 
-## Plain JavaScript / render functions
+- **Navigation:** `<Link href="/about">`, `useRouter()` (`push`, `replace`, `back`, `forward`, `refresh`) and alt+←/→ for history.
+- **Route state:** `useParams()`, `useSearchParams()` and `usePathname()`.
+- **Control flow:** `redirect()` and `notFound()`.
+- **Pages** can export `metadata` (sets the terminal title), `runtime = 'server'` and `revalidate`.
+
+The full API is documented at the top of `src/router/index.ts`.
+
+### Canvas and images
+
+`<Canvas>` gives you a real `CanvasRenderingContext2D`: paths, gradients, transforms, text, images and composite modes. It is drawn in the terminal with block or braille characters, or as true pixels on kitty, sixel and iTerm2 terminals.
+
+```vue
+<Canvas mode="sextant" @ready="(canvas, ctx) => { ctx.fillStyle = 'tomato'; ctx.fillRect(10, 10, 80, 40) }"
+        @frame="(ctx, dt) => draw(ctx, dt)" />
+<Canvas src="./starfield.html" />          <!-- run existing browser canvas code, unmodified -->
+<Image src="logo.png" :width="40" fit="contain" />
+```
+
+The engine is a standalone library, **[`tty-canvas`](packages/tty-canvas/README.md)**, with no dependencies. It works without vuecli:
+
+```sh
+npx tty-canvas index.html            # run an HTML page with a <canvas> + scripts in the terminal
+npx tty-canvas sketch.js -m braille  # or a script that uses document/requestAnimationFrame
+```
+
+### Plain JavaScript / render functions
 
 You don't need a build step:
 
@@ -418,10 +425,40 @@ createApp({
 
 `template:` strings also work (they are compiled at runtime). See `examples/counter.js`.
 
+---
+
+## Tooling and testing
+
+| Tool | What it does |
+|------|--------------|
+| `vuecli mcp <app>` ([docs](src/mcp/README.md)) | MCP server for coding agents: `read_frame`, `press`, `type`, `click`, `wait_for`, `get_tree`, `navigate`, … |
+| `window.vuecli` REPL ([docs](src/devtools/README.md)) | `pause()`, `step()`, `resize()`, `wireframe()`, `copy()`, `tree()`, `stats()` in Node or the browser |
+| [Chrome DevTools panel](packages/devtools-extension/README.md) | component tree, frame inspector, per-frame timeline, pause/step/wireframe |
+| [VS Code extension](packages/vscode-vuecli/README.md) | live frame preview next to the code (⌘K V), App Router scaffolding |
+| [eslint-plugin-vuecli](packages/eslint-plugin-vuecli/README.md) | `no-dom-elements`, `no-box-in-text`, `no-unsupported-glyphs` |
+| [Error codes](docs/errors.md) | every error is `VC###` with an explanation and fix |
+
+`vuecli/testing` renders offscreen, so you can drive the app and assert on frames:
+
+```ts
+import { render } from 'vuecli/testing'
+
+const r = await render(App, { columns: 60, rows: 20 })
+await r.press('tab', 'enter')        // key combos: 'ctrl+s', 'shift+tab', 'down', ...
+await r.type('hello')
+const { x, y } = r.locate('Save')!   // find text on screen
+await r.click(x, y)
+expect(r.lastFrame()).toContain('Saved!')
+r.buffer()                            // cell buffer with colors and attributes
+r.unmount()
+```
+
+This repo's own suite (`npm test`) covers layout, wrapping, input parsing, diffing and every interactive component.
+
 ## Limitations
 
 - **Terminal apps take over the screen** (alternate screen). There is no inline mode that renders below the prompt yet.
-- **Styling:** `<style>` blocks in SFCs are ignored; style with classes or props instead.
+- **Styling:** `<style>` blocks in SFCs are ignored; style with classes or props instead. (`vuecli web` apps are the exception: their CSS is applied.)
 - **Input:** no IME composition in the terminal (the browser console target supports it).
 - **Animation:** Vue `<Transition>` runs, but nothing animates. Use `useTicker` or `<Canvas @frame>`.
 - **Canvas:** 2D context only, PNG only, and one built-in vector font. Details in the [tty-canvas README](packages/tty-canvas/README.md#limitations).
@@ -439,4 +476,9 @@ npm run test:all    # root suite + every package (tty-canvas, eslint plugin, VS 
 npm run typecheck
 ```
 
-MIT licensed.
+The screenshots in `docs/images` are real sessions: terminal apps captured in a pseudo-terminal
+and replayed in [xterm.js](https://xtermjs.org), browser views captured in Chrome.
+
+## License
+
+MIT
