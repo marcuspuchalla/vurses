@@ -469,7 +469,10 @@ export const Code = defineComponent({
           titleColor: 'muted',
           paddingX: bordered ? 1 : 0,
           bg: props.bg,
-          flexShrink: 0,
+          // never squash the lines vertically, but let the block get narrower than its
+          // longest line (in a row, next to other blocks): each line clips on its own
+          minHeight: rows.length + (bordered ? 2 : 0),
+          flexShrink: 1,
         },
         rows,
       )

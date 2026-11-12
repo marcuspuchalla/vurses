@@ -32,7 +32,9 @@ Add a script if you use it often:
    remote; remote files are cached) and from `<style>`. A small CSS engine applies it:
    selectors with specificity, `@media` evaluated against the terminal size and the
    theme's colour scheme, `var()`, `::before` / `::after` content, block and inline
-   flow, flexbox, simple grids, floats and absolute positioning.
+   flow, flexbox, simple grids, floats and absolute positioning. Inline-block boxes
+   and floats share a line with the inline content around them (an avatar, a name
+   block and a right-floated button sit side by side, as in a browser).
 
 ## Units
 
@@ -110,7 +112,9 @@ replaced.
 - **CSS:** no transforms, animations, shadows, background images or `calc()`. Fixed and
   sticky positioning become static. Elements pushed outside their box with negative
   offsets stay in normal flow. Pixel heights are ignored.
-- **Images and SVG:** `<img>` shows its `alt` text and inline SVG is hidden. Icon fonts
+- **Images and SVG:** `<img>` shows `▣` and its `alt` text, like a browser's broken
+  image. If the image has a CSS or `width` size and the alt text doesn't fit, only `▣` is
+  shown, so a 32px avatar doesn't repeat the author's name. Inline SVG is hidden. Icon fonts
   (ionicons, font-awesome, bootstrap icons, ...) are mapped to Unicode symbols by class
   name.
 - **DOM:** there is no full DOM. Code that builds UI imperatively with

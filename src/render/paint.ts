@@ -1,5 +1,5 @@
 import { Display, Edge } from 'yoga-layout'
-import { borderEdges, hasBorder, InlineRun, TElement, type TNode, type TTextNode } from '../dom/nodes.js'
+import { borderEdges, hasBorder, InlineRun, LineBox, measuredWrapWidth, TElement, type TNode, type TTextNode } from '../dom/nodes.js'
 import { colorSgr, parseColor, type ColorDepth } from '../style/colors.js'
 import { mergeInk, type Ink, type Style } from '../style/style.js'
 import type { Theme } from '../style/theme.js'
@@ -175,9 +175,9 @@ export class Painter {
     let scrollWidth = 0
     let scrollHeight = 0
     if (el.kind !== 'text') {
-      for (const c of el.children) {
+      for (const c of el.layoutItems ?? el.children) {
         const cy = c.yoga
-        if (!cy || (c.nodeType === 'element' && c.computedStyle.position === 'absolute')) continue
+        if (!cy || (c instanceof TElement && c.computedStyle.position === 'absolute')) continue
         scrollWidth = Math.max(scrollWidth, cy.getComputedLeft() + cy.getComputedWidth() - bl - pl)
         scrollHeight = Math.max(scrollHeight, cy.getComputedTop() + cy.getComputedHeight() - bt - pt)
       }
@@ -214,7 +214,7 @@ export class Painter {
     }
 
     if (el.kind === 'text') {
-      this.paintGlyphs(el.getGlyphs(), buf, inner, intersect(clip, box), ink, s.wrap ?? 'wrap', s.textAlign, s.dir, el)
+      this.paintGlyphs(el.getGlyphs(), buf, atMeasuredWidth(inner, yoga), intersect(clip, box), ink, s.wrap ?? 'wrap', s.textAlign, s.dir, el)
       return
     }
 
@@ -222,31 +222,39 @@ export class Painter {
     const sx = Number(el.props.scrollLeft ?? 0) || 0
     const sy = Number(el.props.scrollTop ?? 0) || 0
 
-    let absolute: TElement[] | null = null
-    for (const c of el.layoutItems ?? el.children) {
+    const absolute: TElement[] = []
+    // items are positioned relative to (bx, by): the element, or the line box holding them
+    const paintItem = (c: TNode | InlineRun, bx: number, by: number) => {
       if (c instanceof InlineRun) {
         const ry = c.yoga
         const rect: Rect = {
-          x: Math.round(x - sx + ry.getComputedLeft()),
-          y: Math.round(y - sy + ry.getComputedTop()),
+          x: Math.round(bx + ry.getComputedLeft()),
+          y: Math.round(by + ry.getComputedTop()),
           width: Math.round(ry.getComputedWidth()),
           height: Math.round(ry.getComputedHeight()),
         }
-        this.paintGlyphs(c.glyphs, buf, rect, intersect(childClip, inner), ink, s.wrap ?? 'wrap', s.textAlign, s.dir, el)
-        continue
+        this.paintGlyphs(c.glyphs, buf, atMeasuredWidth(rect, ry), intersect(childClip, inner), ink, s.wrap ?? 'wrap', s.textAlign, s.dir, el)
+        return
       }
       if (c.nodeType === 'element') {
         if (c.computedStyle.position === 'absolute') {
-          ;(absolute ??= []).push(c)
-          continue
+          absolute.push(c)
+          return
         }
         // text never bleeds into the parent's padding/border (guards against rounding)
-        this.paintElement(c, buf, x - sx, y - sy, c.kind === 'text' ? intersect(childClip, inner) : childClip, ink)
+        this.paintElement(c, buf, bx, by, c.kind === 'text' ? intersect(childClip, inner) : childClip, ink)
       } else if (c.nodeType === 'text' && c.yoga && c.yoga.getDisplay() !== Display.None) {
-        this.paintTextNode(c, buf, x - sx, y - sy, intersect(childClip, inner), ink, s.dir)
+        this.paintTextNode(c, buf, bx, by, intersect(childClip, inner), ink, s.dir)
       }
     }
-    if (absolute) {
+    for (const c of el.layoutItems ?? el.children) {
+      if (c instanceof LineBox) {
+        const lx = x - sx + c.yoga.getComputedLeft()
+        const ly = y - sy + c.yoga.getComputedTop()
+        for (const it of c.items) paintItem(it, lx, ly)
+      } else paintItem(c, x - sx, y - sy)
+    }
+    if (absolute.length) {
       absolute.sort((a, b) => (a.computedStyle.zIndex ?? 0) - (b.computedStyle.zIndex ?? 0))
       for (const c of absolute) this.paintElement(c, buf, x, y, clip, ink)
     }
@@ -451,6 +459,12 @@ export class Painter {
     }
     return null
   }
+}
+
+/** `rect` (a text node's content box), no wider than the content width its text was measured with. */
+function atMeasuredWidth(rect: Rect, yoga: Parameters<typeof measuredWrapWidth>[0]): Rect {
+  const max = measuredWrapWidth(yoga)
+  return max < rect.width && max >= 0 ? { ...rect, width: max } : rect
 }
 
 const EMPTY: Ink = {}

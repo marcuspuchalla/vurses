@@ -117,4 +117,24 @@ describe('Code', () => {
     const r = await render(tpl(`<Code code="let x" lang="js" border="none" />`), { columns: 10, rows: 1, theme })
     expect(fgAt(r, 0, 0)).toBe(rgb('#ff0000'))
   })
+
+  it('shares a row with another block instead of pushing it off screen', async () => {
+    const long = 'x'.repeat(40)
+    const r = await render(
+      tpl(`<Box class="gap-1"><Code code="${long}" lang="text" title="a" flex-grow="1" /><Code code="${long}" lang="text" title="b" flex-grow="1" /></Box>`),
+      { columns: 40, rows: 3 },
+    )
+    const [top, mid, bottom] = r.lastFrame().split('\n')
+    // two closed boxes side by side: both right borders are on screen
+    expect(top).toMatch(/^╭─ a ─*╮ ╭─ b ─*╮$/)
+    expect(mid.match(/│/g)).toHaveLength(4)
+    expect(bottom).toMatch(/^╰─*╯ ╰─*╯$/)
+    // and the lines are clipped inside each box, not wrapped
+    expect(mid).toMatch(/^│ x+ │ │ x+ │$/)
+  })
+
+  it('never squashes its lines vertically', async () => {
+    const r = await render(tpl(`<Box class="flex-col" :height="4"><Code code="1\n2\n3" lang="text" /><Text>after</Text></Box>`), { columns: 20, rows: 8 })
+    expect(r.lastFrame().split('\n').slice(0, 6).join('\n')).toMatch(/1[\s\S]*2[\s\S]*3[\s\S]*╰/)
+  })
 })

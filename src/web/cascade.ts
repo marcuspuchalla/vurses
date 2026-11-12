@@ -455,7 +455,10 @@ export function computeStyle(values: Map<string, string>, vars: Map<string, stri
       if (c !== undefined) (ws as unknown as Record<string, unknown>)[`margin${cap(e)}`] = c
     }
   }
-  if (floated) ws.alignSelf = float === 'left' ? 'flex-start' : 'flex-end'
+  if (floated) {
+    ws.alignSelf = float === 'left' ? 'flex-start' : 'flex-end'
+    ws.float = float
+  }
   if (autoLeft && autoRight && isBlockDisplay(display)) {
     // `margin: 0 auto` centers a block
     ws.alignSelf = 'center'

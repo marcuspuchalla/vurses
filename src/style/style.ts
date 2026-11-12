@@ -89,6 +89,10 @@ export interface Style {
   marker?: Segment[] | string
   /** Web flow: inline-level element (flows inside text runs). */
   inline?: boolean
+  /** Web flow: an inline-level box (`inline-block`, `inline-flex`, ...), not plain `inline`. */
+  inlineBlock?: boolean
+  /** Web flow: CSS float. Shares a line with inline content, pushed to that side. */
+  float?: 'left' | 'right'
   /** CSS white-space: `normal`/`nowrap` collapse spaces, `pre` keeps them. */
   whiteSpace?: 'normal' | 'nowrap' | 'pre'
 }

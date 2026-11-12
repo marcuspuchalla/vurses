@@ -197,4 +197,65 @@ describe('web pages', () => {
     expect(p.frame()).toBe('\n\na\n\n\nb')
     p.unmount()
   })
+
+  it('puts inline-block boxes and floats on the line of the inline content around them', async () => {
+    const p = await page(
+      {
+        render: () =>
+          h('div', { class: 'meta' }, [
+            h('a', { href: '#' }, 'av'),
+            h('div', { class: 'info' }, [h('span', { class: 'name' }, 'ada'), h('span', { class: 'date' }, 'today')]),
+            h('button', { class: 'like' }, '♥ 1'),
+          ]),
+      },
+      '.info{display:inline-block;margin-left:8px} .name,.date{display:block} .like{float:right}',
+      undefined,
+      { columns: 30, rows: 4 },
+    )
+    // avatar, the two-line info box and the right float share the first line, like a browser
+    expect(p.frame()).toBe('av ada                 [ ♥ 1 ]\n   today')
+    p.unmount()
+  })
+
+  it('keeps block-in-inline content on its own line (an inline link around a heading)', async () => {
+    const p = await page({ render: () => h('header', [h('a', { href: '#' }, [h('h1', 'todos')]), h('input', { placeholder: 'next' })]) }, 'h1{margin:0}', undefined, { columns: 30, rows: 4 })
+    const [first, second] = p.frame().split('\n')
+    expect(first.trim()).toBe('todos')
+    expect(second).toContain('next')
+    p.unmount()
+  })
+
+  it('shows an image alt text only when it fits the image box', async () => {
+    const p = await page(
+      { render: () => h('div', [h('img', { alt: 'ada lovelace', class: 'avatar' }), ' ada', h('p', [h('img', { alt: 'diagram' })])]) },
+      '.avatar{width:32px}',
+    )
+    expect(p.frame()).toBe('▣ ada\n▣ diagram')
+    p.unmount()
+  })
+
+  it('keeps padding inside bracketed inline boxes and never breaks a pill', async () => {
+    const p = await page(
+      { render: () => h('p', ['tags: ', ...['machinelearning', 'python', 'react'].map((t) => h('span', { class: 'pill' }, t))]) },
+      '.pill{border:1px solid #ccc;padding:0 16px;margin-right:8px;white-space:nowrap} p{margin:0}',
+      undefined,
+      { columns: 30, rows: 4 },
+    )
+    expect(p.frame()).toBe('tags: [ machinelearning ]\n[ python ] [ react ]')
+    p.unmount()
+  })
+
+  it('wraps text at the visible edge of a fractional-width column', async () => {
+    const words = 'ab cd ef gh ij kl mn op qr st'
+    const p = await page(
+      { render: () => h('div', { class: 'row' }, [h('div', { class: 'main' }, 'main'), h('div', { class: 'side' }, [h('p', words)])]) },
+      '.row{display:flex} .main{width:75%} .side{width:25%;border-left:1px solid #ccc;padding-left:20px} p{margin:0}',
+      undefined,
+      { columns: 34, rows: 14 },
+    )
+    // Yoga rounds the text box up a cell past the column; every word must still be visible
+    const seen = p.frame().replace(/[│\s]+/g, ' ')
+    for (const w of words.split(' ')) expect(seen).toContain(` ${w}`)
+    p.unmount()
+  })
 })

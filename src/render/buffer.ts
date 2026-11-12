@@ -56,6 +56,8 @@ export class CellBuffer {
   set(x: number, y: number, ch: string, w: number, fg: string, bg: string | null, flags: number, clip?: Rect) {
     if (y < 0 || y >= this.height || x < 0 || x >= this.width) return
     if (clip && !contains(clip, x, y)) return
+    // a no-break space only matters for line breaking; on screen it is a space
+    if (ch === '\u00a0') ch = ' '
     if (w === 2 && (x + 1 >= this.width || (clip && !contains(clip, x + 1, y)))) {
       ch = ' '
       w = 1

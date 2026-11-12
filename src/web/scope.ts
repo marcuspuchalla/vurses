@@ -352,6 +352,7 @@ export class WebScope implements StyleScope {
     const pd = parent?.cssDisplay
     const flexItem = pd === 'flex' || pd === 'inline-flex' || pd === 'grid' || pd === 'inline-grid'
     ws.inline = isInlineDisplay(ws.cssDisplay) && ws.position !== 'absolute' && !flexItem
+    ws.inlineBlock = ws.inline && ws.cssDisplay !== 'inline'
     return ws
   }
 
@@ -926,7 +927,12 @@ export class WebScope implements StyleScope {
     }
     if (el.tag === 'img') {
       const alt = el.props.alt !== undefined ? String(el.props.alt) : ''
-      ws.content = alt ? [{ text: `▣ ${alt}`, ink: { dim: true } }] : ''
+      // like a browser's broken image: the alt text only shows when it fits the image's box
+      // (a 32px avatar next to the author's name shows just the marker, not the name twice)
+      const attrWidth = Number(el.props.width)
+      const width = typeof ws.width === 'number' ? ws.width : attrWidth > 0 ? Math.round(attrWidth / 8) : undefined
+      const text = alt ? `▣ ${alt}` : ''
+      ws.content = !text ? '' : width !== undefined && text.length > width ? [{ text: '▣', ink: { dim: true } }] : [{ text, ink: { dim: true } }]
       return
     }
     if (el.tag === 'progress' || el.tag === 'meter') {

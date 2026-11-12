@@ -168,8 +168,11 @@ export class TElement extends NodeBase {
    * children; consecutive inline children are grouped into `InlineRun`s
    * (CSS anonymous inline boxes). Null for ordinary elements.
    */
-  layoutItems: (TNode | InlineRun)[] | null = null
+  layoutItems: (TNode | InlineRun | LineBox)[] | null = null
   private runs: InlineRun[] = []
+  private lines: LineBox[] = []
+  /** Positioned by a `LineBox` as a float (its Yoga margin / alignment were changed). */
+  private lineFloat = false
 
   /** resolved style (cached) */
   private _style: Style | null = null
@@ -389,15 +392,60 @@ export class TElement extends NodeBase {
     this.runs = runs
     // runs with nothing visible (formatting whitespace) take no space
     const visible = items.filter((it) => !(it instanceof InlineRun) || it.update())
+
+    // inline-level items that include an inline-block box or a float share line boxes
+    const out: (TNode | InlineRun | LineBox)[] = []
+    const lines: LineBox[] = []
+    let group: (InlineRun | TElement)[] = []
+    let linesChanged = false
+    const flush = () => {
+      if (group.length >= 2 && group.some((it) => !(it instanceof InlineRun))) {
+        const line = this.lines[lines.length] ?? new LineBox()
+        if (line.setItems(group)) linesChanged = true
+        lines.push(line)
+        out.push(line)
+      } else out.push(...group)
+      group = []
+    }
+    for (const it of visible) {
+      if (it instanceof InlineRun || (it.nodeType === 'element' && isLineLevel(it))) group.push(it)
+      else {
+        flush()
+        out.push(it)
+      }
+    }
+    flush()
+    if (this.lines.length !== lines.length) linesChanged = true
+    for (const l of this.lines.slice(lines.length)) l.free()
+    this.lines = lines
+
+    // floats keep the line box's placement only while they are in one
+    const inLine = new Set<TElement>()
+    for (const l of lines) for (const it of l.items) if (it instanceof TElement) inLine.add(it)
+    for (const it of visible) {
+      if (!(it instanceof TElement)) continue
+      if (inLine.has(it)) it.lineFloat = !!it.computedStyle.float
+      else if (it.lineFloat) {
+        it.lineFloat = false
+        applyYogaStyle(it.yoga!, it.computedStyle, it.kind)
+      }
+    }
+    for (const l of lines) l.placeFloats()
+
     const prev = this.layoutItems
-    const same = !!prev && prev.length === visible.length && prev.every((p, i) => p === visible[i])
-    if (this.childrenDirty || !same) {
+    const same = !!prev && prev.length === out.length && prev.every((p, i) => p === out[i])
+    if (this.childrenDirty || !same || linesChanged) {
       while (yoga.getChildCount() > 0) yoga.removeChild(yoga.getChild(0))
+      for (const l of lines) l.attach()
       let i = 0
-      for (const it of visible) if (it.yoga) yoga.insertChild(it.yoga, i++)
+      for (const it of out) {
+        if (!it.yoga) continue
+        detachYogaNode(it.yoga)
+        yoga.insertChild(it.yoga, i++)
+      }
       this.childrenDirty = false
     }
-    this.layoutItems = visible
+    this.layoutItems = out
   }
 
   calculateLayout(width: number, height: number) {
@@ -453,6 +501,83 @@ function isInlineMember(c: TNode, parent: TElement): boolean {
   return !!s.inline && c.kind === 'text' && s.position !== 'absolute'
 }
 
+/**
+ * Shares a line with text: an inline-block box (`display: inline-block` with block
+ * content) or a float. Inline elements laid out as text are part of `InlineRun`s instead,
+ * and a plain `display: inline` element with block content is split by it (CSS
+ * block-in-inline), so it keeps a line of its own.
+ */
+function isLineLevel(el: TElement): boolean {
+  const s = el.computedStyle
+  if (s.display === 'none' || s.position === 'absolute') return false
+  return !!s.float || (!!s.inlineBlock && el.kind !== 'text')
+}
+
+function detachYogaNode(node: YogaNode) {
+  const p = node.getParent()
+  if (p) p.removeChild(node)
+}
+
+/**
+ * An anonymous line box of a web flow container: a wrapping row of text runs,
+ * inline-block boxes and floats (CSS inline formatting context). Left floats
+ * start the line and right floats end it, the rest keeps document order.
+ */
+export class LineBox {
+  readonly yoga: YogaNode = Yoga.Node.create(yogaConfig)
+  /** In layout order. */
+  items: (InlineRun | TElement)[] = []
+
+  constructor() {
+    this.yoga.setFlexDirection(FlexDirection.Row)
+    this.yoga.setFlexWrap(Wrap.Wrap)
+    this.yoga.setAlignItems(Align.FlexStart)
+    this.yoga.setFlexShrink(1)
+  }
+
+  /** Sets the members (document order); returns true when the layout order changed. */
+  setItems(members: (InlineRun | TElement)[]): boolean {
+    const side = (it: InlineRun | TElement) => (it instanceof TElement ? it.computedStyle.float : undefined)
+    const left = members.filter((it) => side(it) === 'left')
+    const right = members.filter((it) => side(it) === 'right').reverse() // the first right float is rightmost
+    const rest = members.filter((it) => !side(it))
+    const next = [...left, ...rest, ...right]
+    const changed = next.length !== this.items.length || next.some((it, i) => it !== this.items[i])
+    this.items = next
+    return changed
+  }
+
+  /** Floats sit at the top of the line; the first right float pushes the rest to the right. */
+  placeFloats() {
+    let pushed = false
+    for (const it of this.items) {
+      if (!(it instanceof TElement) || !it.computedStyle.float) continue
+      const y = it.yoga!
+      y.setAlignSelf(Align.FlexStart)
+      if (it.computedStyle.float === 'right' && !pushed) {
+        y.setMarginAuto(Edge.Left)
+        pushed = true
+      }
+    }
+  }
+
+  /** (Re)inserts the members' Yoga nodes in layout order. */
+  attach() {
+    while (this.yoga.getChildCount() > 0) this.yoga.removeChild(this.yoga.getChild(0))
+    let i = 0
+    for (const it of this.items) {
+      detachYogaNode(it.yoga!)
+      this.yoga.insertChild(it.yoga!, i++)
+    }
+  }
+
+  free() {
+    while (this.yoga.getChildCount() > 0) this.yoga.removeChild(this.yoga.getChild(0))
+    detachYogaNode(this.yoga)
+    this.yoga.free()
+  }
+}
+
 /** Consecutive inline children of a box, laid out and painted as one wrapped text block. */
 export class InlineRun {
   readonly yoga: YogaNode = Yoga.Node.create(yogaConfig)
@@ -488,10 +613,24 @@ export class InlineRun {
   }
 }
 
+/** The width each text node was last measured (wrapped) with. */
+const measuredMax = new WeakMap<YogaNode, number>()
+
+/**
+ * Width to wrap a text node's glyphs at when painting: the one its height was measured
+ * with. Yoga rounds measured boxes up to whole cells, so in a fractional-width container
+ * the box can be a cell wider than the text had; wrapping at the box width would join
+ * lines differently and push the last characters past the container's edge.
+ */
+export function measuredWrapWidth(yoga: YogaNode): number {
+  return Math.floor((measuredMax.get(yoga) ?? Infinity) + 1e-6)
+}
+
 function setTextMeasure(yoga: YogaNode, glyphs: () => Glyph[], wrap: () => WrapMode | undefined) {
   hasMeasure.add(yoga)
   yoga.setMeasureFunc((width, widthMode) => {
     const max = widthMode === MeasureMode.Undefined ? Infinity : width
+    if (widthMode !== MeasureMode.Undefined) measuredMax.set(yoga, max)
     const m = measureGlyphs(glyphs(), max, wrap() ?? 'wrap')
     return { width: Math.min(m.width, max), height: m.height }
   })
@@ -533,7 +672,10 @@ function collectList(el: TElement, nodes: TNode[], ink: Ink, out: Glyph[]) {
   for (const c of nodes) {
     if (c.nodeType === 'text') {
       const start = out.length
-      toGlyphs(collapse ? c.text.replace(/\s+/g, ' ') : c.text, ink, out)
+      let text = collapse ? c.text.replace(/[ \t\n\r\f]+/g, ' ') : c.text
+      // white-space: nowrap inside a wrapping run: its spaces must not become line breaks
+      if (s.whiteSpace === 'nowrap' && el.computedStyle.inline) text = text.replace(/ /g, '\u00a0')
+      toGlyphs(text, ink, out)
       for (let i = start; i < out.length; i++) out[i].src = el
     } else if (c.nodeType === 'element') {
       if (c.computedStyle.display === 'none') continue
@@ -545,15 +687,21 @@ function collectList(el: TElement, nodes: TNode[], ink: Ink, out: Glyph[]) {
       const cs = c.computedStyle
       const cink = mergeInk(ink, cs)
       if (cs.whiteSpace !== undefined) {
-        // web flow: an inline element's horizontal margin / padding become spaces, a border brackets
-        const lead = ' '.repeat((cs.marginLeft ?? 0) + (cs.paddingLeft ?? 0))
-        const trail = ' '.repeat((cs.paddingRight ?? 0) + (cs.marginRight ?? 0))
+        // web flow: an inline element's horizontal margin / padding become spaces, a border
+        // brackets. Padding goes inside the brackets (one cell less: the bracket stands for it)
         const boxed = !!cs.border && cs.border !== 'none' && !c.computedStyle.content
-        if (lead) pushSegments(lead, ink, out, c)
-        if (boxed) pushSegments('[', mergeInk(ink, { color: cs.borderColor ?? cs.color }), out, c)
+        const pad = (p: number | undefined) => (boxed ? Math.max(0, (p ?? 0) - 1) : (p ?? 0))
+        const outerL = ' '.repeat((cs.marginLeft ?? 0) + (boxed ? 0 : pad(cs.paddingLeft)))
+        const outerR = ' '.repeat((cs.marginRight ?? 0) + (boxed ? 0 : pad(cs.paddingRight)))
+        // no-break spaces: a line never breaks between a bracket and its content
+        const innerL = boxed ? '\u00a0'.repeat(pad(cs.paddingLeft)) : ''
+        const innerR = boxed ? '\u00a0'.repeat(pad(cs.paddingRight)) : ''
+        const bracket = mergeInk(ink, { color: cs.borderColor ?? cs.color })
+        if (outerL) pushSegments(outerL, ink, out, c)
+        if (boxed) pushSegments('[' + innerL, bracket, out, c)
         collectGlyphs(c, cink, out)
-        if (boxed) pushSegments(']', mergeInk(ink, { color: cs.borderColor ?? cs.color }), out, c)
-        if (trail) pushSegments(trail, ink, out, c)
+        if (boxed) pushSegments(innerR + ']', bracket, out, c)
+        if (outerR) pushSegments(outerR, ink, out, c)
         continue
       }
       collectGlyphs(c, cink, out)
