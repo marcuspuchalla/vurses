@@ -20,12 +20,40 @@ export interface TurbologFrame {
   format: string
   /** One CSS string per `%c`. */
   styles: string[]
+  /**
+   * Arguments after the format string, in order: the CSS strings and, when
+   * `links` were given, one object per `%o` link. Equals `styles` otherwise.
+   */
+  args: unknown[]
+}
+
+/** One styled piece of a console link's label. */
+export interface LinkPart {
+  text: string
+  css: string
+}
+
+/**
+ * Clickable cells. A run of cells with the same id on one row is emitted as a
+ * `%o` object made by `make` (rendered by a devtools custom formatter).
+ */
+export interface ConsoleLinks {
+  /** Per cell (`y * width + x`): link id, or -1. */
+  cells: ArrayLike<number>
+  make(id: number, parts: LinkPart[]): unknown
+  /**
+   * Plain cells removed after each link to make room for the expand triangle
+   * the console draws in front of it (only doubled / trailing spaces). Default: 2.
+   */
+  slack?: number
 }
 
 export interface EncodeOptions {
   palette?: Palette
   /** Extra CSS appended to every span (e.g. `font-size:12px`). */
   baseCss?: string
+  /** Clickable regions (see `ConsoleLinks`). */
+  links?: ConsoleLinks
 }
 
 /**
@@ -36,8 +64,20 @@ export interface EncodeOptions {
 export function encodeTurbolog(g: CellGrid, options: EncodeOptions = {}): TurbologFrame {
   const palette = options.palette ?? defaultPalette
   const base = options.baseCss ? ';' + options.baseCss : ''
+  const links = options.links
+  const slack = links?.slack ?? 2
   const cssCache = new Map<string, string>()
+  const cssOf = (i: number) => {
+    const k = g.fg[i] + '|' + g.bg[i] + '|' + g.flags[i]
+    let css = cssCache.get(k)
+    if (css === undefined) {
+      css = styleCss(g.fg[i], g.bg[i], g.flags[i], palette) + base
+      cssCache.set(k, css)
+    }
+    return css
+  }
   const styles: string[] = []
+  const args: unknown[] = []
   let format = ''
   let text = ''
   let key: string | null = null
@@ -47,27 +87,59 @@ export function encodeTurbolog(g: CellGrid, options: EncodeOptions = {}): Turbol
   }
   for (let y = 0; y < g.height; y++) {
     const row = y * g.width
+    let debt = 0
     for (let x = 0; x < g.width; x++) {
       const i = row + x
       const ch = g.chars[i]
       if (ch === '') continue // continuation half of a wide glyph
+      const id = links ? links.cells[i] : -1
+      if (id >= 0) {
+        // a link: one `%o` object for the run of cells with this id
+        close()
+        key = null
+        const parts: LinkPart[] = []
+        let x2 = x
+        for (; x2 < g.width && links!.cells[row + x2] === id; x2++) {
+          const c = g.chars[row + x2]
+          if (c === '') continue
+          const css = cssOf(row + x2)
+          const last = parts[parts.length - 1]
+          if (last && last.css === css) last.text += c
+          else parts.push({ text: c, css })
+        }
+        format += '%o'
+        args.push(links!.make(id, parts))
+        x = x2 - 1
+        debt = slack
+        continue
+      }
+      // make room for the link's expand triangle: drop doubled / trailing spaces
+      if (debt > 0 && ch === ' ' && (x === g.width - 1 || g.chars[i + 1] === ' ')) {
+        debt--
+        continue
+      }
       const k = g.fg[i] + '|' + g.bg[i] + '|' + g.flags[i]
       if (k !== key) {
         close()
         key = k
-        let css = cssCache.get(k)
-        if (css === undefined) {
-          css = styleCss(g.fg[i], g.bg[i], g.flags[i], palette) + base
-          cssCache.set(k, css)
-        }
+        const css = cssOf(i)
         styles.push(css)
+        args.push(css)
       }
       text += ch === '%' ? '%%' : ch
     }
-    if (y < g.height - 1) text += '\n'
+    if (y < g.height - 1) {
+      if (key === null) {
+        // a row ending in a link: the newline needs a span of its own
+        key = '\n'
+        styles.push(base.slice(1))
+        args.push(base.slice(1))
+      }
+      text += '\n'
+    }
   }
   close()
-  return { format, styles }
+  return { format, styles, args }
 }
 
 export interface ConsoleLike {
@@ -120,7 +192,7 @@ export class Turbolog {
    * Offers a frame. Returns false when the dirty gate dropped it (identical to
    * the last accepted frame), true when it was emitted or queued.
    */
-  present(g: CellGrid): boolean {
+  present(g: CellGrid, extra: { links?: ConsoleLinks; trailing?: unknown[] } = {}): boolean {
     const hashes = hashRows(g)
     const prev = this.hashes
     if (prev && this.width === g.width && prev.length === hashes.length && sameHashes(prev, hashes)) {
@@ -131,7 +203,9 @@ export class Turbolog {
     this.width = g.width
     if (this.pending) this.stats.coalesced++
     // encode now: the caller may reuse or mutate the grid after this returns
-    this.pending = encodeTurbolog(g, this.options)
+    const f = encodeTurbolog(g, extra.links ? { ...this.options, links: extra.links } : this.options)
+    if (extra.trailing) f.args.push(...extra.trailing)
+    this.pending = f
     const wait = this.lastEmit + this.minInterval - this.now()
     if (wait <= 0) this.flush()
     else if (!this.timer) this.timer = setTimeout(() => this.flush(), wait)
@@ -148,7 +222,7 @@ export class Turbolog {
     if (!f) return
     this.pending = null
     this.lastEmit = this.now()
-    this.out.log(f.format, ...f.styles)
+    this.out.log(f.format, ...f.args)
     this.stats.emitted++
     this.stats.spans = f.styles.length
     this.stats.chars = f.format.length

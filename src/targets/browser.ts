@@ -9,12 +9,16 @@
  * Input comes from one hidden `<textarea>` (keys, paste, IME); clicking the
  * page focuses it. Optionally the same frames are mirrored into a DOM `<pre>`
  * (`dom: true` or an element), which also accepts mouse input.
+ *
+ * Clickable elements (buttons, links, focusable controls) can be clicked in
+ * the console itself, see ./console-links.
  */
 import type { Runtime } from '../app/app.js'
 import type { RenderTarget } from '../app/target.js'
 import type { CellBuffer } from '../render/buffer.js'
 import type { Palette } from './css.js'
 import { DomView } from './dom-view.js'
+import { clickMap, formatterCalls, getterLinks, inlineInFrame, inlineLinks, installFormatter, listLinks, type ClickTarget } from './console-links.js'
 import { attachHiddenInput } from './input.js'
 import { resolveScreenSize, type ScreenSizeOptions } from './size.js'
 import { Turbolog, type ConsoleLike, type TurbologStats } from './turbolog.js'
@@ -28,6 +32,12 @@ export interface BrowserTargetOptions extends ScreenSizeOptions {
   input?: boolean
   /** Minimum ms between console frames. Default: 66. */
   minInterval?: number
+  /**
+   * Make clickable elements clickable in the console: inline links when
+   * devtools custom formatters are enabled, a `click: {…}` object of getters
+   * otherwise. Default: true.
+   */
+  consoleLinks?: boolean
   palette?: Palette
   /** Extra CSS for every console span (e.g. `font-size:13px`). */
   baseCss?: string
@@ -50,8 +60,28 @@ export function browserTarget(options: BrowserTargetOptions = {}): BrowserTarget
   const size = resolveScreenSize(options, g)
   const consoleOut: ConsoleLike | null =
     options.console === false ? null : typeof options.console === 'object' ? options.console : g.console
-  const turbolog = consoleOut
-    ? new Turbolog({ console: consoleOut, minInterval: options.minInterval, palette: options.palette, baseCss: options.baseCss })
+  const links = !!consoleOut && options.consoleLinks !== false
+  /** Devtools draws our custom formatter: links are one click (in the frame or listed under it). */
+  let inline = false
+  const inFrame = inlineInFrame(g)
+  let reemit: ReturnType<typeof setTimeout> | null = null
+  const watched: ConsoleLike | null = consoleOut && links
+    ? {
+        log(...args: unknown[]) {
+          const before = formatterCalls()
+          consoleOut.log(...args)
+          if (!args.some((a) => typeof a === 'object' && a !== null)) return
+          const live = formatterCalls() > before
+          if (live !== inline) {
+            // the viewer can (no longer) see formatted links: log this frame again in the other mode
+            inline = live
+            refresh(0)
+          }
+        },
+      }
+    : consoleOut
+  const turbolog = watched
+    ? new Turbolog({ console: watched, minInterval: options.minInterval, palette: options.palette, baseCss: options.baseCss })
     : null
   let view: DomView | null = null
   let runtime: Runtime | null = null
@@ -59,6 +89,41 @@ export function browserTarget(options: BrowserTargetOptions = {}): BrowserTarget
   const cleanups: (() => void)[] = []
 
   const send = (s: string) => runtime?.handleInput(s)
+
+  const present = (buf: CellBuffer) => {
+    if (!turbolog) return
+    if (!links || !runtime) return void turbolog.present(buf)
+    const map = clickMap(runtime, buf)
+    if (!map.targets.length) return void turbolog.present(buf)
+    if (inline && inFrame) turbolog.present(buf, { links: inlineLinks(map, click) })
+    else if (inline) turbolog.present(buf, { trailing: listLinks(map, click) })
+    else turbolog.present(buf, { trailing: getterLinks(map, click) })
+  }
+  /** Log the current frame again (fresh links: each formatter link fires only once). */
+  const refresh = (delay: number) => {
+    if (reemit) clearTimeout(reemit)
+    reemit = setTimeout(() => {
+      reemit = null
+      if (!last || !turbolog) return
+      turbolog.reset()
+      present(last)
+    }, delay)
+  }
+  /** A console link was clicked: click the element where it is now. */
+  const click = (t: ClickTarget) =>
+    setTimeout(() => {
+      const rt = runtime
+      if (!rt || !last) return
+      const now = clickMap(rt, last).targets.find((x) => x.el === t.el)
+      if (!now) return
+      const emitted = turbolog?.stats.emitted ?? 0
+      for (const action of ['down', 'up'] as const)
+        rt.dispatch({ type: 'mouse', action, button: 'left', x: now.x, y: now.y, ctrl: false, meta: false, shift: false, sequence: '' })
+      // nothing changed on screen: log the frame again so its links work again
+      setTimeout(() => {
+        if ((turbolog?.stats.emitted ?? 0) === emitted) refresh(0)
+      }, 150)
+    }, 0)
   const makeView = (parent: HTMLElement) => {
     view = new DomView(parent, { palette: options.palette, onMouse: send })
     if (last) view.paint(last)
@@ -92,7 +157,8 @@ export function browserTarget(options: BrowserTargetOptions = {}): BrowserTarget
         const input = attachHiddenInput({ document: doc, onData: send })
         cleanups.push(() => input.dispose())
       }
-      if (consoleOut) consoleHint(g)
+      if (links) installFormatter(g)
+      if (consoleOut) consoleHint(g, links)
       if (!size.fixed && options.resize !== false && g.addEventListener) {
         let t: ReturnType<typeof setTimeout> | null = null
         const onResize = () => {
@@ -111,10 +177,12 @@ export function browserTarget(options: BrowserTargetOptions = {}): BrowserTarget
       view?.paint(next)
       if (!turbolog) return 0
       const before = turbolog.stats.emitted
-      turbolog.present(next)
+      present(next)
       return turbolog.stats.emitted > before ? turbolog.stats.chars : 0
     },
     stop() {
+      if (reemit) clearTimeout(reemit)
+      reemit = null
       turbolog?.flush()
       turbolog?.dispose()
       for (const c of cleanups.splice(0)) c()
@@ -125,6 +193,11 @@ export function browserTarget(options: BrowserTargetOptions = {}): BrowserTarget
 }
 
 /** One-time hint: keys typed into the console prompt never reach the page. */
-function consoleHint(g: Record<string, any>) {
-  g.console?.info?.("vuecli: click this page (not the console) to type into the app — or drive it from the console: await vuecli.press('tab', 'enter'), vuecli.type('hello'), vuecli.help()")
+function consoleHint(g: Record<string, any>, links: boolean) {
+  const click = links
+    ? "Buttons and links: expand `click: {…}` under a frame and click (...) — or turn on DevTools → Settings → Console → 'Enable custom formatters' for one-click links. "
+    : ''
+  g.console?.info?.(
+    `vuecli: ${click}To type, click this page (not the console), or drive it from the console: await vuecli.press('tab', 'enter'), vuecli.type('hello'), vuecli.help()`,
+  )
 }

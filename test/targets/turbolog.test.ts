@@ -5,6 +5,8 @@ import { encodeTurbolog, Turbolog } from '../../src/targets/turbolog.js'
 import { sgrColor, styleCss } from '../../src/targets/css.js'
 import { browserTarget } from '../../src/targets/browser.js'
 import { createApp } from '../../src/app/app.js'
+import { Button } from '../../src/components/inputs.js'
+import { installFormatter } from '../../src/targets/console-links.js'
 
 function grid(w: number, h: number) {
   return new CellBuffer(w, h)
@@ -47,6 +49,18 @@ describe('encodeTurbolog', () => {
     const f = encodeTurbolog(b)
     expect(f.styles).toHaveLength(1)
     expect(f.format).toBe('%c    \n50%% \n    ')
+  })
+  it('emits link cells as %o objects and steals doubled spaces for the triangle', () => {
+    const b = grid(12, 2)
+    write(b, 0, 0, 'a [ Go ]    ')
+    write(b, 4, 0, 'Go', '31')
+    const cells = new Int32Array(24).fill(-1)
+    for (let x = 2; x < 8; x++) cells[x] = 0
+    const f = encodeTurbolog(b, { links: { cells, make: (id, parts) => ({ id, parts }) } })
+    expect(f.format).toBe('%ca %o%c  \n            ')
+    const link = f.args[1] as { parts: { text: string }[] }
+    expect(link.parts.map((p) => p.text)).toEqual(['[ ', 'Go', ' ]'])
+    expect(f.args.filter((a) => typeof a === 'string')).toEqual(f.styles)
   })
   it('skips wide-glyph continuation cells', () => {
     const b = grid(4, 1)
@@ -130,5 +144,88 @@ describe('browserTarget', () => {
     expect(log).toHaveBeenCalledTimes(2)
     expect(log.mock.calls[1][0]).toContain('count 1')
     app.runtime!.exit()
+  })
+})
+
+/** A console that behaves like Chrome devtools with custom formatters on (or off). */
+function devtoolsConsole(g: Record<string, any>, formatters: boolean) {
+  const logs: unknown[][] = []
+  const fmt = () => g.devtoolsFormatters as { header(o: unknown): unknown; body(o: unknown): unknown }[]
+  return {
+    logs,
+    log(...args: unknown[]) {
+      logs.push(args)
+      if (formatters) for (const a of args) if (a && typeof a === 'object') for (const f of fmt()) if (f.header(a)) break
+    },
+    /** Click a link: devtools expands the formatted object, which calls body(). */
+    expand(o: unknown) {
+      for (const f of fmt()) if (f.header(o)) return f.body(o)
+    },
+  }
+}
+
+describe('console links', () => {
+  const g = globalThis as Record<string, any>
+  beforeEach(() => installFormatter(g))
+  const settle = () => new Promise((r) => setTimeout(r, 250))
+  const app = (clicks: { n: number }) =>
+    defineComponent(() => () => h('tui-box', { flexDirection: 'column' }, [h('tui-text', 'Hello'), h(Button, { label: 'Save', border: false, onClick: () => clicks.n++ })]))
+
+  it('falls back to a click: {…} object of getters', async () => {
+    const c = devtoolsConsole(g, false)
+    const clicks = { n: 0 }
+    const target = browserTarget({ console: c, columns: 20, rows: 3, input: false, minInterval: 0 })
+    const a = createApp(app(clicks)).mount({ target, autoFocus: false })
+    await settle()
+    const frame = c.logs.at(-1)!
+    expect(frame.at(-2)).toBe('\nclick:')
+    const obj = frame.at(-1) as Record<string, string>
+    expect(Object.keys(obj)).toEqual(['1. [ Save ]'])
+    expect(obj['1. [ Save ]']).toBe('✓ clicked')
+    await settle()
+    expect(clicks.n).toBe(1)
+    a.runtime!.exit()
+  })
+
+  it('lists one-click links under the frame in current devtools', async () => {
+    const c = devtoolsConsole(g, true)
+    const clicks = { n: 0 }
+    const target = browserTarget({ console: c, columns: 20, rows: 3, input: false, minInterval: 0 })
+    const a = createApp(app(clicks)).mount({ target, autoFocus: false })
+    await settle()
+    const frame = c.logs.at(-1)!
+    expect(frame[0]).not.toContain('%o')
+    const i = frame.indexOf('\nclick:')
+    expect(i).toBeGreaterThan(0)
+    const links = frame.slice(i + 1)
+    expect(links).toHaveLength(1)
+    c.expand(links[0])
+    await settle()
+    expect(clicks.n).toBe(1)
+    a.runtime!.exit()
+  })
+
+  it('puts links inline into the frame up to Chrome 145, and clicks with body()', async () => {
+    vi.stubGlobal('navigator', { userAgent: 'Mozilla/5.0 Chrome/145.0.0.0 Safari/537.36' })
+    const c = devtoolsConsole(g, true)
+    const clicks = { n: 0 }
+    const target = browserTarget({ console: c, columns: 20, rows: 3, input: false, minInterval: 0 })
+    const a = createApp(app(clicks)).mount({ target, autoFocus: false })
+    await settle()
+    const frame = c.logs.at(-1)!
+    expect(frame[0]).toContain('%o')
+    expect(frame).not.toContain('\nclick:')
+    const link = frame.find((x) => x && typeof x === 'object')
+    c.expand(link)
+    await settle()
+    expect(clicks.n).toBe(1)
+    // the screen didn't change, yet a fresh frame (with fresh links) was logged
+    const again = c.logs.at(-1)!
+    expect(again).not.toBe(frame)
+    c.expand(again.find((x) => x && typeof x === 'object'))
+    await settle()
+    expect(clicks.n).toBe(2)
+    a.runtime!.exit()
+    vi.unstubAllGlobals()
   })
 })

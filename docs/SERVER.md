@@ -31,6 +31,14 @@ commit → layout → paint into CellBuffer            (core runtime)
   - `keydown` sends special keys: arrows, Enter, Tab, Escape, F1 to F12, Ctrl and Alt combinations.
   - `input` and `compositionend` send text, so IMEs and dead keys work.
   - `paste` sends a bracketed paste.
+- Clickable elements (buttons, links, focusable controls up to 3 rows tall, anything with a click handler) can be clicked **in the console**. The console reports no mouse positions, but it runs page code in two places when the user clicks (`src/targets/console-links.ts`):
+  - **One-click links**, when DevTools → Settings → Console → "Enable custom formatters" is on (Vue's devtools asks for it too). Each clickable element is logged as a `%o` object that a custom formatter draws as an underlined label. One click expands it, which calls the formatter's `body()`, which clicks the element.
+    - Up to Chrome 145 the links sit **inside the frame**, at the element's place, and cover the console's expand triangle so rows keep their width.
+    - Newer DevTools (seen in Chrome 157) wraps every formatted object in a block-level `<div>`, which would break a frame row at each link. There the links form a **list under the frame** (`click:` then one link per line). DevTools ships with the browser, so the user agent's Chrome version picks the layout.
+  - **Getters**, the fallback. A `click: {…}` object follows each frame. Expand it and click `(...)` next to `1. [ Save ]` to run the getter, which clicks the element. The numbers keep screen order, since the console sorts keys.
+  - Chrome calls a formatter's `header()` synchronously inside `console.log`, and only while DevTools is open with the setting on. Every frame therefore shows which mode works, and the target switches (re-logging that frame once) when it changes.
+  - A click is a left mouse down/up at the element's current position, so it behaves exactly like a click in the DOM view or the terminal. Each inline link fires once, so a click that changes nothing on screen logs the frame again with fresh links.
+  - Typing still needs the page: keys typed in DevTools never reach it. `consoleLinks: false` turns both modes off.
 - The screen size comes from options, then `?cols=` and `?rows=`, then the window size. It follows window resizes unless the size is fixed.
 - The DOM view is optional. The page bar's "DOM view" button (or `?view=dom`) mirrors the frames into a `<pre>`. Only rows that changed are rewritten, and mouse clicks, wheel and hover on the `<pre>` are sent to the app as SGR mouse events.
 - `window.vuecli` (REPL) and `__VUECLI_DEVTOOLS_HOOK__` are installed (see `src/devtools`).

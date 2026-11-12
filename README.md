@@ -302,7 +302,7 @@ npx tty-canvas sketch.js -m braille  # or a script that uses document/requestAni
 
 ## Browser console, server rendering and deployment
 
-- **Browser console target.** The whole app renders inside the browser devtools console. A changed frame becomes one `console.log` with run-length `%c` styling. Frames are appended at least 66 ms apart, and the console is never cleared, so there are no blank flashes. Input arrives through a hidden textarea. An optional DOM view mirrors the frames.
+- **Browser console target.** The whole app renders inside the browser devtools console. A changed frame becomes one `console.log` with run-length `%c` styling. Frames are appended at least 66 ms apart, and the console is never cleared, so there are no blank flashes. Input arrives through a hidden textarea, and buttons and links can be clicked in the console itself (one click with DevTools custom formatters enabled). An optional DOM view mirrors the frames.
 - **Server rendering.** Routes with `export const runtime = 'server'` run on the server. They stream row deltas over SSE to a 5.6 kB (gzipped) frame player.
 - **Server features.** Route handlers, middleware, `cache()` / `revalidateTag()` / `revalidatePath()` with stale-while-revalidate, and partial prerendering.
 - **Commands.**
