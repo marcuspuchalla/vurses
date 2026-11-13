@@ -128,6 +128,20 @@ implementation. If you need to include third-party material (a font, a data tabl
 say so in the PR together with its license; it must be compatible with the GPL, like
 the FIGlet fonts in `src/fonts/` (New BSD License).
 
+## Releasing (maintainers)
+
+Releases are published to npm by GitHub Actions ([`release.yml`](.github/workflows/release.yml))
+with npm trusted publishing, so no npm token exists anywhere:
+
+```sh
+npm version minor        # or patch / major: updates package.json and creates the tag
+git push origin develop --follow-tags
+```
+
+The workflow checks that the tag matches `package.json`, runs the typecheck and every test
+suite, and publishes with provenance. Running it by hand from the Actions tab does everything
+except publish.
+
 ## Reporting security issues
 
 Please don't open a public issue for a vulnerability. Use
