@@ -34,6 +34,14 @@ Other good places to start:
 - **Docs.** If something in [Getting started](docs/GETTING-STARTED.md) didn't work
   the way it says, that's a bug.
 
+## How issues are handled
+
+All work is tracked as GitHub issues on the [project board](https://github.com/users/marcuspuchalla/projects/2):
+**Triage** (new, not looked at yet) → **Backlog** (accepted) → **Ready** (planned next) →
+**In progress** → **Done**. Issues in Ready are small and say where to look and when they're
+done, so they're a good place to pick something up. Comment on an issue before you start, so
+nobody does the same work twice.
+
 ## Getting set up
 
 ```sh
