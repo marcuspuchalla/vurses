@@ -11,7 +11,7 @@ on:
   workflow_dispatch: # manual run: build, test and pack, without publishing
 
 permissions:
-  contents: read
+  contents: write # creates the GitHub release for the tag
   id-token: write # lets npm verify that the package was built by this workflow
 
 jobs:
@@ -20,6 +20,8 @@ jobs:
     environment: npm
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # the release notes list the commits since the previous tag
 
       - uses: actions/setup-node@v4
         with:
@@ -47,3 +49,19 @@ jobs:
       - name: Publish to npm
         if: github.event_name == 'push'
         run: npm publish --access public
+
+      - name: GitHub release
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          prev="$(git describe --tags --abbrev=0 "$GITHUB_REF_NAME^" 2>/dev/null || true)"
+          {
+            echo "Install: \`npm install vurses@${GITHUB_REF_NAME#v}\` · [npm](https://www.npmjs.com/package/vurses/v/${GITHUB_REF_NAME#v}) · [docs](https://marcuspuchalla.github.io/vurses/)"
+            echo
+            echo "## Changes"
+            echo
+            git log --no-merges --format='- %s' "${prev:+$prev..}$GITHUB_REF_NAME" | grep -v '^- release: '
+          } > notes.md
+          gh release create "$GITHUB_REF_NAME" --title "vurses $GITHUB_REF_NAME" --notes-file notes.md --verify-tag
+

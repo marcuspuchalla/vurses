@@ -24,30 +24,14 @@
           </div>
         </div>
 
-        <div class="vh-term" role="region" aria-label="Recorded terminal sessions">
+        <div class="vh-term" role="region" aria-label="A recorded terminal session">
           <div class="vh-term-bar">
             <span class="vh-dots" aria-hidden="true"><i></i><i></i><i></i></span>
-            <div class="vh-tabs" role="tablist">
-              <button
-                v-for="d in demos"
-                :key="d.id"
-                type="button"
-                role="tab"
-                class="vh-tab"
-                :aria-selected="d.id === active"
-                @click="active = d.id">
-                {{ d.label }}
-              </button>
-            </div>
+            <span class="vh-term-title">examples/dashboard</span>
           </div>
-          <div class="vh-term-cmd"><span class="vh-prompt">$</span> {{ current.cmd }}</div>
-          <div v-show="current.cast" ref="playerEl" class="vh-player"></div>
-          <img
-            v-if="!current.cast"
-            class="vh-gif"
-            :src="withBase(current.gif!)"
-            :alt="current.alt" />
-          <p class="vh-term-note">{{ current.note }}</p>
+          <div class="vh-term-cmd"><span class="vh-prompt">$</span> npm run example:dashboard</div>
+          <div ref="playerEl" class="vh-player"></div>
+          <p class="vh-term-note">Live data, keyboard navigation, theme switching and a command palette, replayed as real terminal output.</p>
         </div>
       </div>
     </section>
@@ -76,8 +60,16 @@
         <h2 class="vh-h2">The web app you already have, in a terminal</h2>
         <p class="vh-p">
           <code>vurses web</code> builds your Vite + Vue 3 app with its own config and renders it
-          with its CSS, router, forms and fetch calls. This is Conduit, an unmodified
-          open-source app, talking to its live API.
+          with its CSS, router, forms and fetch calls. TodoMVC's Vue example, unmodified:
+        </p>
+        <figure class="vh-box vh-box-term vh-todo">
+          <figcaption class="vh-box-title">npx vurses web</figcaption>
+          <img :src="withBase('/todomvc-terminal.gif')" alt="TodoMVC running in a terminal: adding three todos, completing one, switching filters and clearing completed" loading="lazy" />
+        </figure>
+        <h3 class="vh-h3">Side by side with the browser</h3>
+        <p class="vh-p">
+          Conduit, an open-source Medium clone, talking to its live API. Left in Chrome, right
+          in a terminal.
         </p>
         <div class="vh-pair">
           <figure class="vh-box">
@@ -89,11 +81,36 @@
             <img :src="withBase('/conduit-terminal.png')" alt="The same Conduit feed in a terminal: articles, like buttons, tag pills in brackets and the Popular Tags sidebar" loading="lazy" />
           </figure>
         </div>
+        <h3 class="vh-h3">Canvas apps too</h3>
+        <p class="vh-p">
+          A paint app built on the <code>vue-drawing-canvas</code> library, getting the same mouse
+          input in Chrome and in a terminal, stroke for stroke.
+        </p>
+        <figure class="vh-box vh-box-term vh-wide">
+          <figcaption class="vh-box-title">examples/web-paint</figcaption>
+          <img :src="withBase('/paint-side.gif')" alt="A paint app drawing a house, a sun and birds with the mouse, in Chrome on the left and in a terminal on the right, stroke for stroke" loading="lazy" />
+        </figure>
+        <pre class="vh-code vh-cmds"><code><span class="vh-prompt">$</span> npx degit marcuspuchalla/vurses/examples/web-paint paint &amp;&amp; cd paint
+<span class="vh-prompt">$</span> npm install
+<span class="vh-prompt">$</span> npx vurses web</code></pre>
         <p class="vh-p vh-small">
           Tailwind v3 and v4, vue-router, Pinia, VueUse and vue-i18n work.
           <a :href="withBase('/COMPATIBILITY')">See what works and what doesn't.</a>
         </p>
       </div>
+    </section>
+
+    <section class="vh-wrap vh-section">
+      <h2 class="vh-h2">Click, drag and scroll</h2>
+      <p class="vh-p">
+        Mouse support is built in: buttons, tabs, trees, split panes and sliders react to clicks,
+        drags, hover and the wheel. The component gallery, driven only with the mouse:
+      </p>
+      <figure class="vh-box vh-box-term vh-wide">
+        <figcaption class="vh-box-title">npm run example:gallery</figcaption>
+        <img :src="withBase('/gallery-mouse.gif')" alt="The component gallery driven with the mouse: dragging a split pane divider, opening and closing tree folders, flipping a switch and dragging sliders" loading="lazy" />
+      </figure>
+      <p class="vh-p vh-small">Terminals don't show a mouse pointer; the one in the recording is drawn in.</p>
     </section>
 
     <section class="vh-wrap vh-section">
@@ -123,18 +140,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { withBase } from 'vitepress'
 import snapshot from './counter-snapshot.html?raw'
-
-interface Demo { id: string; label: string; cmd: string; note: string; cast?: string; gif?: string; alt?: string }
-
-const demos: Demo[] = [
-  { id: 'dashboard', label: 'dashboard', cmd: 'npm run example:dashboard', cast: '/casts/dashboard.cast', note: 'Live data, keyboard navigation, theme switching and a command palette (examples/dashboard).' },
-  { id: 'todomvc', label: 'todomvc', cmd: 'npx vurses web', cast: '/casts/todomvc.cast', note: "TodoMVC's Vue example, unmodified, running with vurses web." },
-  { id: 'paint', label: 'paint', cmd: 'npx vurses web', gif: '/paint-terminal.gif', alt: 'A paint app built on vue-drawing-canvas, drawing a house, a sun and birds with the mouse in a terminal', note: 'A Vite + Vue paint app (vue-drawing-canvas), unmodified, drawn with the mouse in the terminal.' },
-  { id: 'mouse', label: 'mouse', cmd: 'npm run example:gallery', gif: '/gallery-mouse.gif', alt: 'The component gallery driven with the mouse: dragging a split pane, opening tree folders, flipping a switch and dragging sliders', note: 'Click, drag and hover: the component gallery driven with the mouse.' },
-]
 
 const features = [
   { name: 'About 50 components', text: 'Layout, text, inputs, tables, trees, code with syntax highlighting, diffs, charts, dialogs and more.' },
@@ -162,25 +170,19 @@ const sfc = `<span class="t">&lt;template&gt;</span>
 <span class="k">const</span> count = ref(<span class="n">42</span>)
 <span class="t">&lt;/script&gt;</span>`
 
-const active = ref('dashboard')
-const current = computed(() => demos.find((d) => d.id === active.value)!)
 const playerEl = ref<HTMLElement>()
 const copied = ref(false)
 let player: { dispose(): void } | undefined
 let createPlayer: ((src: string, el: HTMLElement, opts: object) => { dispose(): void }) | undefined
 
-async function mountPlayer() {
-  player?.dispose()
-  player = undefined
-  const cast = current.value.cast
-  if (!cast || !playerEl.value) return
+async function mountPlayer() {  if (!playerEl.value) return
   if (!createPlayer) {
     const mod = await import('asciinema-player')
     createPlayer = mod.create as typeof createPlayer
   }
 
   await nextTick()
-  player = createPlayer!(withBase(cast), playerEl.value, {
+  player = createPlayer!(withBase('/casts/dashboard.cast'), playerEl.value, {
     autoPlay: true,
     loop: true,
     fit: 'width',
@@ -202,8 +204,6 @@ async function copy() {
 }
 
 onMounted(() => void mountPlayer())
-
-watch(active, () => void mountPlayer())
 
 onBeforeUnmount(() => player?.dispose())
 </script>
