@@ -6,7 +6,7 @@ code.
 
 ```sh
 cd my-existing-vue-app
-npm install -D vurses          # or: npm link /path/to/vurses
+npm install -D vurses
 npx vurses web                 # build + run in the terminal
 ```
 

@@ -14,8 +14,13 @@ UI: flexbox layout, borders, colors, themes, keyboard focus and mouse support.
 
 ## Quick start
 
-Requires **Node.js 20.6+** and any modern terminal. vurses isn't on npm yet: install it from a
-checkout ([details](docs/GETTING-STARTED.md#install)), then:
+Requires **Node.js 20.6+** and any modern terminal.
+
+```sh
+npm install vurses vue
+```
+
+Then write a component:
 
 ```vue
 <!-- App.vue -->

@@ -23,21 +23,23 @@
 
 ## Install
 
-vurses isn't published to npm yet. Until it is, install it from a checkout:
+In your project (or an empty folder with `npm init -y`):
+
+```sh
+npm install vurses vue
+npx vurses --version
+```
+
+To try it without installing anything, run `npx vurses App.vue` in any folder: vurses brings
+its own copy of Vue.
+
+To work on vurses itself, install it from a checkout instead:
 
 ```sh
 git clone https://github.com/marcuspuchalla/vurses.git
 cd vurses && npm install          # also builds dist/
+npm link                          # then `npm link vurses` in your project
 ```
-
-Then, in your project:
-
-```sh
-npm install -D /path/to/vurses vue
-npx vurses --version
-```
-
-(`npm link` in the checkout and `npm link vurses` in your project works too.)
 
 ## Your first app
 
