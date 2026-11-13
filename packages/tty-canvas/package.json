@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "The HTML Canvas 2D API, rendered in the terminal. Run existing canvas code on the command line.",
   "type": "module",
-  "license": "GPL-3.0-only",
+  "license": "GPL-3.0-or-later",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {

@@ -4,7 +4,7 @@
   "description": "Live terminal-frame preview and App Router scaffolding for vuecli apps",
   "version": "0.1.0",
   "publisher": "vuecli",
-  "license": "GPL-3.0-only",
+  "license": "GPL-3.0-or-later",
   "private": true,
   "engines": {
     "vscode": "^1.90.0"

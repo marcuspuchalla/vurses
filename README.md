@@ -137,7 +137,19 @@ npm run typecheck
 How the code fits together: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Security issues:
 see [SECURITY.md](SECURITY.md).
 
+## Why vuecli
+
+I recently saw a tool on Hacker News that lets React apps run on the command line, and I
+thought Vue apps deserved the same. I'm a big fan of Vue: I find it much more pleasant to
+read and to work with than React. So I built vuecli, and I'm really happy with how it has
+turned out so far. It was built in collaboration with AI coding agents.
+
+## Contributing
+
+Contributions are very welcome: bug reports, web apps that don't render right yet,
+components, examples and docs. Start with **[CONTRIBUTING.md](CONTRIBUTING.md)**.
+
 ## License
 
-[GNU General Public License v3.0](LICENSE) (GPL-3.0-only). The bundled FIGlet fonts keep
+[GNU General Public License v3.0 or later](LICENSE) (GPL-3.0-or-later). The bundled FIGlet fonts keep
 their own New BSD License (see `src/fonts/`).

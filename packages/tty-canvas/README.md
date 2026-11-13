@@ -251,4 +251,4 @@ arrows). It scales to any size; `bold` / weights change the stroke width,
 
 ## License
 
-GNU General Public License v3.0 only (GPL-3.0-only), see [LICENSE](LICENSE). The built-in font is original work, licensed with the rest of the package.
+GNU General Public License v3.0 or later (GPL-3.0-or-later), see [LICENSE](LICENSE). The built-in font is original work, licensed with the rest of the package.

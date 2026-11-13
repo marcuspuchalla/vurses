@@ -4,7 +4,7 @@
   "private": true,
   "description": "Chrome DevTools panel for vuecli apps running in the browser",
   "type": "module",
-  "license": "GPL-3.0-only",
+  "license": "GPL-3.0-or-later",
   "scripts": {
     "build": "node build.mjs",
     "typecheck": "tsc -p tsconfig.json",

@@ -24,6 +24,7 @@ Start with **Getting started**; the other pages go deeper.
 
 | Page | What's in it |
 | --- | --- |
+| [Contributing](../CONTRIBUTING.md) | how to report problems, set up, test and open a pull request |
 | [Architecture](ARCHITECTURE.md) | repository layout, how the parts fit together, extension points |
 
 Packages in this repository have their own READMEs: [tty-canvas](../packages/tty-canvas/README.md)
