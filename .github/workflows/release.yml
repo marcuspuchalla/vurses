@@ -1,0 +1,44 @@
+name: Release
+
+# Publishes vurses to npm when a version tag is pushed (git tag v0.2.0 && git push origin v0.2.0).
+# Uses npm trusted publishing (OIDC): no npm token or one-time password is stored anywhere.
+# The trusted publisher is configured on npmjs.com for this repository, this workflow file and
+# the "npm" environment.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch: # manual run from develop: everything except the real publish
+
+permissions:
+  contents: read
+  id-token: write # lets npm verify that the package was built by this workflow
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: npm
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24 # trusted publishing needs npm 11.5.1 or newer
+          registry-url: https://registry.npmjs.org
+          cache: npm
+
+      - name: The tag matches package.json
+        if: github.event_name == 'push'
+        run: |
+          version="$(node -p 'require("./package.json").version')"
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match package.json version $version"
+            exit 1
+          fi
+
+      - run: npm ci # also builds dist/ (prepare script)
+      - run: npm run typecheck
+      - run: npm run test:all
+
+      - name: Publish to npm
+        run: npm publish --access public ${{ github.event_name == 'push' && '' || '--dry-run' }}
