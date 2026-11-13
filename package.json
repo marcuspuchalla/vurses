@@ -1,6 +1,6 @@
 {
   "name": "vurses",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Build native Vue 3 apps that render in the terminal",
   "type": "module",
   "license": "GPL-3.0-or-later",
