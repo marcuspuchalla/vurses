@@ -1,0 +1,11 @@
+name: Feature request
+description: An idea for vurses.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What would you like to do?
+      description: The problem or use case first; a proposed API is welcome but optional.
+    validations:
+      required: true

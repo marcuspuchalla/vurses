@@ -1,0 +1,35 @@
+name: A web app doesn't work right
+description: An existing Vite + Vue app, library or browser API behaves differently with `vurses web` than in a browser.
+labels: ["compatibility", "area: web"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks! Known gaps are listed in [Compatibility](https://marcuspuchalla.github.io/vurses/COMPATIBILITY#known-gaps); please check there first.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happens, and what you expected
+      description: A screenshot of the same page in a browser helps a lot.
+    validations:
+      required: true
+  - type: input
+    id: app
+    attributes:
+      label: The app
+      description: A link to a public repository or a small reproduction, if you can share one.
+  - type: textarea
+    id: snapshot
+    attributes:
+      label: Snapshot
+      description: Output of `npx vurses web --snapshot --size 100x40` (add `VURSES_WEB_DEBUG=1` in front for the layout tree).
+      render: text
+  - type: textarea
+    id: versions
+    attributes:
+      label: Versions
+      description: vurses, Vue, and the libraries involved (Tailwind, PrimeVue, ...), Node.js, terminal.
+      placeholder: |
+        vurses 0.1.2, vue 3.5.x, tailwindcss 4.x, Node 22, iTerm2 3.5
+    validations:
+      required: true

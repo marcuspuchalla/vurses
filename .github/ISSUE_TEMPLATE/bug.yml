@@ -1,0 +1,23 @@
+name: Bug report
+description: Something in vurses is broken (components, layout, CLI, server, ...).
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what you expected
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: How to reproduce
+      description: The smallest `.vue` file or command that shows the problem. `--snapshot --size 80x24` prints the screen as text.
+      render: vue
+  - type: textarea
+    id: versions
+    attributes:
+      label: Versions
+      description: vurses, Vue, Node.js, operating system, terminal (and `TERM` / `COLORTERM` for display problems).
+    validations:
+      required: true
