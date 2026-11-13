@@ -4,9 +4,9 @@
 `ref`, `computed`, `v-model`, slots, Teleport, Suspense) and they render as a real terminal
 UI: flexbox layout, borders, colors, themes, keyboard focus and mouse support.
 
-![The examples/dashboard app running in a terminal: a service list, tabs, live stats, sparklines, bar charts and a key bar](docs/images/dashboard.png)
+![The examples/dashboard app running in a terminal: live stats and charts, switching services and tabs with the keyboard, changing the theme and opening the command palette](docs/images/dashboard.gif)
 
-<sub>`npm run example:dashboard`, captured from a real terminal session.</sub>
+<sub>`npm run example:dashboard`, recorded from a real terminal session.</sub>
 
 - **Build terminal apps with Vue:** 49 components, a file-based App Router, a Canvas 2D API, themes, testing utilities.
 - **Run existing Vue web apps in the terminal, unchanged:** `npx vurses web` builds a Vite + Vue 3 app with its own config and renders it with its CSS, links, forms and router.
@@ -55,6 +55,12 @@ troubleshooting.
     <td align="center"><sub><code>npm run example:gallery</code> (Charts page)</sub></td>
   </tr>
 </table>
+
+Mouse support is built in: click, drag, hover and the wheel. Here the component gallery is
+driven only with the mouse (the pointer is drawn into the recording, since terminals don't
+show one):
+
+![The component gallery driven with the mouse: dragging a split pane divider, opening and closing tree folders, flipping a switch and dragging sliders](docs/images/gallery-mouse.gif)
 
 ## Existing web apps in the terminal
 

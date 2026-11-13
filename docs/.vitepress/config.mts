@@ -10,7 +10,12 @@ export default defineConfig({
   lastUpdated: true,
   // docs/README.md is the index for browsing the docs on GitHub; the site has its own home page
   srcExclude: ['README.md'],
-  head: [['meta', { name: 'theme-color', content: '#42b883' }]],
+  head: [
+    ['meta', { name: 'theme-color', content: '#142230' }],
+    ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
+    ['link', { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' }],
+    ['link', { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Martian+Mono:wdth,wght@75..112.5,400..800&display=swap' }],
+  ],
   markdown: {
     config(md) {
       // links to files outside docs/ (../SECURITY.md, ../packages/...) go to GitHub
