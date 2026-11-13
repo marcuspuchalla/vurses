@@ -8,7 +8,7 @@ name: Release
 on:
   push:
     tags: ['v*']
-  workflow_dispatch: # manual run from develop: everything except the real publish
+  workflow_dispatch: # manual run: build, test and pack, without publishing
 
 permissions:
   contents: read
@@ -40,5 +40,10 @@ jobs:
       - run: npm run typecheck
       - run: npm run test:all
 
+      - name: Check the package contents (manual runs)
+        if: github.event_name != 'push'
+        run: npm pack --dry-run
+
       - name: Publish to npm
-        run: npm publish --access public ${{ github.event_name == 'push' && '' || '--dry-run' }}
+        if: github.event_name == 'push'
+        run: npm publish --access public
