@@ -36,11 +36,11 @@ dialog, legend, hgroup, search, center, output, picture { display: block }
 li { display: list-item }
 table { display: table } tr { display: table-row } td, th { display: table-cell; padding-right: 8px }
 thead, tbody, tfoot { display: table-row-group } caption { display: block }
-head, script, style, template, noscript, title, meta, link, base, svg, canvas, video, audio, iframe, object,
+head, script, style, template, noscript, title, meta, link, base, svg, video, audio, iframe, object,
 embed, datalist, param, source, track, map, area, [hidden] { display: none }
 dialog:not([open]) { display: none }
 details:not([open]) > :not(summary) { display: none }
-input, button, select, textarea, img, meter, progress { display: inline-block }
+input, button, select, textarea, img, canvas, meter, progress { display: inline-block }
 input[type=hidden] { display: none }
 h1 { font-weight: bold; margin-bottom: 16px }
 h2 { font-weight: bold; margin-bottom: 16px }

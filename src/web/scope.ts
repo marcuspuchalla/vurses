@@ -10,6 +10,7 @@
  * - elements get a small DOM facade (`value`, `checked`, `focus()`,
  *   `classList`, `getAttribute`, `addEventListener`, ...) for app code
  */
+import { canvasCells, canvasPainter, canvasSize, pixelCanvas } from './canvas.js'
 import { parseHTML } from './html.js'
 import { ref, type Ref } from 'vue'
 import { TComment, TElement, TTextNode, type StyleScope, type TNode } from '../dom/nodes.js'
@@ -514,6 +515,7 @@ export class WebScope implements StyleScope {
 
   private flowKind(el: TElement): 'box' | 'text' {
     const s = el.computedStyle as WebStyle
+    if (el.tag === 'canvas') return 'box' // paints its own cells (canvas.ts), a box in the line like an inline-block
     if (REPLACED.has(el.tag) || s.content !== undefined) return 'text'
     const d = s.cssDisplay
     if (d === 'flex' || d === 'inline-flex' || d === 'grid' || d === 'inline-grid' || d === 'table' || d === 'table-row' || d === 'table-row-group') return 'box'
@@ -963,6 +965,22 @@ export class WebScope implements StyleScope {
       ws.content = [{ text: `[ ${label} ]`, ink: focused ? focusInk : { bold: true } }]
       return
     }
+    if (el.tag === 'canvas') {
+      // a bitmap the size of its width / height attributes, unless CSS sizes the box
+      // the attribute size is the content box; border and padding go around it (content-box, like a browser)
+      const cells = canvasCells(el)
+      const edge = ws.border ? 2 : 0
+      if (ws.width === undefined) ws.width = cells.columns + edge + (ws.paddingLeft ?? 0) + (ws.paddingRight ?? 0)
+      if (ws.height === undefined) ws.height = cells.rows + edge + (ws.paddingTop ?? 0) + (ws.paddingBottom ?? 0)
+      let paint = webCanvasPainters.get(el)
+      if (!paint) {
+        paint = canvasPainter(el, () => this.opts.requestRender())
+        webCanvasPainters.set(el, paint)
+        el.props.paintCells = paint
+      }
+      paint.background = ws.effBg
+      return
+    }
     if (el.tag === 'img') {
       const alt = el.props.alt !== undefined ? String(el.props.alt) : ''
       // like a browser's broken image: the alt text only shows when it fits the image's box
@@ -995,6 +1013,19 @@ export class WebScope implements StyleScope {
 
   // ---------------------------------------------------------------- mouse
 
+  private pendingMove: { target: TElement; init: Partial<WebEvent>; buttons: number } | null = null
+  private moveQueued = false
+
+  /** Delivers the latest coalesced pointer move (pointermove, then mousemove). */
+  private flushMove() {
+    this.moveQueued = false
+    const m = this.pendingMove
+    this.pendingMove = null
+    if (!m || !m.target.parent) return
+    const pointer = { pointerId: 1, pointerType: 'mouse', isPrimary: true }
+    if (this.fire('pointermove', m.target, { ...m.init, ...pointer, button: -1, buttons: m.buttons })) this.fire('mousemove', m.target, { ...m.init, button: 0, buttons: m.buttons })
+  }
+
   /** Runtime mouse hook: DOM-shaped mouse events for elements in the page. */
   handleMouse(e: MouseEvent, target: TElement | null, scrollBy: (rows: number) => void): boolean {
     if (!target || !this.inScope(target)) {
@@ -1005,22 +1036,35 @@ export class WebScope implements StyleScope {
       }
       return false
     }
-    const init: Partial<WebEvent> = { clientX: e.x * 8, clientY: e.y * 16, ctrlKey: e.ctrl, shiftKey: e.shift, altKey: e.meta }
+    // the middle of the cell, in CSS pixels (8 x 16 per cell, like getBoundingClientRect)
+    const clientX = e.x * 8 + 4
+    const clientY = e.y * 16 + 8
+    const init: Partial<WebEvent> = { clientX, clientY, pageX: clientX, pageY: clientY, ctrlKey: e.ctrl, shiftKey: e.shift, altKey: e.meta }
+    // offsetX / offsetY are measured from the padding edge (inside the border), like a browser
+    const at = (el: TElement): Partial<WebEvent> => {
+      const b = (el.computedStyle as WebStyle | undefined)?.border ? 1 : 0
+      return { ...init, offsetX: clientX - (el.layout.x + b) * 8, offsetY: clientY - (el.layout.y + b) * 16 }
+    }
+    const pointer = { pointerId: 1, pointerType: 'mouse', isPrimary: true }
     switch (e.action) {
       case 'wheel':
         if (this.fire('wheel', target, init)) scrollBy(e.direction === 'up' ? -3 : e.direction === 'down' ? 3 : 0)
         return true
       case 'down': {
         if (e.button !== 'left') return true
+        this.flushMove()
         this.downTarget = target
-        const ok = this.fire('mousedown', target, { ...init, button: 0, buttons: 1 })
+        // like a browser: pointerdown, then mousedown (unless the pointer event was cancelled)
+        const pointerOk = this.fire('pointerdown', target, { ...at(target), ...pointer, button: 0, buttons: 1 })
+        const ok = pointerOk && this.fire('mousedown', target, { ...at(target), button: 0, buttons: 1 })
         const entry = this.opts.focus.entryFor(target)
         if (ok && entry && !entry.disabled()) this.opts.focus.focus(entry)
         return true
       }
       case 'up': {
         if (e.button !== 'left') return true
-        this.fire('mouseup', target, { ...init, button: 0 })
+        this.flushMove()
+        if (this.fire('pointerup', target, { ...at(target), ...pointer, button: 0, buttons: 0 })) this.fire('mouseup', target, { ...at(target), button: 0, buttons: 0 })
         const down = this.downTarget
         this.downTarget = null
         if (!down || !(down.contains(target) || target.contains(down))) return true
@@ -1044,9 +1088,22 @@ export class WebScope implements StyleScope {
         const chain: TElement[] = []
         for (let n: TElement | null = target; n && n !== this.root; n = n.parent) chain.push(n)
         if (chain.length !== this.hovered.length || chain.some((c, i) => c !== this.hovered[i])) {
+          // elements the pointer left get pointerleave / mouseleave (they don't bubble)
+          for (const left of this.hovered) {
+            if (chain.includes(left) || !left.parent) continue
+            this.fire('pointerleave', left, { ...at(left), ...pointer })
+            this.fire('mouseleave', left, at(left))
+          }
           this.hovered = chain
           this.restyleAll = true
           this.opts.requestRender()
+        }
+        // like a browser, moves are coalesced: a busy page gets the latest position, not a backlog
+        const buttons = e.action === 'drag' && e.button === 'left' ? 1 : 0
+        this.pendingMove = { target, init: at(target), buttons }
+        if (!this.moveQueued) {
+          this.moveQueued = true
+          setImmediate(() => this.flushMove())
         }
         return true
       }
@@ -1181,7 +1238,7 @@ export function bindModel(el: TElement, model: Model) {
 }
 
 
-const REPLACED = new Set(['input', 'img', 'select', 'textarea', 'progress', 'meter', 'br'])
+const REPLACED = new Set(['input', 'img', 'canvas', 'select', 'textarea', 'progress', 'meter', 'br'])
 
 function closest(el: TElement, tag: string): TElement | null {
   for (let n: TElement | null = el; n; n = n.parent) if (n.tag === tag) return n
@@ -1265,6 +1322,7 @@ function listMarker(el: TElement, type: string): string | null {
 // ------------------------------------------------------------------ DOM facade
 
 const facadeScopes = new WeakMap<TElement, WebScope>()
+const webCanvasPainters = new WeakMap<TElement, ReturnType<typeof canvasPainter>>()
 let facadeInstalled = false
 
 /** Adds DOM-like members to terminal elements (used by app code via template refs / event.target). */
@@ -1491,6 +1549,42 @@ function installFacadeProto() {
       return dispatch(e)
     },
   })
+  // <canvas>: the 2D context, size and export of the bitmap behind the element (src/web/canvas.ts)
+  def('getContext', {
+    value(this: TElement, type: string, settings?: object) {
+      return this.tag === 'canvas' ? pixelCanvas(this).getContext(type, settings) : undefined
+    },
+  })
+  def('toDataURL', {
+    value(this: TElement, type?: string, quality?: number) {
+      return pixelCanvas(this).toDataURL(type, quality)
+    },
+  })
+  def('toBlob', {
+    value(this: TElement, cb: (b: Blob | null) => void, type = 'image/png') {
+      const bytes = pixelCanvas(this).toBuffer(type)
+      queueMicrotask(() => cb(new Blob([bytes as BlobPart], { type: 'image/png' })))
+    },
+  })
+  // drawImage(canvasElement, ...) reads the bitmap through _data, like a tty-canvas Canvas
+  def('_data', {
+    get(this: TElement) {
+      return this.tag === 'canvas' ? pixelCanvas(this)._data : undefined
+    },
+  })
+  for (const dim of ['width', 'height'] as const) {
+    def(dim, {
+      get(this: TElement) {
+        if (this.tag === 'canvas') return canvasSize(this)[dim]
+        const n = Number(this.props[dim])
+        return Number.isFinite(n) ? n : 0
+      },
+      set(this: TElement, v: unknown) {
+        this.setProp(dim, String(Math.floor(Number(v))))
+        if (this.tag === 'canvas') pixelCanvas(this) // resizing clears the bitmap, like a browser
+      },
+    })
+  }
   def('getBoundingClientRect', {
     value(this: TElement) {
       const l = this.layout

@@ -31,6 +31,14 @@ export interface WebEvent {
   detail?: number
   clientX?: number
   clientY?: number
+  pageX?: number
+  pageY?: number
+  offsetX?: number
+  offsetY?: number
+  // pointer events
+  pointerId?: number
+  pointerType?: string
+  isPrimary?: boolean
   ctrlKey: boolean
   shiftKey: boolean
   altKey: boolean
@@ -50,7 +58,7 @@ export function createEvent(type: string, target: TElement, init: Partial<WebEve
     type,
     target,
     currentTarget: null,
-    bubbles: !['focus', 'blur', 'mouseenter', 'mouseleave', 'load', 'scroll'].includes(type),
+    bubbles: !['focus', 'blur', 'mouseenter', 'mouseleave', 'pointerenter', 'pointerleave', 'load', 'scroll'].includes(type),
     defaultPrevented: false,
     propagationStopped: false,
     timeStamp: performance.now(),

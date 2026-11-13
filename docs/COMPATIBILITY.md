@@ -79,6 +79,7 @@ Checked with real apps:
 | vue-i18n | ✅ |
 | VueUse | ✅ most composables (`useMouse`, `useStorage`, `useMediaQuery`, `useEventListener`, `onKeyStroke`, `useTitle`, `useDark`, `useOnline`, …) |
 | Tailwind CSS v3 / v4 | ✅ (see [CSS](#css)) |
+| vue-drawing-canvas | ✅ drawing with the mouse, shapes, undo / redo ([example](../examples/web-paint)) |
 | PrimeVue, Element Plus, Naive UI | ⚠️ render and are usable, with approximate layouts (they position overlays with pixel measurements) |
 
 ### Browser APIs
@@ -91,6 +92,16 @@ Checked with real apps:
 `IntersectionObserver` (simplified), `navigator` (`onLine`, `language`, an in-memory
 `clipboard`), DOM event classes (`KeyboardEvent`, `MouseEvent`, `InputEvent`, …),
 `structuredClone`, `crypto`, `URL`, `fetch`.
+
+**`<canvas>`** has the full Canvas 2D API (`getContext('2d')`, paths, text, images,
+`drawImage` between canvases, `getImageData`, `toDataURL`). A canvas takes its `width` ×
+`height` attributes at 8 × 16 CSS pixels per cell and is drawn with block characters, 2 × 2
+pixels and two colours per cell.
+
+**Mouse events** are `pointerdown` / `mousedown`, `pointermove` / `mousemove` (also while a
+button is held), `pointerup` / `mouseup`, `click`, `dblclick`, `pointerleave` / `mouseleave` and
+`wheel`, with `clientX` / `clientY` / `offsetX` / `offsetY` in CSS pixels. Like in a browser,
+moves are coalesced: a busy page gets the latest position instead of a backlog.
 
 Elements support the common DOM members: `value`, `checked`, `focus()`, `click()`,
 `classList`, `dataset`, attributes, `addEventListener` (with `once`), node relationships
@@ -116,6 +127,8 @@ browser tab.
 | `DOMParser`, `Image`, `elementFromPoint`, `getSelection` | not available | |
 | Shadow DOM | `attachShadow()` works, but content inside a shadow root isn't displayed | |
 | images, `<svg>` | `<img>` shows `▣` and its alt text; inline SVG is hidden; icon fonts become Unicode symbols | |
+| `<canvas>` resolution | 2 × 2 pixels per cell, so thin lines look coarse; pixel graphics (kitty, sixel) aren't used for web canvases yet | use thicker strokes |
+| WebGL | `getContext('webgl')` returns `null` | |
 | axios with a relative `baseURL` | axios uses Node's HTTP module in Node, so the relative URL fails | set an absolute `baseURL` (`import.meta.env.VITE_API_URL`) |
 | CSS animations, transforms, shadows, background images | ignored | |
 | Pixel heights | ignored (they'd clip content in a short terminal); `min-height`, `%` and `vh` are kept | |

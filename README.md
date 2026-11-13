@@ -94,6 +94,18 @@ npx vurses web
 <sub>TodoMVC's Vue example and [Conduit](https://github.com/mutoe/vue3-realworld-example-app)
 (live data from the public RealWorld API), both unmodified.</sub>
 
+Canvas apps work too. Here the same paint app (built on the
+[vue-drawing-canvas](https://github.com/razztyfication/vue-drawing-canvas) library) gets the same
+mouse input in Chrome and in a terminal:
+
+![A paint app drawing a house, a sun and birds with the mouse, in Chrome on the left and in a terminal on the right, stroke for stroke](docs/images/paint-side.gif)
+
+```sh
+npx degit marcuspuchalla/vurses/examples/web-paint paint && cd paint
+npm install
+npx vurses web
+```
+
 What works (Tailwind v3/v4, vue-router, Pinia, VueUse, component libraries, browser APIs)
 and what doesn't is listed in **[Compatibility](docs/COMPATIBILITY.md)**. The app runs in
 Node, outside the browser sandbox: read the **[security note](docs/SECURITY.md#running-existing-web-apps-vurses-web)**

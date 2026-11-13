@@ -132,6 +132,7 @@ interface Demo { id: string; label: string; cmd: string; note: string; cast?: st
 const demos: Demo[] = [
   { id: 'dashboard', label: 'dashboard', cmd: 'npm run example:dashboard', cast: '/casts/dashboard.cast', note: 'Live data, keyboard navigation, theme switching and a command palette (examples/dashboard).' },
   { id: 'todomvc', label: 'todomvc', cmd: 'npx vurses web', cast: '/casts/todomvc.cast', note: "TodoMVC's Vue example, unmodified, running with vurses web." },
+  { id: 'paint', label: 'paint', cmd: 'npx vurses web', gif: '/paint-terminal.gif', alt: 'A paint app built on vue-drawing-canvas, drawing a house, a sun and birds with the mouse in a terminal', note: 'A Vite + Vue paint app (vue-drawing-canvas), unmodified, drawn with the mouse in the terminal.' },
   { id: 'mouse', label: 'mouse', cmd: 'npm run example:gallery', gif: '/gallery-mouse.gif', alt: 'The component gallery driven with the mouse: dragging a split pane, opening tree folders, flipping a switch and dragging sliders', note: 'Click, drag and hover: the component gallery driven with the mouse.' },
 ]
 

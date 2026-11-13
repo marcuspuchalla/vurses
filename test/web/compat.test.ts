@@ -202,3 +202,65 @@ describe('modern CSS (Tailwind v4)', () => {
     unlayered.unmount()
   })
 })
+
+describe('<canvas> in web pages', () => {
+  it('sizes the element from its width / height attributes and paints the bitmap', async () => {
+    const el = ref<TElement | null>(null)
+    const p = await page(
+      {
+        setup() {
+          onMounted(() => {
+            const ctx = (el.value as unknown as { getContext(t: string): CanvasRenderingContext2D }).getContext('2d')
+            ctx.fillStyle = '#ff0000'
+            ctx.fillRect(0, 0, 80, 32) // the left half: 10 x 2 cells
+          })
+          return () => h('canvas', { ref: el, width: 160, height: 32 })
+        },
+      },
+      '',
+      { columns: 30, rows: 4 },
+    )
+    await p.settle()
+    const buf = current.runtime!.renderFrame()
+    const bgAt = (x: number, y: number) => String(buf.bg[y * buf.width + x])
+    expect(bgAt(0, 0)).toContain('255;0;0') // a solid red cell
+    expect(bgAt(9, 1)).toContain('255;0;0')
+    expect(bgAt(15, 0)).not.toContain('255;0;0') // the right half stays empty
+    expect(bgAt(0, 2)).not.toContain('255;0;0') // 32 px tall: 2 rows
+    expect((el.value as unknown as { width: number }).width).toBe(160)
+    p.unmount()
+  })
+
+  it('supports drawImage(canvasElement) and toDataURL', () => {
+    const a = new TElement('canvas') as unknown as { width: number; height: number; getContext(t: string): CanvasRenderingContext2D; toDataURL(): string }
+    const b = new TElement('canvas') as unknown as typeof a
+    a.width = b.width = 4
+    a.height = b.height = 4
+    a.getContext('2d').fillStyle = '#00ff00'
+    a.getContext('2d').fillRect(0, 0, 4, 4)
+    b.getContext('2d').drawImage(a as unknown as CanvasImageSource, 0, 0)
+    expect(Array.from(b.getContext('2d').getImageData(1, 1, 1, 1).data)).toEqual([0, 255, 0, 255])
+    expect(a.toDataURL()).toMatch(/^data:image\/png;base64,/)
+  })
+
+  it('sends pointer and mouse events with offsetX / offsetY in CSS pixels', async () => {
+    const seen: string[] = []
+    const log = (e: { type: string; offsetX: number; offsetY: number; buttons: number }) => seen.push(`${e.type} ${e.offsetX},${e.offsetY} b${e.buttons}`)
+    const p = await page(
+      {
+        render: () => h('canvas', { width: 160, height: 64, onPointerdown: log, onMousedown: log, onPointermove: log, onMouseup: log }),
+      },
+      '',
+      { columns: 30, rows: 6 },
+    )
+    const runtime = current.runtime!
+    runtime.handleInput('\x1b[<0;3;2M') // press at column 3, row 2 (1-based)
+    runtime.handleInput('\x1b[<32;5;3M') // drag
+    runtime.handleInput('\x1b[<0;5;3m') // release
+    await new Promise((r) => setImmediate(r)) // moves are coalesced until the page is idle
+    await p.settle()
+    expect(seen).toEqual(['pointerdown 20,24 b1', 'mousedown 20,24 b1', 'pointermove 36,40 b1', 'mouseup 36,40 b0'])
+    p.unmount()
+  })
+})
+
