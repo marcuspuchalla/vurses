@@ -54,10 +54,10 @@ export { cache, unstable_cache, cached, revalidateTag, revalidatePath, updateTag
 export type { CacheStore, CacheEntry, CacheOptions } from './cache/index.js'
 
 // Error codes (VC###, see docs/errors.md)
-export { VuecliError, vuecliError, isVuecliError, vuecliWarn, formatError, errorDocsUrl, listErrors, ERRORS as VUECLI_ERRORS } from './errors.js'
-export type { VuecliErrorCode, ErrorDefinition } from './errors.js'
+export { VursesError, vursesError, isVursesError, vursesWarn, formatError, errorDocsUrl, listErrors, ERRORS as VURSES_ERRORS } from './errors.js'
+export type { VursesErrorCode, ErrorDefinition } from './errors.js'
 
-// Devtools hook + `vuecli` console REPL
+// Devtools hook + `vurses` console REPL
 export { installDevtoolsHook, getDevtoolsHook } from './devtools/hook.js'
 export type { DevtoolsHook, FrameRecord, DevtoolsState } from './devtools/hook.js'
 export type { FrameSnapshot, FrameRun } from './devtools/frame.js'

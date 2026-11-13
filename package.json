@@ -1,21 +1,21 @@
 {
-  "name": "vuecli",
+  "name": "vurses",
   "version": "0.1.0",
   "description": "Build native Vue 3 apps that render in the terminal",
   "type": "module",
   "license": "GPL-3.0-or-later",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/marcuspuchalla/vuecli.git"
+    "url": "git+https://github.com/marcuspuchalla/vurses.git"
   },
-  "homepage": "https://github.com/marcuspuchalla/vuecli#readme",
+  "homepage": "https://marcuspuchalla.github.io/vurses/",
   "bugs": {
-    "url": "https://github.com/marcuspuchalla/vuecli/issues"
+    "url": "https://github.com/marcuspuchalla/vurses/issues"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "vuecli": "./bin/vuecli.js"
+    "vurses": "./bin/vurses.js"
   },
   "exports": {
     ".": {
@@ -59,16 +59,19 @@
     "build": "npm run build -w tty-canvas --if-present && tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "dev": "npm run build && node bin/vuecli.js",
-    "example:dashboard": "npm run build && node bin/vuecli.js examples/dashboard/App.vue",
-    "example:todo": "npm run build && node bin/vuecli.js examples/todo/App.vue",
+    "dev": "npm run build && node bin/vurses.js",
+    "example:dashboard": "npm run build && node bin/vurses.js examples/dashboard/App.vue",
+    "example:todo": "npm run build && node bin/vurses.js examples/todo/App.vue",
     "example:counter": "npm run build && node examples/counter.js",
     "prepare": "npm run build",
     "test:all": "vitest run && npm test --workspaces --if-present",
-    "example:gallery": "npm run build && node bin/vuecli.js examples/gallery/App.vue",
-    "example:canvas": "npm run build && node bin/vuecli.js examples/canvas/App.vue",
-    "example:router": "npm run build && node bin/vuecli.js run examples/router-app",
-    "example:server": "npm run build && node bin/vuecli.js dev examples/server-app"
+    "example:gallery": "npm run build && node bin/vurses.js examples/gallery/App.vue",
+    "example:canvas": "npm run build && node bin/vurses.js examples/canvas/App.vue",
+    "example:router": "npm run build && node bin/vurses.js run examples/router-app",
+    "example:server": "npm run build && node bin/vurses.js dev examples/server-app",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
   },
   "keywords": [
     "vue",
@@ -85,11 +88,11 @@
     "bidi-js": "^1.1.0",
     "esbuild": "^0.28.2",
     "string-width": "^8.3.0",
+    "tty-canvas": "^0.1.0",
     "vue": "^3.5.45",
     "vue-router": "^4.6.4",
     "yoga-layout": "^3.2.1",
-    "zod": "^4.6.7",
-    "tty-canvas": "^0.1.0"
+    "zod": "^4.6.7"
   },
   "bundleDependencies": [
     "tty-canvas"
@@ -97,6 +100,7 @@
   "devDependencies": {
     "@types/node": "^26.6.6",
     "typescript": "^7.0.2",
+    "vitepress": "^1.6.4",
     "vitest": "^5.1.0"
   },
   "workspaces": [

@@ -10,7 +10,7 @@
  */
 import type { FrameDelta } from '../targets/protocol.js'
 
-export const INTERNAL_PREFIX = '/_vuecli/'
+export const INTERNAL_PREFIX = '/_vurses/'
 
 export interface BootData {
   mode: 'client' | 'server'
@@ -45,13 +45,13 @@ const escHtml = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<':
 export const embedJson = (v: unknown) => JSON.stringify(v).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029')
 
 const CSS = `html,body{margin:0;background:#1e1e1e;color:#d4d4d4;font:14px/1.4 ui-monospace,Menlo,Consolas,monospace}
-#vuecli-bar{display:flex;gap:12px;align-items:center;padding:8px 12px;border-bottom:1px solid #333;color:#9a9a9a}
-#vuecli-bar b{color:#4fc1ff}#vuecli-bar kbd{border:1px solid #555;border-radius:3px;padding:0 4px;color:#d4d4d4}
-#vuecli-bar button{margin-left:auto;background:#2d2d2d;color:#d4d4d4;border:1px solid #555;border-radius:4px;padding:2px 10px;font:inherit;cursor:pointer;white-space:nowrap}
-#vuecli-root{padding:12px}#vuecli-status{color:#cca700}`
+#vurses-bar{display:flex;gap:12px;align-items:center;padding:8px 12px;border-bottom:1px solid #333;color:#9a9a9a}
+#vurses-bar b{color:#4fc1ff}#vurses-bar kbd{border:1px solid #555;border-radius:3px;padding:0 4px;color:#d4d4d4}
+#vurses-bar button{margin-left:auto;background:#2d2d2d;color:#d4d4d4;border:1px solid #555;border-radius:4px;padding:2px 10px;font:inherit;cursor:pointer;white-space:nowrap}
+#vurses-root{padding:12px}#vurses-status{color:#cca700}`
 
 export function renderDocument(o: DocumentOptions): string {
-  const title = escHtml(o.title ?? 'vuecli app')
+  const title = escHtml(o.title ?? 'vurses app')
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -61,10 +61,10 @@ export function renderDocument(o: DocumentOptions): string {
 <title>${title}</title>${o.description ? `\n<meta name="description" content="${escHtml(o.description)}">` : ''}
 <style>${CSS}</style>
 </head>
-<body data-vuecli="${o.boot.mode}">
-<div id="vuecli-bar"><b>vuecli</b><span>This app renders in the devtools console — open it with <kbd>F12</kbd> / <kbd>⌥⌘J</kbd>, click this page and type.</span><span id="vuecli-status"></span><button id="vuecli-toggle" type="button">DOM view</button></div>
-<div id="vuecli-root"></div>
-${o.shellText !== undefined ? `<noscript><pre>${escHtml(o.shellText)}</pre></noscript>\n` : ''}<script type="application/json" id="vuecli-boot">${embedJson(o.boot)}</script>
+<body data-vurses="${o.boot.mode}">
+<div id="vurses-bar"><b>vurses</b><span>This app renders in the devtools console — open it with <kbd>F12</kbd> / <kbd>⌥⌘J</kbd>, click this page and type.</span><span id="vurses-status"></span><button id="vurses-toggle" type="button">DOM view</button></div>
+<div id="vurses-root"></div>
+${o.shellText !== undefined ? `<noscript><pre>${escHtml(o.shellText)}</pre></noscript>\n` : ''}<script type="application/json" id="vurses-boot">${embedJson(o.boot)}</script>
 ${o.script ? `<script type="module" src="${escHtml(o.script)}"></script>` : ''}
 </body>
 </html>
@@ -73,7 +73,7 @@ ${o.script ? `<script type="module" src="${escHtml(o.script)}"></script>` : ''}
 
 /** Reads the boot record in the browser. */
 export function readBoot(doc: Document = (globalThis as any).document): BootData | null {
-  const el = doc?.getElementById('vuecli-boot')
+  const el = doc?.getElementById('vurses-boot')
   if (!el?.textContent) return null
   try {
     return JSON.parse(el.textContent) as BootData

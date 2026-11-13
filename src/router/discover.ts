@@ -52,7 +52,7 @@ export async function discoverRoutes(appDir: string, options: DiscoverOptions = 
   const root = path.resolve(appDir)
   const pageExt = options.pageExtensions ?? PAGE_EXTENSIONS
   const stat = await fs.stat(root).catch(() => null)
-  if (!stat?.isDirectory()) throw new Error(`[vuecli router] app directory not found: ${appDir}`)
+  if (!stat?.isDirectory()) throw new Error(`[vurses router] app directory not found: ${appDir}`)
 
   const routes: RouteEntry[] = []
   const byUrl = new Map<string, string>()
@@ -90,10 +90,10 @@ export async function discoverRoutes(appDir: string, options: DiscoverOptions = 
       const key = toRouterPath(segs.map((s) => (s.kind === 'static' ? s : { ...s, name: '_' })))
       const file = found.page ?? handlerFile!
       const prev = byUrl.get(key)
-      if (prev) throw new Error(`[vuecli router] conflicting routes for "${pattern}":\n  ${prev}\n  ${file}`)
+      if (prev) throw new Error(`[vurses router] conflicting routes for "${pattern}":\n  ${prev}\n  ${file}`)
       byUrl.set(key, file)
       if (found.page && handlerFile) {
-        throw new Error(`[vuecli router] ${pattern}: a segment cannot have both page and route handler:\n  ${found.page}\n  ${handlerFile}`)
+        throw new Error(`[vurses router] ${pattern}: a segment cannot have both page and route handler:\n  ${found.page}\n  ${handlerFile}`)
       }
       const last = segs[segs.length - 1]
       const entry: RouteEntry = {
@@ -128,7 +128,7 @@ export async function discoverRoutes(appDir: string, options: DiscoverOptions = 
       const childParams = [...params]
       const dyn = name.match(/^\[{1,2}(?:\.\.\.)?([^\]]+)\]{1,2}$/)
       if (dyn) {
-        if (childParams.includes(dyn[1])) throw new Error(`[vuecli router] duplicate param "${dyn[1]}" in ${path.join(dir, name)}`)
+        if (childParams.includes(dyn[1])) throw new Error(`[vurses router] duplicate param "${dyn[1]}" in ${path.join(dir, name)}`)
         childParams.push(dyn[1])
       }
       await walk(path.join(dir, name), [...rel, name], group ? urlParts : [...urlParts, literal], segments, childParams)
@@ -207,7 +207,7 @@ export async function findAppDir(dir: string): Promise<string | null> {
 
 /**
  * Node {@link ModuleLoader}: `import(pathToFileURL(file))`. `.vue` files need
- * the SFC loader hooks (`vuecli/register`), which the CLI registers.
+ * the SFC loader hooks (`vurses/register`), which the CLI registers.
  */
 export async function createNodeLoader(): Promise<(file: string) => Promise<Record<string, unknown>>> {
   const { pathToFileURL } = await nodeImport<typeof import('node:url')>('node:url')

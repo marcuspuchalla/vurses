@@ -3,7 +3,7 @@ import { defineComponent, ref } from 'vue'
 import { render, type RenderResult } from '../../src/testing.js'
 import { CellBuffer } from '../../src/render/buffer.js'
 import { getDevtoolsHook, installDevtoolsHook, HOOK_KEY } from '../../src/devtools/hook.js'
-import type { VuecliRepl } from '../../src/devtools/repl.js'
+import type { VursesRepl } from '../../src/devtools/repl.js'
 import { frameToAnsi, locateText, sgrToCss, snapshotFrame, styleSpans, changedRows } from '../../src/devtools/frame.js'
 import { frameToHtml } from '../../src/devtools/html.js'
 import { componentTree, elementTree, formatComponentTree, formatElementTree, serializeValue } from '../../src/devtools/tree.js'
@@ -80,12 +80,12 @@ describe('frame serialization', () => {
     b.set(1, 0, '&', 1, '31', null, 1 | 8)
     const html = frameToHtml(snapshotFrame(b))
     expect(html).toContain('&lt;')
-    expect(html).toContain('color:var(--vuecli-bg')
+    expect(html).toContain('color:var(--vurses-bg')
     expect(html).toContain('font-weight:bold;text-decoration:underline')
-    expect(html).not.toContain('vuecli-hl')
+    expect(html).not.toContain('vurses-hl')
     const hl = frameToHtml(snapshotFrame(b), { highlight: { x: 1, y: 0, width: 2, height: 1 } })
-    expect(hl).toContain('class="vuecli-hl"')
-    expect(hl).toContain('left:calc(var(--vuecli-pad,4px) + 1ch)')
+    expect(hl).toContain('class="vurses-hl"')
+    expect(hl).toContain('left:calc(var(--vurses-pad,4px) + 1ch)')
   })
 
   it('serializes arbitrary values safely', () => {
@@ -112,8 +112,8 @@ describe('trees', () => {
     expect(item.props.label).toBe('alpha')
     expect(item.rect).toEqual({ x: 1, y: 2, width: 18, height: 1 })
     expect(formatComponentTree(tree)).toMatch(/<App#\d+> \[0,0 20x8\]\n {2}<Box#\d+> \[0,0 20x8\]\n {4}<Text#\d+>/)
-    // DevTools overlay and the VueCliRoot wrapper are hidden
-    expect(JSON.stringify(tree)).not.toContain('VueCliRoot')
+    // DevTools overlay and the VursesRoot wrapper are hidden
+    expect(JSON.stringify(tree)).not.toContain('VursesRoot')
   })
 
   it('walks the element tree', async () => {
@@ -135,10 +135,10 @@ describe('devtools hook', () => {
     expect(hook).toBe(g[HOOK_KEY])
     expect(hook.runtime).toBe(r.app.runtime)
     expect(Object.keys(g)).not.toContain(HOOK_KEY)
-    expect(typeof (g.vuecli as VuecliRepl).pause).toBe('function')
+    expect(typeof (g.vurses as VursesRepl).pause).toBe('function')
     off()
     expect(g[HOOK_KEY]).toBeUndefined()
-    expect(g.vuecli).toBeUndefined()
+    expect(g.vurses).toBeUndefined()
   })
 
   it('records a frame timeline and serves frames and trees', async () => {
@@ -237,7 +237,7 @@ describe('REPL', () => {
     vi.stubGlobal('navigator', { clipboard: { writeText } })
     const log = vi.spyOn(console, 'log').mockImplementation(() => {})
     const off = installDevtoolsHook(r.app.runtime!, { repl: true })
-    const repl = g.vuecli as VuecliRepl
+    const repl = g.vurses as VursesRepl
     try {
       expect(repl.pause()).toBe('paused')
       expect(repl.hook.getState().paused).toBe(true)
@@ -257,7 +257,7 @@ describe('REPL', () => {
       expect(repl.elements()).toContain('tui-root')
       expect(await repl.type('x')).toContain('Count')
       expect(repl.stats().frames).toBeGreaterThan(0)
-      expect(repl.help()).toContain('vuecli.pause()')
+      expect(repl.help()).toContain('vurses.pause()')
     } finally {
       off()
       log.mockRestore()
@@ -268,7 +268,7 @@ describe('REPL', () => {
   it('copy() works without a clipboard (Node)', async () => {
     r = await render(App, { columns: 30, rows: 8 })
     const off = installDevtoolsHook(r.app.runtime!, { repl: true })
-    expect((g.vuecli as VuecliRepl).copy()).toContain('Count 0')
+    expect((g.vurses as VursesRepl).copy()).toContain('Count 0')
     off()
   })
 })

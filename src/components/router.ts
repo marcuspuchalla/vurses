@@ -62,7 +62,7 @@ function useLink(props: { href: Href; replace: boolean; prefetch: boolean; exact
     if (props.disabled) return
     emit('click')
     if (!router) {
-      console.warn('[vuecli] <Link> used outside of an App Router tree')
+      console.warn('[vurses] <Link> used outside of an App Router tree')
       return
     }
     emit('navigate')

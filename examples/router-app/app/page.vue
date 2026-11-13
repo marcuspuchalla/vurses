@@ -14,7 +14,7 @@
       <Link href="/home">→ /home (middleware redirect)</Link>
       <Link href="/people/3">→ /people/3 (redirect)</Link>
     </Box>
-    <Text color="muted">Deep link: vuecli run examples/router-app --route /users/3</Text>
+    <Text color="muted">Deep link: vurses run examples/router-app --route /users/3</Text>
   </Box>
 </template>
 

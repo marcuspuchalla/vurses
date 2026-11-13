@@ -1,5 +1,5 @@
 /**
- * JSON-lines preview protocol (`vuecli mcp <entry> --jsonl`): a lighter
+ * JSON-lines preview protocol (`vurses mcp <entry> --jsonl`): a lighter
  * alternative to MCP for editors that want to show live frames.
  *
  * stdin, one JSON object per line:
@@ -21,7 +21,7 @@
  *   { "type": "exit", "error"?: "..." }
  */
 import { snapshotFrame } from '../devtools/frame.js'
-import { isVuecliError } from '../errors.js'
+import { isVursesError } from '../errors.js'
 import type { HeadlessSession } from './session.js'
 
 export type PreviewCommand =
@@ -123,7 +123,7 @@ export function servePreview(session: HeadlessSession, io: PreviewIO): (() => vo
     }
     queue = queue
       .then(() => handle(cmd))
-      .catch((e) => send({ type: 'error', message: isVuecliError(e) ? e.reason : e instanceof Error ? e.message : String(e), ...(isVuecliError(e) && { code: e.code }) }))
+      .catch((e) => send({ type: 'error', message: isVursesError(e) ? e.reason : e instanceof Error ? e.message : String(e), ...(isVursesError(e) && { code: e.code }) }))
   })
   const offExit = session.onExit((error) => {
     flushLogs()

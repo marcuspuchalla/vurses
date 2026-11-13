@@ -1,17 +1,17 @@
 # Browser, server and deployment
 
-vuecli apps can run in three places. The `.vue` code is the same in each:
+vurses apps can run in three places. The `.vue` code is the same in each:
 
 | where | how | entry |
 | --- | --- | --- |
-| terminal | `vuecli run app/` / `vuecli dev --terminal` | `ttyTarget` (ANSI diffs) |
+| terminal | `vurses run app/` / `vurses dev --terminal` | `ttyTarget` (ANSI diffs) |
 | browser devtools console | client routes (the default) | `browserTarget` ("Turbolog") |
 | server, streamed to the browser | routes with `export const runtime = 'server'` | `streamTarget` + frame player |
 
 ```sh
-vuecli dev examples/server-app          # http://localhost:3000, then open the devtools console
-vuecli dev examples/server-app --terminal
-vuecli build examples/server-app --adapter node && vuecli start examples/server-app
+vurses dev examples/server-app          # http://localhost:3000, then open the devtools console
+vurses dev examples/server-app --terminal
+vurses build examples/server-app --adapter node && vurses start examples/server-app
 ```
 
 ## Browser console target (Turbolog)
@@ -41,10 +41,10 @@ commit → layout → paint into CellBuffer            (core runtime)
   - Typing still needs the page: keys typed in DevTools never reach it. `consoleLinks: false` turns both modes off.
 - The screen size comes from options, then `?cols=` and `?rows=`, then the window size. It follows window resizes unless the size is fixed.
 - The DOM view is optional. The page bar's "DOM view" button (or `?view=dom`) mirrors the frames into a `<pre>`. Only rows that changed are rewritten, and mouse clicks, wheel and hover on the `<pre>` are sent to the app as SGR mouse events.
-- `window.vuecli` (REPL) and `__VUECLI_DEVTOOLS_HOOK__` are installed (see `src/devtools`).
+- `window.vurses` (REPL) and `__VURSES_DEVTOOLS_HOOK__` are installed (see `src/devtools`).
 
 ```ts
-import { createApp, browserTarget } from 'vuecli'      // browser builds resolve 'vuecli' to src/browser.ts
+import { createApp, browserTarget } from 'vurses'      // browser builds resolve 'vurses' to src/browser.ts
 createApp(App).mount({ target: browserTarget({ dom: true, minInterval: 66 }) })
 ```
 
@@ -53,18 +53,18 @@ createApp(App).mount({ target: browserTarget({ dom: true, minInterval: 66 }) })
 `export const runtime = 'server'` in a page's plain `<script>` block makes the route run on the server:
 
 ```
-GET /live                 → HTML shell + boot JSON (+ prerendered/cached first frame) + /_vuecli/player.js
-GET /_vuecli/stream?path=/live&cols=&rows=   (SSE)
+GET /live                 → HTML shell + boot JSON (+ prerendered/cached first frame) + /_vurses/player.js
+GET /_vurses/stream?path=/live&cols=&rows=   (SSE)
     event: hello  {sid, columns, rows, path}
     event: frame  FrameDelta            (row deltas, see below)
     event: bye    {reason}              (app exited / idle / shutdown)
     event: redirect {url}               (middleware redirected the streamed path)
-POST /_vuecli/input  {sid, data?: "raw terminal input", cols?, rows?}  → 204
+POST /_vurses/input  {sid, data?: "raw terminal input", cols?, rows?}  → 204
 ```
 
-- Each SSE connection gets its own headless vuecli `Runtime` (`SessionManager`, `src/server/session.ts`), which renders through `streamTarget`.
+- Each SSE connection gets its own headless vurses `Runtime` (`SessionManager`, `src/server/session.ts`), which renders through `streamTarget`.
 - The session ends on disconnect (stream cancelled or `request.signal` aborted), when the app calls `exit()`, after `idleTimeout` (default 30 minutes) without input, or on shutdown. A 503 is returned above `maxSessions` (default 200).
-- Middleware also runs for the streamed path, so auth cannot be bypassed through `/_vuecli/stream`. Only `runtime = 'server'` routes can be streamed.
+- Middleware also runs for the streamed path, so auth cannot be bypassed through `/_vurses/stream`. Only `runtime = 'server'` routes can be streamed.
 - The frame player (`src/player`) contains no Vue. It is about 13 kB minified and 5.6 kB gzipped.
   - It paints the embedded first frame, applies deltas to a screen model, and presents it with the same Turbolog encoder (and the optional DOM view).
   - It sends input in order, batched into POSTs.
@@ -89,7 +89,7 @@ POST /_vuecli/input  {sid, data?: "raw terminal input", cols?, rows?}  → 204
 
 The server core is the portable fetch handler `createHandler(options): (request: Request) => Promise<Response>` in `src/server/handler.ts`. It processes a request in this order:
 
-1. `/_vuecli/*` internal endpoints and assets.
+1. `/_vurses/*` internal endpoints and assets.
 2. `middleware.ts`, filtered by `config.matcher`: redirect, rewrite (same origin re-routes, an external URL is proxied), a response of its own, or `next()` with extra headers.
 3. `public/` files, with ETag and 304 responses.
 4. Route handlers in `app/**/route.ts` that export `GET POST PUT PATCH DELETE HEAD OPTIONS`, with the signature `(request, { params })`.
@@ -99,7 +99,7 @@ The server core is the portable fetch handler `createHandler(options): (request:
 5. Pages, served as an HTML shell.
 6. 404: the client router renders `not-found`.
 
-Caching lives in `src/cache` and is exported from `vuecli`:
+Caching lives in `src/cache` and is exported from `vurses`:
 
 ```ts
 const getQuotes = cache(fetchQuotes, ['quotes'], { revalidate: 2, tags: ['quotes'] })   // ≈ unstable_cache
@@ -115,7 +115,7 @@ revalidatePath('/stats')           // route frame cache; revalidatePath('/blog',
 
 ### Partial Prerendering
 
-`vuecli build` prerenders the first frame (the "static shell") of every server route without dynamic params. It waits for the router's Suspense, so `await` in `<script setup>` is included in the shell.
+`vurses build` prerenders the first frame (the "static shell") of every server route without dynamic params. It waits for the router's Suspense, so `await` in `<script setup>` is included in the shell.
 
 - The page paints that frame immediately, and the live session then streams the dynamic part.
 - To opt out, add `export const dynamic = 'force-dynamic'`.
@@ -125,22 +125,22 @@ revalidatePath('/stats')           // route frame cache; revalidatePath('/blog',
 
 | command | |
 | --- | --- |
-| `vuecli dev [dir\|App.vue] [--port 3000] [--host h]` | Dev server: bundles the browser app in memory with esbuild, runs server routes, and live-reloads the page on any source change. A supervisor restarts the worker, so server modules are always fresh. A build error shows an error page, which reloads once the error is fixed. |
-| `vuecli dev --terminal [dir\|entry]` | Runs the app in this terminal and restarts it on change. |
-| `vuecli build [dir] --adapter static\|node\|bun\|vercel\|cloudflare [--out d] [--no-minify] [--no-prerender]` | Builds for deployment. The default adapter is `node`. |
-| `vuecli start [buildDir\|projectDir] [--port] [--host]` | Serves a node or bun build. |
+| `vurses dev [dir\|App.vue] [--port 3000] [--host h]` | Dev server: bundles the browser app in memory with esbuild, runs server routes, and live-reloads the page on any source change. A supervisor restarts the worker, so server modules are always fresh. A build error shows an error page, which reloads once the error is fixed. |
+| `vurses dev --terminal [dir\|entry]` | Runs the app in this terminal and restarts it on change. |
+| `vurses build [dir] --adapter static\|node\|bun\|vercel\|cloudflare [--out d] [--no-minify] [--no-prerender]` | Builds for deployment. The default adapter is `node`. |
+| `vurses start [buildDir\|projectDir] [--port] [--host]` | Serves a node or bun build. |
 
 ## Adapters
 
 | adapter | output | live server sessions | limitations |
 | --- | --- | --- | --- |
-| `node` | `.vuecli/node/{server.mjs, server/index.mjs, static/}`. Run it with `vuecli start` or `node server.mjs` (`PORT`, `HOST`). | yes | single process: sessions and cache are in memory. Use sticky sessions when load-balancing. |
+| `node` | `.vurses/node/{server.mjs, server/index.mjs, static/}`. Run it with `vurses start` or `node server.mjs` (`PORT`, `HOST`). | yes | single process: sessions and cache are in memory. Use sticky sessions when load-balancing. |
 | `bun` | the node layout plus `bun.mjs` (`Bun.serve({ fetch, idleTimeout: 255 })`) | yes | same as node |
-| `static` | `index.html` per static client route, `404.html` (SPA fallback for dynamic routes), `_vuecli/app.js`, `public/` | no | Server routes show a notice. Route handlers and middleware are dropped, and the build warns about each. |
+| `static` | `index.html` per static client route, `404.html` (SPA fallback for dynamic routes), `_vurses/app.js`, `public/` | no | Server routes show a notice. Route handlers and middleware are dropped, and the build warns about each. |
 | `vercel` | `.vercel/output/` (Build Output API v3): `static/`, `functions/index.func` (Edge), `config.json` | no | Server routes serve their prerendered frame only: functions are short-lived and not sticky, so an SSE session and its input POSTs can land on different instances. Static files bypass middleware. Deploy with `vercel deploy --prebuilt`. |
 | `cloudflare` | `worker.js` (`export default { fetch }`), `wrangler.toml` with `[assets]`, `public/` | no | Same as Vercel. In addition, Workers cannot compile Yoga's WASM from bytes, so the worker bundle leaves out the renderer. A Durable Object session host is future work. Assets are served before the worker, so they bypass middleware. |
 
-Edge bundles resolve `import … from 'vuecli'` to a request-time subset (`src/server/edge-api.ts`: `RouteResponse`, `NextResponse`, cookies, the matcher, the cache API).
+Edge bundles resolve `import … from 'vurses'` to a request-time subset (`src/server/edge-api.ts`: `RouteResponse`, `NextResponse`, cookies, the matcher, the cache API).
 
 ## Limitations
 

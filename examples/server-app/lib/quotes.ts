@@ -1,4 +1,4 @@
-import { cache } from 'vuecli'
+import { cache } from 'vurses'
 
 export interface Quote {
   symbol: string

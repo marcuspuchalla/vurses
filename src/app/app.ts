@@ -13,7 +13,7 @@ import { APP_CONTEXT, type AppContext, type LogEntry } from './context.js'
 import { FocusManager } from './focus.js'
 import { installComponents, DevTools } from '../components/index.js'
 import { formatArgs } from './format.js'
-import { vuecliError, vuecliWarn } from '../errors.js'
+import { vursesError, vursesWarn } from '../errors.js'
 
 export type { ReadStreamLike, WriteStreamLike } from './tty.js'
 
@@ -410,7 +410,7 @@ export class Runtime {
     if (error) {
       if (isTty) {
         const msg = error instanceof Error ? (error.stack ?? error.message) : String(error)
-        proc.stderr.write(`\n[vuecli] app crashed:\n${safeLogText(msg)}\n`)
+        proc.stderr.write(`\n[vurses] app crashed:\n${safeLogText(msg)}\n`)
         proc.exitCode = 1
       }
       this.exitResolvers?.reject(error)
@@ -421,7 +421,7 @@ export class Runtime {
 function resolveTheme(t: Theme | string | undefined): Theme {
   if (!t) return darkTheme
   if (typeof t === 'string') {
-    if (!themes[t]) vuecliWarn('VC042', { name: t, available: Object.keys(themes).join(', ') })
+    if (!themes[t]) vursesWarn('VC042', { name: t, available: Object.keys(themes).join(', ') })
     return themes[t] ?? darkTheme
   }
   return t
@@ -436,13 +436,13 @@ function resolveTheme(t: Theme | string | undefined): Theme {
 export function createApp(rootComponent: Component, rootProps?: Record<string, unknown> | null, options: { components?: boolean } = {}): TuiApp {
   // wrap the user's root so built-in overlays (devtools) are always available
   const Root = defineComponent({
-    name: 'VueCliRoot',
+    name: 'VursesRoot',
     setup() {
       return () => [h(rootComponent as any, rootProps ?? null), h(DevTools)]
     },
   })
   const app = createBaseApp(Root) as unknown as TuiApp
-  // web apps (`vuecli web`) bring their own components; don't shadow their names
+  // web apps (`vurses web`) bring their own components; don't shadow their names
   if (options.components !== false) installComponents(app as unknown as App)
   const baseMount = (app as unknown as App<TElement>).mount
   let runtime: Runtime | null = null
@@ -465,7 +465,7 @@ export function createApp(rootComponent: Component, rootProps?: Record<string, u
     runtime.requestRender()
     return app
   }
-  app.waitUntilExit = () => exitPromise ?? Promise.reject(vuecliError('VC002', { method: 'waitUntilExit' }))
+  app.waitUntilExit = () => exitPromise ?? Promise.reject(vursesError('VC002', { method: 'waitUntilExit' }))
   return app
 }
 

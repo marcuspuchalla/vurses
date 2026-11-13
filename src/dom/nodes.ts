@@ -63,7 +63,7 @@ export interface Host {
 /**
  * A style scope takes over style resolution for every element below the
  * element it is attached to (`el.scope = ...`). Used by the web layer
- * (`vuecli web`) to apply real CSS and HTML flow layout to existing web apps.
+ * (`vurses web`) to apply real CSS and HTML flow layout to existing web apps.
  */
 export interface StyleScope {
   /** Resolves the style of an element inside the scope. */

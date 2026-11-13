@@ -1,5 +1,5 @@
 /**
- * Dev live reload client: listens to the dev server's `/_vuecli/reload` SSE
+ * Dev live reload client: listens to the dev server's `/_vurses/reload` SSE
  * endpoint and reloads the page when a new build id appears (the dev server
  * restarts on file changes; EventSource reconnects by itself).
  */

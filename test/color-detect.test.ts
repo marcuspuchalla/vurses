@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { colorSgr, detectColorDepth, parseColor } from '../src/style/colors.js'
 
 describe('detectColorDepth', () => {
-  it('follows VUECLI_COLOR, FORCE_COLOR, NO_COLOR, TERM=dumb, then terminal hints', () => {
-    expect(detectColorDepth({ VUECLI_COLOR: 'none', COLORTERM: 'truecolor' })).toBe('none')
+  it('follows VURSES_COLOR, FORCE_COLOR, NO_COLOR, TERM=dumb, then terminal hints', () => {
+    expect(detectColorDepth({ VURSES_COLOR: 'none', COLORTERM: 'truecolor' })).toBe('none')
     expect(detectColorDepth({ NO_COLOR: '1', COLORTERM: 'truecolor' })).toBe('none')
     expect(detectColorDepth({ NO_COLOR: '1', FORCE_COLOR: '3' })).toBe('truecolor')
     expect(detectColorDepth({ FORCE_COLOR: '0' })).toBe('none')

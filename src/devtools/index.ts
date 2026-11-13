@@ -1,7 +1,7 @@
 export { installDevtoolsHook, getDevtoolsHook, HOOK_KEY, REPL_KEY } from './hook.js'
 export type { DevtoolsHook, DevtoolsState, FrameRecord, ComponentDetails, InstallDevtoolsOptions } from './hook.js'
 export { createRepl } from './repl.js'
-export type { VuecliRepl } from './repl.js'
+export type { VursesRepl } from './repl.js'
 export {
   snapshotFrame,
   frameToText,

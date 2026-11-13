@@ -3,7 +3,9 @@ dist
 *.log
 .DS_Store
 
-# build output of vuecli build / dev
-.vuecli
+# build output of vurses build / dev
+.vurses
 .vercel
 *.whl
+docs/.vitepress/cache
+docs/.vitepress/dist

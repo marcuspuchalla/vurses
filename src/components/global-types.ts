@@ -1,5 +1,5 @@
 /**
- * Types for the components vuecli registers globally, so Volar / vue-tsc know
+ * Types for the components vurses registers globally, so Volar / vue-tsc know
  * <Box>, <Button>, ... in templates without imports. Keep in sync with ./index.ts
  * (test/components2/global-types.test.ts checks it).
  */

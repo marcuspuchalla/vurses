@@ -35,7 +35,7 @@ describe('node server: SSE stream + POST input over HTTP', () => {
 
   it('streams frames, applies input, cleans up on disconnect', async () => {
     const ac = new AbortController()
-    const res = await fetch(`${server.url}/_vuecli/stream?path=/live&cols=40&rows=5`, { signal: ac.signal })
+    const res = await fetch(`${server.url}/_vurses/stream?path=/live&cols=40&rows=5`, { signal: ac.signal })
     expect(res.headers.get('content-type')).toMatch(/text\/event-stream/)
     const reader = res.body!.getReader()
     const dec = new TextDecoder()
@@ -61,12 +61,12 @@ describe('node server: SSE stream + POST input over HTTP', () => {
       }
     }
     await until(() => gridText(st.screen).includes('typed: |'))
-    const post = await fetch(`${server.url}/_vuecli/input`, { method: 'POST', body: JSON.stringify({ sid, data: 'xyz' }) })
+    const post = await fetch(`${server.url}/_vurses/input`, { method: 'POST', body: JSON.stringify({ sid, data: 'xyz' }) })
     expect(post.status).toBe(204)
     await until(() => gridText(st.screen).includes('typed: xyz|'))
     ac.abort()
     await new Promise((r) => setTimeout(r, 100))
-    const gone = await fetch(`${server.url}/_vuecli/input`, { method: 'POST', body: JSON.stringify({ sid, data: 'a' }) })
+    const gone = await fetch(`${server.url}/_vurses/input`, { method: 'POST', body: JSON.stringify({ sid, data: 'a' }) })
     expect(gone.status).toBe(404) // session ended with the connection
   })
 })
@@ -151,7 +151,7 @@ describe.skipIf(!pw)('real browser (Chromium via Playwright)', () => {
     await page.keyboard.type('abc')
     await waitFor(() => frames.some((f) => f.text.includes('typed: abc|')))
     // the DOM view (?view=dom) mirrors the same screen
-    await page.waitForFunction(() => document.querySelector('pre.vuecli-screen')?.textContent?.includes('typed: abc|'))
+    await page.waitForFunction(() => document.querySelector('pre.vurses-screen')?.textContent?.includes('typed: abc|'))
     expect(errors).toEqual([])
     await page.close()
   }, 30000)

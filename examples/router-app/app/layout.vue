@@ -2,7 +2,7 @@
   <Box class="flex-col" :height="size.rows" :width="size.columns">
     <!-- header -->
     <Box class="px-1 shrink-0 gap-1" bg="surface">
-      <Text bold color="primary">◆ vuecli</Text>
+      <Text bold color="primary">◆ vurses</Text>
       <Text color="muted">App Router</Text>
       <Spacer />
       <Text color="accent">{{ meta.title }}</Text>
@@ -51,11 +51,11 @@
 
 <script lang="ts">
 // Named exports go in a plain <script> block. Child titles are rendered through the template.
-export const metadata = { title: { default: 'vuecli router', template: '%s · vuecli router' } }
+export const metadata = { title: { default: 'vurses router', template: '%s · vurses router' } }
 </script>
 
 <script setup lang="ts">
-import { useApp, useMetadata, usePathname, useRouter } from 'vuecli'
+import { useApp, useMetadata, usePathname, useRouter } from 'vurses'
 
 const { size } = useApp()
 const router = useRouter()

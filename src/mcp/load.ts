@@ -1,5 +1,5 @@
 /**
- * Loads what `vuecli mcp <target>` should run (Node only):
+ * Loads what `vurses mcp <target>` should run (Node only):
  *  - an entry file (.vue / .js / .ts) whose default export is the root component
  *  - an App Router project / app directory (file-based routes)
  */
@@ -10,7 +10,7 @@ import { pathToFileURL } from 'node:url'
 import type { Component } from 'vue'
 import type { TuiApp } from '../app/app.js'
 import type { RouteManifest } from '../router/types.js'
-import { vuecliError } from '../errors.js'
+import { vursesError } from '../errors.js'
 
 /** The subset of a vue-router `Router` the MCP tools use. */
 export interface RouterLike {
@@ -52,10 +52,10 @@ export async function registerSfcHooks() {
 /** Imports an entry module and returns its default export. */
 export async function loadEntry(entry: string): Promise<Component> {
   const file = resolve(entry)
-  if (!existsSync(file)) throw vuecliError('VC110', { entry })
+  if (!existsSync(file)) throw vursesError('VC110', { entry })
   if (/\.vue$/.test(file)) await registerSfcHooks()
   const mod = (await import(/* @vite-ignore */ pathToFileURL(file).href)) as { default?: Component }
-  if (!mod.default) throw vuecliError('VC111', { entry })
+  if (!mod.default) throw vursesError('VC111', { entry })
   return mod.default
 }
 
@@ -93,7 +93,7 @@ async function importRouter(): Promise<RouterModule | null> {
 
 /** Adapts an App Router to the vue-router-like interface the MCP tools use. */
 export function adaptAppRouter(r: AppRouterLike): RouterLike {
-  if (!r.vueRouter) throw vuecliError('VC065', { file: 'createAppRouter()', reason: 'return an AppRouter with a vueRouter' })
+  if (!r.vueRouter) throw vursesError('VC065', { file: 'createAppRouter()', reason: 'return an AppRouter with a vueRouter' })
   const vr = r.vueRouter
   return {
     push: (to) => r.push(to),
@@ -112,14 +112,14 @@ export function adaptAppRouter(r: AppRouterLike): RouterLike {
  */
 export async function loadRouterApp(dir: string, opts: { initialPath?: string } = {}): Promise<LoadedApp> {
   const mod = await importRouter()
-  if (!mod?.discoverRoutes || !mod.createAppRouter) throw vuecliError('VC112', { tool: 'Running an app directory' })
+  if (!mod?.discoverRoutes || !mod.createAppRouter) throw vursesError('VC112', { tool: 'Running an app directory' })
   const appDir = (await mod.findAppDir?.(dir)) ?? null
-  if (!appDir || !existsSync(appDir)) throw vuecliError('VC062', { dir })
+  if (!appDir || !existsSync(appDir)) throw vursesError('VC062', { dir })
   await registerSfcHooks()
   const manifest = await mod.discoverRoutes(appDir)
   const load = (await mod.createNodeLoader?.()) ?? ((file: string) => import(/* @vite-ignore */ pathToFileURL(file).href))
   const router = mod.createAppRouter({ manifest, load, initialPath: opts.initialPath ?? '/', terminalTitle: false })
-  if (!router?.component) throw vuecliError('VC065', { file: 'createAppRouter()', reason: 'return a router with a root component' })
+  if (!router?.component) throw vursesError('VC065', { file: 'createAppRouter()', reason: 'return a router with a root component' })
   const adapted = adaptAppRouter(router)
   return {
     mode: 'router',
@@ -144,7 +144,7 @@ export async function loadRouterApp(dir: string, opts: { initialPath?: string } 
 /** Loads an entry file or an App Router directory. */
 export async function loadApp(target: string, opts: { initialPath?: string } = {}): Promise<LoadedApp> {
   const abs = resolve(target)
-  if (!existsSync(abs)) throw vuecliError('VC110', { entry: target })
+  if (!existsSync(abs)) throw vursesError('VC110', { entry: target })
   if (statSync(abs).isDirectory()) return loadRouterApp(abs, opts)
   return { mode: 'entry', component: await loadEntry(abs), target: abs }
 }

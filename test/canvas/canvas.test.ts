@@ -173,7 +173,7 @@ describe('<Canvas>', () => {
   })
 
   it('runs an existing HTML canvas page via src', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'vuecli-canvas-'))
+    const dir = mkdtempSync(join(tmpdir(), 'vurses-canvas-'))
     const file = join(dir, 'page.html')
     writeFileSync(file, `<canvas id="c"></canvas><script>
       const c = document.getElementById('c'); const ctx = c.getContext('2d')
@@ -234,7 +234,7 @@ describe('<Image>', () => {
     c.fillRect(0, 0, 2, 4)
     c.fillStyle = 'blue'
     c.fillRect(2, 0, 2, 4)
-    const dir = mkdtempSync(join(tmpdir(), 'vuecli-img-'))
+    const dir = mkdtempSync(join(tmpdir(), 'vurses-img-'))
     const file = join(dir, 'img.png')
     writeFileSync(file, src.toBuffer())
     const App = defineComponent({ setup: () => () => h('tui-box', { flexDirection: 'column' }, [h(Image, { src: file })]) })

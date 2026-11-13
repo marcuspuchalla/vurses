@@ -1,20 +1,20 @@
-# Contributing to vuecli
+# Contributing to vurses
 
-Welcome, and thanks for taking a look. vuecli has a simple goal: write Vue, get a
+Welcome, and thanks for taking a look. vurses has a simple goal: write Vue, get a
 terminal app. Whether that's a component you build for the terminal or an existing
-Vite + Vue web app you run with `vuecli web`. Contributions that move it closer to
+Vite + Vue web app you run with `vurses web`. Contributions that move it closer to
 that goal are very welcome, from a one-line typo fix to a new component.
 
 ## The most useful thing you can contribute
 
-**A web app that doesn't look right in the terminal.** `vuecli web` runs real Vue
+**A web app that doesn't look right in the terminal.** `vurses web` runs real Vue
 apps through its own DOM, CSS cascade and layout engine, and every app finds a
 corner nobody has tested yet. A report with what you ran and what you saw is
 valuable even if you never write a line of code:
 
 ```sh
-vuecli web --snapshot --size 100x40                      # the frame as text
-VUECLI_WEB_DEBUG=1 vuecli web --snapshot --size 100x40   # plus the layout tree on stderr
+vurses web --snapshot --size 100x40                      # the frame as text
+VURSES_WEB_DEBUG=1 vurses web --snapshot --size 100x40   # plus the layout tree on stderr
 ```
 
 Open an issue with that output, the versions of Vue and the libraries involved
@@ -37,8 +37,8 @@ Other good places to start:
 ## Getting set up
 
 ```sh
-git clone https://github.com/marcuspuchalla/vuecli
-cd vuecli
+git clone https://github.com/marcuspuchalla/vurses
+cd vurses
 npm install          # also builds
 npm test             # root test suite (vitest)
 ```
@@ -50,12 +50,12 @@ To try your change in a real app:
 
 ```sh
 npm run example:gallery                      # every component, page by page
-npm run build && node bin/vuecli.js App.vue  # any .vue file
-cd ../some-vite-vue-app && node ../vuecli/bin/vuecli.js web
+npm run build && node bin/vurses.js App.vue  # any .vue file
+cd ../some-vite-vue-app && node ../vurses/bin/vurses.js web
 ```
 
 You don't need a terminal for most of the work: the renderer, layout, CSS engine and
-components are all tested offscreen (`vuecli/testing`, `manualRender: true`), and
+components are all tested offscreen (`vurses/testing`, `manualRender: true`), and
 `--snapshot` prints a frame without one.
 
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) explains how the parts fit together.
@@ -93,7 +93,7 @@ npm run test:all     # root suite plus every package
 - **Errors have stable codes.** Errors raised on purpose use a `VC###` code from
   `src/errors.ts`, and every code has an entry with a fix in
   [docs/errors.md](docs/errors.md). Don't reuse or renumber codes; add new ones.
-- **`vuecli web` runs apps unchanged.** Compatibility fixes go into vuecli (the DOM
+- **`vurses web` runs apps unchanged.** Compatibility fixes go into vurses (the DOM
   facade, browser globals, CSS engine), never into instructions telling people to
   change their app. When something can't work in a terminal, it should degrade
   quietly and be listed in Compatibility.
@@ -110,13 +110,13 @@ without a good reason. `.vue` files put `<template>` first, then `<script>`, the
 `<style>`. Comments explain *why* something is the way it is, especially where the
 reason is a terminal quirk or browser behaviour that isn't obvious from the code.
 
-Working with an AI coding assistant is fine (a lot of vuecli was built that way).
+Working with an AI coding assistant is fine (a lot of vurses was built that way).
 You are still the author: read what you submit, make sure it's tested, and be ready
 to explain it.
 
 ## Licensing
 
-vuecli is licensed under the **GNU General Public License v3.0 or later**
+vurses is licensed under the **GNU General Public License v3.0 or later**
 ([LICENSE](LICENSE)). By opening a pull request you agree that your contribution is
 licensed under the same terms. You keep your copyright.
 
@@ -131,5 +131,5 @@ the FIGlet fonts in `src/fonts/` (New BSD License).
 ## Reporting security issues
 
 Please don't open a public issue for a vulnerability. Use
-[private vulnerability reporting](https://github.com/marcuspuchalla/vuecli/security/advisories/new)
+[private vulnerability reporting](https://github.com/marcuspuchalla/vurses/security/advisories/new)
 instead; [SECURITY.md](SECURITY.md) has the details.

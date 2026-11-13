@@ -1,5 +1,5 @@
 /**
- * What `import ... from 'vuecli'` resolves to inside edge bundles (Vercel
+ * What `import ... from 'vurses'` resolves to inside edge bundles (Vercel
  * Edge / Cloudflare Workers adapters): only the request-time APIs that route
  * handlers and middleware use. The terminal runtime (Vue renderer + Yoga
  * WASM) is deliberately absent — WASM compiled from bytes is not allowed on

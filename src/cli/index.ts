@@ -1,6 +1,6 @@
 import { pkg, type Command, type Flags } from './shared.js'
 import { existsSync } from 'node:fs'
-import { formatError, isVuecliError, vuecliError } from '../errors.js'
+import { formatError, isVursesError, vursesError } from '../errors.js'
 
 /**
  * Subcommands are lazy-loaded modules in ./commands. Each exports a default
@@ -42,12 +42,12 @@ export function parseArgs(argv: string[]) {
 }
 
 async function help() {
-  const lines = [`\nvuecli ${pkg.version} — native Vue apps in the terminal\n`, 'Usage']
+  const lines = [`\nvurses ${pkg.version} — native Vue apps in the terminal\n`, 'Usage']
   for (const name of Object.keys(COMMANDS)) {
     const { default: c } = await COMMANDS[name]()
     lines.push(`  ${c.usage.padEnd(52)} ${c.summary}`)
   }
-  lines.push('  vuecli <entry>'.padEnd(54) + ' Shorthand for `vuecli run <entry>`')
+  lines.push('  vurses <entry>'.padEnd(54) + ' Shorthand for `vurses run <entry>`')
   lines.push('\nKeys\n  Tab / Shift+Tab   move focus\n  F12               devtools overlay\n  Ctrl+C            quit\n')
   console.log(lines.join('\n'))
 }
@@ -64,7 +64,7 @@ export async function main(argv = process.argv.slice(2)) {
   if (name in COMMANDS) args.shift()
   else if (looksLikeCommand(name)) {
     const near = Object.keys(COMMANDS).find((c) => editDistance(c, name) <= 2)
-    console.error(formatError(vuecliError('VC130', { name })) + (near ? `\n  Did you mean \`vuecli ${near}\`?` : ''))
+    console.error(formatError(vursesError('VC130', { name })) + (near ? `\n  Did you mean \`vurses ${near}\`?` : ''))
     process.exit(2)
   } else name = 'run'
   const { default: cmd } = await COMMANDS[name]()
@@ -81,9 +81,9 @@ const NUMERIC_FLAGS = ['fps', 'port', 'wait', 'keywait']
 
 /** Typos are warned about (and ignored); impossible values stop with VC131. */
 function checkFlags(flags: Flags) {
-  for (const k of Object.keys(flags)) if (!KNOWN_FLAGS.has(k)) console.error(`vuecli: unknown flag --${k} (ignored); see \`vuecli --help\``)
+  for (const k of Object.keys(flags)) if (!KNOWN_FLAGS.has(k)) console.error(`vurses: unknown flag --${k} (ignored); see \`vurses --help\``)
   const bad = (flag: string, value: unknown, expected: string) => {
-    console.error(formatError(vuecliError('VC131', { flag, value: String(value), expected })))
+    console.error(formatError(vursesError('VC131', { flag, value: String(value), expected })))
     process.exit(2)
   }
   for (const k of NUMERIC_FLAGS) {
@@ -108,11 +108,11 @@ function editDistance(a: string, b: string): number {
 
 main().catch((err) => {
   // readable errors: `VC### reason → docs` for our own, the message plus the app's frames otherwise
-  if (isVuecliError(err) || !(err instanceof Error)) console.error(formatError(err))
+  if (isVursesError(err) || !(err instanceof Error)) console.error(formatError(err))
   else {
     const frames = (err.stack ?? '').split('\n').filter((l) => /^\s+at /.test(l) && !/node:internal|node_modules[\\/](@babel|@vue[\\/]compiler)/.test(l))
     console.error(`${err.name}: ${err.message}${frames.length ? '\n' + frames.slice(0, 8).join('\n') : ''}`)
   }
-  if (process.env.VUECLI_DEBUG) console.error(err)
+  if (process.env.VURSES_DEBUG) console.error(err)
   process.exit(1)
 })

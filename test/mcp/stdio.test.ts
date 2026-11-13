@@ -1,5 +1,5 @@
 /**
- * End-to-end: spawns `node bin/vuecli.js mcp <fixture>` and talks MCP over real
+ * End-to-end: spawns `node bin/vurses.js mcp <fixture>` and talks MCP over real
  * stdio. Needs a build (`npm run build`); skipped otherwise.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -11,12 +11,12 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 const root = fileURLToPath(new URL('../..', import.meta.url))
 const built = existsSync(`${root}dist/mcp/server.js`) && existsSync(`${root}dist/cli/commands/mcp.js`)
 
-describe.skipIf(!built)('vuecli mcp over stdio', () => {
+describe.skipIf(!built)('vurses mcp over stdio', () => {
   let client: Client
   beforeAll(async () => {
     const transport = new StdioClientTransport({
       command: process.execPath,
-      args: ['bin/vuecli.js', 'mcp', 'test/mcp/fixtures/app.js', '--size', '50x10'],
+      args: ['bin/vurses.js', 'mcp', 'test/mcp/fixtures/app.js', '--size', '50x10'],
       cwd: root,
       stderr: 'pipe',
     })

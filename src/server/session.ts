@@ -1,9 +1,9 @@
 /**
- * Server-side sessions: one headless vuecli Runtime per connected browser.
+ * Server-side sessions: one headless vurses Runtime per connected browser.
  *
- *   browser ──GET /_vuecli/stream?path=/live&cols=80&rows=24──▶ session (SSE)
+ *   browser ──GET /_vurses/stream?path=/live&cols=80&rows=24──▶ session (SSE)
  *           ◀── hello {sid} · frame {FrameDelta} · bye ──────────
- *   browser ──POST /_vuecli/input {sid, data | cols/rows}──────▶ runtime.handleInput / resize
+ *   browser ──POST /_vurses/input {sid, data | cols/rows}──────▶ runtime.handleInput / resize
  *
  * The runtime renders into a `streamTarget` (row deltas against what the
  * client already has). The session ends when the client disconnects (stream

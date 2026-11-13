@@ -153,12 +153,12 @@ export function mix(a: string, b: string, t: number): string {
 }
 
 /**
- * Color support of the terminal, from (in order): VUECLI_COLOR (none|16|256|truecolor),
+ * Color support of the terminal, from (in order): VURSES_COLOR (none|16|256|truecolor),
  * NO_COLOR / FORCE_COLOR (https://no-color.org, the chalk convention), TERM=dumb, then
  * COLORTERM / TERM / TERM_PROGRAM hints.
  */
 export function detectColorDepth(env: NodeJS.ProcessEnv = process.env): ColorDepth {
-  const own = env.VUECLI_COLOR
+  const own = env.VURSES_COLOR
   if (own === 'none' || own === '16' || own === '256' || own === 'truecolor') return own === '16' ? 16 : own === '256' ? 256 : own
   const force = env.FORCE_COLOR
   if (force !== undefined && force !== '') {

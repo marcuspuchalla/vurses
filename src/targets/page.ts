@@ -11,12 +11,12 @@ export interface PageChrome {
   status(text: string): void
 }
 
-const KEY = 'vuecli:view'
+const KEY = 'vurses:view'
 
 export function setupPageChrome(onToggle: (dom: boolean) => void, doc: Document = (globalThis as any).document): PageChrome {
-  const root = doc.getElementById('vuecli-root') ?? doc.body
-  const btn = doc.getElementById('vuecli-toggle')
-  const statusEl = doc.getElementById('vuecli-status')
+  const root = doc.getElementById('vurses-root') ?? doc.body
+  const btn = doc.getElementById('vurses-toggle')
+  const statusEl = doc.getElementById('vurses-status')
   let dom = false
   try {
     const q = new URLSearchParams(doc.location?.search ?? '').get('view')
@@ -38,7 +38,7 @@ export function setupPageChrome(onToggle: (dom: boolean) => void, doc: Document 
     }
     label()
     onToggle(dom)
-    ;(doc.querySelector('textarea[data-vuecli-input]') as HTMLTextAreaElement | null)?.focus()
+    ;(doc.querySelector('textarea[data-vurses-input]') as HTMLTextAreaElement | null)?.focus()
   })
   return {
     get dom() {

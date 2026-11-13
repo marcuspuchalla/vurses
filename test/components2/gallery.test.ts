@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { compileSFC } from '../../src/sfc/compile.js'
 import { render } from '../../src/testing.js'
 
-// compile examples/gallery/App.vue and import it (with 'vuecli' mapped to the sources)
+// compile examples/gallery/App.vue and import it (with 'vurses' mapped to the sources)
 const src = fileURLToPath(new URL('../../examples/gallery/App.vue', import.meta.url))
 const out = fileURLToPath(new URL('./.gallery.compiled.tmp.mjs', import.meta.url))
 const indexPath = fileURLToPath(new URL('../../src/index.ts', import.meta.url))
@@ -12,7 +12,7 @@ afterAll(() => rmSync(out, { force: true }))
 
 describe('examples/gallery', () => {
   it('renders every page', async () => {
-    writeFileSync(out, compileSFC(readFileSync(src, 'utf8'), src).replace(/from ["']vuecli["']/g, `from ${JSON.stringify(indexPath)}`))
+    writeFileSync(out, compileSFC(readFileSync(src, 'utf8'), src).replace(/from ["']vurses["']/g, `from ${JSON.stringify(indexPath)}`))
     const App = (await import(/* @vite-ignore */ out)).default
     const r = await render(App, { columns: 120, rows: 36 })
     const expectations: [string, string][] = [

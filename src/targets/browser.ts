@@ -198,6 +198,6 @@ function consoleHint(g: Record<string, any>, links: boolean) {
     ? "Buttons and links: expand `click: {…}` under a frame and click (...) — or turn on DevTools → Settings → Console → 'Enable custom formatters' for one-click links. "
     : ''
   g.console?.info?.(
-    `vuecli: ${click}To type, click this page (not the console), or drive it from the console: await vuecli.press('tab', 'enter'), vuecli.type('hello'), vuecli.help()`,
+    `vurses: ${click}To type, click this page (not the console), or drive it from the console: await vurses.press('tab', 'enter'), vurses.type('hello'), vurses.help()`,
   )
 }

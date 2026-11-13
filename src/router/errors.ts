@@ -2,7 +2,7 @@
  * Control-flow errors thrown by route code and caught by the router
  * (terminal) or the server (HTTP). Browser-safe.
  *
- *   import { notFound, redirect } from 'vuecli'
+ *   import { notFound, redirect } from 'vurses'
  *   if (!user) notFound()
  *   if (!session) redirect('/login')
  *

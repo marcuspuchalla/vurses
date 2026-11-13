@@ -8,7 +8,7 @@ import { buildPath, matchPattern } from '../router/match.js'
 
 export function serverRouteStub(pattern: string, mode: 'navigate' | 'unsupported') {
   return defineComponent({
-    name: 'VuecliServerRoute',
+    name: 'VursesServerRoute',
     props: { params: { type: Object, default: () => ({}) } },
     setup(props) {
       onMounted(() => {

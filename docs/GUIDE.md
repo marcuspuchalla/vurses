@@ -1,6 +1,6 @@
 # Building apps
 
-How vuecli renders Vue in the terminal, and everything you use to build an app with it:
+How vurses renders Vue in the terminal, and everything you use to build an app with it:
 layout, components, composables, input, themes, routing, canvas and testing. New here? Start
 with [Getting started](GETTING-STARTED.md).
 
@@ -70,7 +70,7 @@ Colors can be theme tokens (`primary`, `accent`, `muted`, `surface`, `border`, `
 
 ## Components
 
-All components are registered globally, so you can use them in templates without importing them. You can also import them from `vuecli`.
+All components are registered globally, so you can use them in templates without importing them. You can also import them from `vurses`.
 
 | Group | Components |
 | ----- | ---------- |
@@ -134,7 +134,7 @@ A custom focusable component:
 
 ```ts
 import { defineComponent, h, ref } from 'vue'
-import { useFocus, matchKey } from 'vuecli'
+import { useFocus, matchKey } from 'vurses'
 
 export const Counter = defineComponent({
   setup() {
@@ -166,7 +166,7 @@ export const Counter = defineComponent({
 Built-in themes: `dark` (default), `light` and `dracula`. To switch at runtime, call `useApp().setTheme('light')`. To define your own theme:
 
 ```ts
-import { defineTheme, darkTheme } from 'vuecli'
+import { defineTheme, darkTheme } from 'vurses'
 const ocean = defineTheme(darkTheme, { name: 'ocean', primary: '#4fc3f7', background: '#0b1622', surface: '#132232' })
 createApp(App).mount({ theme: ocean })
 ```
@@ -185,7 +185,7 @@ middleware.ts             redirects / rewrites, with `export const config = { ma
 ```
 
 ```sh
-vuecli run my-app --route /users/42     # deep link
+vurses run my-app --route /users/42     # deep link
 ```
 
 - **Navigation:** `<Link href="/about">`, `useRouter()` (`push`, `replace`, `back`, `forward`, `refresh`) and alt+←/→ for history.
@@ -206,7 +206,7 @@ The full API is documented at the top of `src/router/index.ts`.
 <Image src="logo.png" :width="40" fit="contain" />
 ```
 
-The engine is a standalone library, **[`tty-canvas`](../packages/tty-canvas/README.md)**, with no dependencies. It works without vuecli:
+The engine is a standalone library, **[`tty-canvas`](../packages/tty-canvas/README.md)**, with no dependencies. It works without vurses:
 
 ```sh
 npx tty-canvas index.html            # run an HTML page with a <canvas> + scripts in the terminal
@@ -219,7 +219,7 @@ You don't need a build step:
 
 ```js
 import { ref, h } from 'vue'
-import { createApp, Box, Text } from 'vuecli'
+import { createApp, Box, Text } from 'vurses'
 
 createApp({
   setup() {
@@ -236,17 +236,17 @@ createApp({
 
 | Tool | What it does |
 |------|--------------|
-| `vuecli mcp <app>` ([docs](../src/mcp/README.md)) | MCP server for coding agents: `read_frame`, `press`, `type`, `click`, `wait_for`, `get_tree`, `navigate`, … |
-| `window.vuecli` REPL ([docs](../src/devtools/README.md)) | `pause()`, `step()`, `resize()`, `wireframe()`, `copy()`, `tree()`, `stats()` in Node or the browser |
+| `vurses mcp <app>` ([docs](../src/mcp/README.md)) | MCP server for coding agents: `read_frame`, `press`, `type`, `click`, `wait_for`, `get_tree`, `navigate`, … |
+| `window.vurses` REPL ([docs](../src/devtools/README.md)) | `pause()`, `step()`, `resize()`, `wireframe()`, `copy()`, `tree()`, `stats()` in Node or the browser |
 | [Chrome DevTools panel](../packages/devtools-extension/README.md) | component tree, frame inspector, per-frame timeline, pause/step/wireframe |
-| [VS Code extension](../packages/vscode-vuecli/README.md) | live frame preview next to the code (⌘K V), App Router scaffolding |
-| [eslint-plugin-vuecli](../packages/eslint-plugin-vuecli/README.md) | `no-dom-elements`, `no-box-in-text`, `no-unsupported-glyphs` |
+| [VS Code extension](../packages/vscode-vurses/README.md) | live frame preview next to the code (⌘K V), App Router scaffolding |
+| [eslint-plugin-vurses](../packages/eslint-plugin-vurses/README.md) | `no-dom-elements`, `no-box-in-text`, `no-unsupported-glyphs` |
 | [Error codes](errors.md) | every error is `VC###` with an explanation and fix |
 
-`vuecli/testing` renders offscreen, so you can drive the app and assert on frames:
+`vurses/testing` renders offscreen, so you can drive the app and assert on frames:
 
 ```ts
-import { render } from 'vuecli/testing'
+import { render } from 'vurses/testing'
 
 const r = await render(App, { columns: 60, rows: 20 })
 await r.press('tab', 'enter')        // key combos: 'ctrl+s', 'shift+tab', 'down', ...

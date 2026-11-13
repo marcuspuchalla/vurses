@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url'
 import { HeadlessSession, parseKey } from '../../src/mcp/session.js'
 import { lineSplitter, servePreview } from '../../src/mcp/jsonl.js'
 import { loadApp, loadEntry } from '../../src/mcp/load.js'
-import { isVuecliError } from '../../src/errors.js'
+import { isVursesError } from '../../src/errors.js'
 import FixtureApp from './fixtures/app.js'
 
 const fixture = fileURLToPath(new URL('./fixtures/app.js', import.meta.url))
@@ -33,7 +33,7 @@ describe('parseKey', () => {
         parseKey(k)
         expect.unreachable()
       } catch (e) {
-        expect(isVuecliError(e, 'VC115')).toBe(true)
+        expect(isVursesError(e, 'VC115')).toBe(true)
       }
     }
   })

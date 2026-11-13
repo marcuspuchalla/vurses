@@ -1,5 +1,5 @@
 /**
- * `createApp` for existing web apps (`vuecli web`).
+ * `createApp` for existing web apps (`vurses web`).
  *
  * The page shell from `index.html` (html > head + body, static markup) is
  * built as terminal elements inside a scrollable viewport; the Vue app is
@@ -30,7 +30,7 @@ export interface WebConfig {
   onMount?(app: TuiApp): void
 }
 
-const KEY = '__VUECLI_WEB__'
+const KEY = '__VURSES_WEB__'
 
 /** The running page (one per process): read by the browser globals. */
 export const current: { scope: WebScope | null; runtime: TuiApp['runtime']; globals: WebGlobals | null } = {
@@ -83,7 +83,7 @@ export function createWebApp(rootComponent: Component, rootProps?: Record<string
   let app: TuiApp
 
   const Page = defineComponent({
-    name: 'VueCliWebPage',
+    name: 'VursesWebPage',
     setup() {
       const page = shallowRef<TElement | null>(null)
       const ready = ref(false)

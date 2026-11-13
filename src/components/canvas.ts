@@ -1,5 +1,5 @@
 /**
- * `<Canvas>` — an HTML-style 2D canvas inside a vuecli layout.
+ * `<Canvas>` — an HTML-style 2D canvas inside a vurses layout.
  *
  *   <Canvas class="grow" mode="braille" @ready="(canvas, ctx) => draw(ctx)" />
  *   <Canvas :width="160" :height="90" @frame="(ctx, dt) => animate(ctx, dt)" />
@@ -74,7 +74,7 @@ const KEY_NAMES: Record<string, string> = {
   pageup: 'PageUp', pagedown: 'PageDown', insert: 'Insert',
 }
 
-/** vuecli KeyEvent → KeyboardEvent init. */
+/** vurses KeyEvent → KeyboardEvent init. */
 function domKeyInit(e: KeyEvent) {
   let key = KEY_NAMES[e.name] ?? (/^f\d{1,2}$/.test(e.name) ? e.name.toUpperCase() : e.char || e.name)
   if (key.length === 1 && e.shift && !e.char) key = key.toUpperCase()

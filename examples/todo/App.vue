@@ -22,7 +22,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useApp, useKeymap } from 'vuecli'
+import { useApp, useKeymap } from 'vurses'
 
 interface Todo { id: number; title: string; done: boolean }
 

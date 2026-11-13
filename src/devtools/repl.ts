@@ -1,21 +1,21 @@
 /**
- * `window.vuecli` / `globalThis.vuecli`: a console REPL for the running app.
+ * `window.vurses` / `globalThis.vurses`: a console REPL for the running app.
  *
- *   vuecli.pause()            freeze presenting frames (state keeps updating)
- *   vuecli.resume()
- *   vuecli.step()             present one frame while paused
- *   vuecli.resize(100, 30)
- *   vuecli.wireframe()        toggle box outlines (or pass true / false)
- *   vuecli.copy()             current frame as plain text (+ clipboard in browsers)
- *   vuecli.frame()            current frame as plain text
- *   vuecli.tree()             print the component tree
- *   vuecli.press('tab', 'enter')
- *   vuecli.stats()
+ *   vurses.pause()            freeze presenting frames (state keeps updating)
+ *   vurses.resume()
+ *   vurses.step()             present one frame while paused
+ *   vurses.resize(100, 30)
+ *   vurses.wireframe()        toggle box outlines (or pass true / false)
+ *   vurses.copy()             current frame as plain text (+ clipboard in browsers)
+ *   vurses.frame()            current frame as plain text
+ *   vurses.tree()             print the component tree
+ *   vurses.press('tab', 'enter')
+ *   vurses.stats()
  */
 import type { DevtoolsHook } from './hook.js'
 import type { ComponentInfo } from './tree.js'
 
-export interface VuecliRepl {
+export interface VursesRepl {
   pause(): string
   resume(): string
   step(): string
@@ -38,18 +38,18 @@ export interface VuecliRepl {
   readonly hook: DevtoolsHook
 }
 
-const HELP = `vuecli REPL
-  vuecli.pause() / resume() / step()   freeze, unfreeze or advance one frame
-  vuecli.resize(cols, rows)            change the virtual screen size
-  vuecli.wireframe(on?)                outline every box (toggles without argument)
-  vuecli.copy()                        frame as plain text (copied to the clipboard)
-  vuecli.frame() / ansi()              frame as plain / ANSI text
-  vuecli.tree() / elements()           component / element tree with layout rects
-  vuecli.highlight(id, ms?)            flash a component or element by id
-  vuecli.press('tab', 'ctrl+s')        send keys;  vuecli.type('hello')
-  vuecli.stats()                       frames, fps, ms and bytes per frame`
+const HELP = `vurses REPL
+  vurses.pause() / resume() / step()   freeze, unfreeze or advance one frame
+  vurses.resize(cols, rows)            change the virtual screen size
+  vurses.wireframe(on?)                outline every box (toggles without argument)
+  vurses.copy()                        frame as plain text (copied to the clipboard)
+  vurses.frame() / ansi()              frame as plain / ANSI text
+  vurses.tree() / elements()           component / element tree with layout rects
+  vurses.highlight(id, ms?)            flash a component or element by id
+  vurses.press('tab', 'ctrl+s')        send keys;  vurses.type('hello')
+  vurses.stats()                       frames, fps, ms and bytes per frame`
 
-export function createRepl(hook: DevtoolsHook): VuecliRepl {
+export function createRepl(hook: DevtoolsHook): VursesRepl {
   const log = (s: string) => {
     try {
       console.log(s)
@@ -57,7 +57,7 @@ export function createRepl(hook: DevtoolsHook): VuecliRepl {
       // ignore
     }
   }
-  const repl: VuecliRepl = {
+  const repl: VursesRepl = {
     get hook() {
       return hook
     },

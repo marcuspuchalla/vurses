@@ -61,7 +61,7 @@ export class DomView {
     this.palette = options.palette ?? defaultPalette
     const doc = parent.ownerDocument
     this.el = doc.createElement('pre')
-    this.el.className = 'vuecli-screen'
+    this.el.className = 'vurses-screen'
     this.el.style.cssText = `margin:0;display:inline-block;font:14px/1.15 ui-monospace,Menlo,Consolas,monospace;background:${this.palette.bg};color:${this.palette.fg};user-select:none;cursor:default`
     parent.appendChild(this.el)
     if (options.onMouse) this.wireMouse(options.onMouse)
@@ -163,7 +163,7 @@ export class DomView {
 }
 
 /** A whole frame as a standalone HTML page (snapshots, docs). */
-export function gridToHtml(g: CellGrid, palette: Palette = defaultPalette, title = 'vuecli'): string {
+export function gridToHtml(g: CellGrid, palette: Palette = defaultPalette, title = 'vurses'): string {
   const rows: string[] = []
   for (let y = 0; y < g.height; y++) rows.push(`<div style="height:1.25em;white-space:pre">${rowHtml(g, y, palette).replace(/<span style="/g, '<span style="display:inline-block;height:100%;')}</div>`)
   const bg = resolveStyle('', '', 0, palette).background

@@ -1,34 +1,34 @@
 # Security
 
-What each part of vuecli trusts, what it protects you from by default, and what you need
+What each part of vurses trusts, what it protects you from by default, and what you need
 to do yourself. To report a vulnerability, see [SECURITY.md](../SECURITY.md).
 
 - [The short version](#the-short-version)
 - [Terminal output](#terminal-output)
-- [Running existing web apps (`vuecli web`)](#running-existing-web-apps-vuecli-web)
+- [Running existing web apps (`vurses web`)](#running-existing-web-apps-vurses-web)
 - [Canvas pages (`<Canvas src>`, `tty-canvas`)](#canvas-pages-canvas-src-tty-canvas)
-- [The dev server (`vuecli dev`)](#the-dev-server-vuecli-dev)
-- [Production servers (`vuecli start`, adapters)](#production-servers-vuecli-start-adapters)
+- [The dev server (`vurses dev`)](#the-dev-server-vurses-dev)
+- [Production servers (`vurses start`, adapters)](#production-servers-vurses-start-adapters)
 - [Browser console target and the REPL](#browser-console-target-and-the-repl)
-- [MCP server (`vuecli mcp`)](#mcp-server-vuecli-mcp)
-- [Files vuecli writes](#files-vuecli-writes)
+- [MCP server (`vurses mcp`)](#mcp-server-vurses-mcp)
+- [Files vurses writes](#files-vurses-writes)
 
 ## The short version
 
 | You run | It runs with | Protected by default | Your job |
 | --- | --- | --- | --- |
-| `vuecli run` / `vuecli App.vue` | your user's privileges (it's a Node program) | untrusted text can't control your terminal | treat it like any Node code you run |
-| `vuecli web` | your user's privileges: **no browser sandbox** | terminal output; HTTPS-only remote CSS; private localStorage file | only run apps (and dependencies) you'd run with `node` |
+| `vurses run` / `vurses App.vue` | your user's privileges (it's a Node program) | untrusted text can't control your terminal | treat it like any Node code you run |
+| `vurses web` | your user's privileges: **no browser sandbox** | terminal output; HTTPS-only remote CSS; private localStorage file | only run apps (and dependencies) you'd run with `node` |
 | `<Canvas src>` / `tty-canvas page.html` | your user's privileges | page can't load remote scripts or import Node modules unless allowed | only run pages you trust |
-| `vuecli dev` | your user's privileges | localhost only; DNS-rebinding check | don't expose it with `--host` on untrusted networks |
-| `vuecli start` / deploy adapters | the server's privileges | no stack traces; session limits | TLS, rate limiting and auth in front of it |
-| `vuecli mcp` | your user's privileges | stdio only, no file or shell tools | review what the agent does with app output |
+| `vurses dev` | your user's privileges | localhost only; DNS-rebinding check | don't expose it with `--host` on untrusted networks |
+| `vurses start` / deploy adapters | the server's privileges | no stack traces; session limits | TLS, rate limiting and auth in front of it |
+| `vurses mcp` | your user's privileges | stdio only, no file or shell tools | review what the agent does with app output |
 
 ## Terminal output
 
 A terminal interprets control characters: escape sequences can set the clipboard
 (OSC 52), change the window title, create hyperlinks or repaint the screen. Apps show
-untrusted text all the time (API responses, user input, `v-html`), so vuecli makes sure
+untrusted text all the time (API responses, user input, `v-html`), so vurses makes sure
 none of it reaches the terminal as a control sequence:
 
 - **Rendered text:** control characters (C0, DEL, C1) and bidi overrides are removed when
@@ -42,19 +42,19 @@ none of it reaches the terminal as a control sequence:
 - **HTML entities** in `v-html` content decode like a browser's: out-of-range code points
   become `�`, control characters are dropped.
 
-## Running existing web apps (`vuecli web`)
+## Running existing web apps (`vurses web`)
 
-A web app normally runs inside the browser sandbox. `vuecli web` builds it and runs it **in
+A web app normally runs inside the browser sandbox. `vurses web` builds it and runs it **in
 Node**, with the privileges of your user. The app and every dependency in its bundle can:
 
 - read and write files, start processes, read every environment variable (`process.env`);
 - make network requests without CORS, including to services on `localhost`.
 
 So only run apps you would also run with `node`, for example your own project or a
-reviewed open-source app. In particular, don't point `vuecli web` at an untrusted
+reviewed open-source app. In particular, don't point `vurses web` at an untrusted
 download "to see what it looks like".
 
-What vuecli adds on top:
+What vurses adds on top:
 
 - **Scripts in `index.html` aren't fetched from other hosts.** Only the app's module entry
   is built, from the project folder, with the app's own Vite config, so the build runs
@@ -63,7 +63,7 @@ What vuecli adds on top:
   HTTPS only (`http://` is upgraded), capped at 2 MB, cached for a week. They are only
   ever parsed as CSS.
 - **Local stylesheet links** never read files outside the project folder.
-- **`localStorage`** is saved to `node_modules/.vuecli-web-cache/localStorage.json` so it
+- **`localStorage`** is saved to `node_modules/.vurses-web-cache/localStorage.json` so it
   survives restarts. Web apps often keep auth tokens there, so the file is created with
   mode `0600` (only you can read it) and the folder with `0700`. Delete it to log out of
   everything.
@@ -83,7 +83,7 @@ By default a page can't reach beyond itself:
 - module scripts can't import Node built-ins (`node:fs`) or installed packages unless
   `allowHostImports` (`--allow-host-imports`) is set.
 
-## The dev server (`vuecli dev`)
+## The dev server (`vurses dev`)
 
 The dev server shows stack traces and source paths and runs your route handlers, so it
 is meant for you only:
@@ -95,7 +95,7 @@ is meant for you only:
   the server by `localhost`, an IP address, or the `--host` you gave, otherwise they get
   `403`.
 
-## Production servers (`vuecli start`, adapters)
+## Production servers (`vurses start`, adapters)
 
 - **Errors:** production responses never contain stack traces or file paths; errors go to
   the server log.
@@ -111,25 +111,25 @@ is meant for you only:
 
 ## Browser console target and the REPL
 
-Apps built for the browser console install `window.vuecli`, a console REPL to inspect and
+Apps built for the browser console install `window.vurses`, a console REPL to inspect and
 drive the app (pause, step, press keys). It only gives the page's own console access to
 the page's own app, so it adds nothing an attacker on the page couldn't already do. To
 leave it out, mount with `devtools: false`.
 
-## MCP server (`vuecli mcp`)
+## MCP server (`vurses mcp`)
 
-`vuecli mcp` lets a coding agent drive your app over **stdio** only (no network port). Its
+`vurses mcp` lets a coding agent drive your app over **stdio** only (no network port). Its
 tools read frames and send input; none reads files or runs commands. The frames it returns
 contain whatever the app shows, which may include untrusted text: an agent should treat
 it as data, not instructions.
 
-## Files vuecli writes
+## Files vurses writes
 
 | Path | What | Written by |
 | --- | --- | --- |
-| `node_modules/.vuecli-web/` | the bundled web app | `vuecli web` |
-| `node_modules/.vuecli-web-cache/localStorage.json` | the web app's localStorage (mode 0600) | `vuecli web` |
-| `node_modules/.vuecli-web-cache/remote-css/` | cached remote stylesheets | `vuecli web` |
-| `.vuecli/<adapter>/` | production build output | `vuecli build` |
+| `node_modules/.vurses-web/` | the bundled web app | `vurses web` |
+| `node_modules/.vurses-web-cache/localStorage.json` | the web app's localStorage (mode 0600) | `vurses web` |
+| `node_modules/.vurses-web-cache/remote-css/` | cached remote stylesheets | `vurses web` |
+| `.vurses/<adapter>/` | production build output | `vurses build` |
 
 Nothing is written outside the project folder. Deleting these folders is always safe.

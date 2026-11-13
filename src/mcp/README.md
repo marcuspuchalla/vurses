@@ -1,24 +1,24 @@
-# vuecli MCP server
+# vurses MCP server
 
-`vuecli mcp` lets coding agents (Claude Code, Cursor, ...) run a vuecli app
+`vurses mcp` lets coding agents (Claude Code, Cursor, ...) run a vurses app
 headlessly, navigate its routes, press keys and read frames as plain text.
 
 ```sh
-vuecli mcp App.vue                       # an entry file (.vue / .js / .ts)
-vuecli mcp .                             # an App Router project (app/ or src/app/)
-vuecli mcp ./my-app --size 120x40 --theme light --route /users/1
+vurses mcp App.vue                       # an entry file (.vue / .js / .ts)
+vurses mcp .                             # an App Router project (app/ or src/app/)
+vurses mcp ./my-app --size 120x40 --theme light --route /users/1
 ```
 
 Register it with your agent, e.g. Claude Code:
 
 ```sh
-claude mcp add my-app -- npx vuecli mcp ./my-app
+claude mcp add my-app -- npx vurses mcp ./my-app
 ```
 
 or in an `.mcp.json` / client config:
 
 ```json
-{ "mcpServers": { "my-app": { "command": "npx", "args": ["vuecli", "mcp", "./my-app"] } } }
+{ "mcpServers": { "my-app": { "command": "npx", "args": ["vurses", "mcp", "./my-app"] } } }
 ```
 
 The app runs at a fixed size (`--size`, default `100x30`) without a terminal.
@@ -47,8 +47,8 @@ Errors are tool errors with a `VC###` code and docs link.
 | `navigate` | `path` | App Router only: `"/users/42?tab=posts"` |
 | `back` / `forward` | | App Router only: history |
 
-Resources: `vuecli://frame` (plain text), `vuecli://frame.ansi`,
-`vuecli://tree`. `vuecli://frame` supports `resources/subscribe`: subscribed
+Resources: `vurses://frame` (plain text), `vurses://frame.ansi`,
+`vurses://tree`. `vurses://frame` supports `resources/subscribe`: subscribed
 clients get `notifications/resources/updated` when the screen changes.
 
 Example session:
@@ -67,7 +67,7 @@ Example session:
 ## Programmatic use
 
 ```ts
-import { createMcpServer, HeadlessSession, loadApp } from 'vuecli/dist/mcp/index.js'
+import { createMcpServer, HeadlessSession, loadApp } from 'vurses/dist/mcp/index.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 
 const { server, session } = await createMcpServer({ component: App, columns: 80, rows: 24 })
@@ -87,7 +87,7 @@ s.close()
 
 ## JSON-lines preview protocol
 
-`vuecli mcp <target> --jsonl` speaks a smaller line protocol used by the VS
+`vurses mcp <target> --jsonl` speaks a smaller line protocol used by the VS
 Code preview (see `jsonl.ts`): frames are pushed as `{"type":"frame","frame":FrameSnapshot}`
 whenever the screen changes; commands are `key`, `type`, `paste`, `input`,
 `click`, `scroll`, `resize`, `frame`, `tree`, `exit`.
@@ -100,4 +100,4 @@ whenever the screen changes; commands are `key`, `type`, `paste`, `input`,
 | `server.ts` | `createMcpServer`: tools and resources |
 | `load.ts` | entry / App Router loading (`discoverRoutes`, `createAppRouter`, `getAppRouter`) |
 | `jsonl.ts` | JSON-lines preview protocol |
-| `../cli/commands/mcp.ts` | the `vuecli mcp` command |
+| `../cli/commands/mcp.ts` | the `vurses mcp` command |

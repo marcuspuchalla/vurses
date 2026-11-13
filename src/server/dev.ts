@@ -1,10 +1,10 @@
 /**
  * Dev server (Node only).
  *
- * `vuecli dev` runs a supervisor process that watches the project and
+ * `vurses dev` runs a supervisor process that watches the project and
  * (re)starts a worker running `startDevServer()`: on every change the worker
  * is replaced, so server modules, routes and the browser bundle are always
- * fresh. Pages keep an EventSource on `/_vuecli/reload`; when it reconnects to
+ * fresh. Pages keep an EventSource on `/_vurses/reload`; when it reconnects to
  * a worker with a new build id, the page reloads.
  *
  * A single `.vue` / `.ts` entry (no app/ directory) is served as a
@@ -44,10 +44,10 @@ function errorHandler(error: unknown, buildId: string): FetchHandler {
       sse.send('hello', JSON.stringify({ id: buildId }))
       return new Response(sse.stream, { headers: SSE_HEADERS })
     }
-    const html = `<!doctype html><meta charset="utf-8"><title>vuecli: build error</title>
-<body style="background:#1e1e1e;color:#f14c4c;font:14px ui-monospace,monospace;padding:16px"><h3>vuecli dev: build failed</h3><pre>${escHtml(msg)}</pre>
+    const html = `<!doctype html><meta charset="utf-8"><title>vurses: build error</title>
+<body style="background:#1e1e1e;color:#f14c4c;font:14px ui-monospace,monospace;padding:16px"><h3>vurses dev: build failed</h3><pre>${escHtml(msg)}</pre>
 <script>let id;new EventSource('${INTERNAL_PREFIX}reload').addEventListener('hello',e=>{const n=JSON.parse(e.data).id;if(id&&n!==id)location.reload();id=n})</script>`
-    console.error(`[vuecli] ${msg}`)
+    console.error(`[vurses] ${msg}`)
     return new Response(html, { status: 500, headers: { 'content-type': 'text/html; charset=utf-8' } })
   }
 }
@@ -80,9 +80,9 @@ export async function startDevServer(options: DevServerOptions = {}): Promise<Ru
       handler = createHandler({
         app: project,
         assets: chainAssets(memoryAssets(files), project.publicDir ? fsAssets([project.publicDir]) : null),
-        live: createLive(project, { exposeErrors: true, onError: (e) => console.error('[vuecli] session error:', e) }),
+        live: createLive(project, { exposeErrors: true, onError: (e) => console.error('[vurses] session error:', e) }),
         dev: { buildId },
-        onError: (e) => console.error('[vuecli]', e),
+        onError: (e) => console.error('[vurses]', e),
       })
       const routes = project.manifest.routes
       log(`  ${routes.filter((r) => r.page).length} page(s), ${routes.filter((r) => r.handler).length} route handler(s)${project.manifest.middleware ? ', middleware' : ''}`)
@@ -103,7 +103,7 @@ export async function startDevServer(options: DevServerOptions = {}): Promise<Ru
 export function guardHost(handler: FetchHandler, configured?: string): FetchHandler {
   return async (req) => {
     if (!allowedHost(req.headers.get('host'), configured))
-      return new Response('Blocked request: unknown Host header (vuecli dev only answers to localhost, IP addresses and --host).\n', {
+      return new Response('Blocked request: unknown Host header (vurses dev only answers to localhost, IP addresses and --host).\n', {
         status: 403,
         headers: { 'content-type': 'text/plain; charset=utf-8' },
       })
@@ -119,7 +119,7 @@ export function allowedHost(header: string | null, configured?: string): boolean
   return !!configured && name === configured.toLowerCase()
 }
 
-const IGNORED = /(^|[\\/])(node_modules|\.git|\.vuecli|\.vercel|dist|\.wrangler)([\\/]|$)/
+const IGNORED = /(^|[\\/])(node_modules|\.git|\.vurses|\.vercel|dist|\.wrangler)([\\/]|$)/
 /** Files whose changes trigger a reload (sources and public assets; not logs or build output). */
 const WATCHED = /\.(vue|[cm]?[jt]sx?|json|html|css|svg|png|jpe?g|gif|webp|avif|ico|txt|md|wasm|woff2?)$/i
 
@@ -146,16 +146,16 @@ export function supervise(o: SupervisorOptions): Promise<number> {
   let watcher: FSWatcher | null = null
   return new Promise((resolveExit) => {
     const start = () => {
-      child = spawn(process.execPath, o.args, { stdio: 'inherit', env: { ...process.env, VUECLI_DEV_WORKER: '1' } })
+      child = spawn(process.execPath, o.args, { stdio: 'inherit', env: { ...process.env, VURSES_DEV_WORKER: '1' } })
       child.on('exit', (code) => {
         if (restarting) {
           restarting = false
-          log(`[vuecli] ${changed} changed — reloading`)
+          log(`[vurses] ${changed} changed — reloading`)
           start()
           return
         }
         if (code !== 0) {
-          log(`[vuecli] dev server exited (${code}); waiting for changes…`)
+          log(`[vurses] dev server exited (${code}); waiting for changes…`)
           return
         }
         watcher?.close()
@@ -169,7 +169,7 @@ export function supervise(o: SupervisorOptions): Promise<number> {
         restarting = true
         child.kill('SIGTERM')
       } else {
-        log(`[vuecli] ${file} changed — restarting`)
+        log(`[vurses] ${file} changed — restarting`)
         start()
       }
     }

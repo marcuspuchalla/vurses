@@ -1,5 +1,5 @@
 /**
- * The "vuecli" DevTools panel: component tree, selected component details,
+ * The "vurses" DevTools panel: component tree, selected component details,
  * frame inspector and frame timeline, plus pause / resume / step / wireframe.
  */
 import { frameToHtml } from '../../../src/devtools/html.js'
@@ -106,7 +106,7 @@ export class Panel {
   private handleError(e: unknown) {
     this.connected = false
     this.root.classList.add('disconnected')
-    this.setStatus(e instanceof HookMissingError ? 'No vuecli app on this page (VC116). Reload after the app starts.' : `Error: ${(e as Error).message}`, true)
+    this.setStatus(e instanceof HookMissingError ? 'No vurses app on this page (VC116). Reload after the app starts.' : `Error: ${(e as Error).message}`, true)
   }
 
   private async onClick(e: Event) {

@@ -23,7 +23,7 @@ export function generateMetadata({ params }: { params: { id: string } }) {
 </script>
 
 <script setup lang="ts">
-import { notFound } from 'vuecli'
+import { notFound } from 'vurses'
 import { fetchUser } from '../data.ts'
 
 const props = defineProps<{ params: { id: string }; searchParams: Record<string, string> }>()

@@ -1,12 +1,12 @@
 # Compatibility
 
-What vuecli runs on, which terminals it supports, and how well existing web apps and
-libraries work with `vuecli web`. Everything listed as working is covered by tests or was
+What vurses runs on, which terminals it supports, and how well existing web apps and
+libraries work with `vurses web`. Everything listed as working is covered by tests or was
 checked against real apps.
 
 - [Runtime](#runtime)
 - [Terminals](#terminals)
-- [Existing web apps (`vuecli web`)](#existing-web-apps-vuecli-web)
+- [Existing web apps (`vurses web`)](#existing-web-apps-vurses-web)
   - [Supported projects](#supported-projects)
   - [CSS](#css)
   - [Libraries](#libraries)
@@ -18,10 +18,10 @@ checked against real apps.
 
 | | Supported |
 | --- | --- |
-| Node.js | 20.6 or newer (22 LTS recommended). Your `.ts` files are compiled by vuecli, so every supported version runs them the same way. |
+| Node.js | 20.6 or newer (22 LTS recommended). Your `.ts` files are compiled by vurses, so every supported version runs them the same way. |
 | Vue | 3.5 or newer |
 | Operating systems | macOS and Linux are tested. Windows should work (paths go through Node's path APIs, no shell commands) but has no CI yet. |
-| Package managers | npm, pnpm, yarn, bun (vuecli is a normal dependency) |
+| Package managers | npm, pnpm, yarn, bun (vurses is a normal dependency) |
 
 ## Terminals
 
@@ -31,7 +31,7 @@ VS Code / JetBrains terminals, tmux and screen.
 
 | Feature | Behaviour |
 | --- | --- |
-| Colors | truecolor when the terminal says so (`COLORTERM=truecolor`, iTerm2, Windows Terminal), otherwise 256 colors, 16 for basic `TERM`s (`xterm`, `linux`, `vt100`), none with `NO_COLOR` or `TERM=dumb`. Override with `VUECLI_COLOR`. Colors are downsampled, so every app stays readable. |
+| Colors | truecolor when the terminal says so (`COLORTERM=truecolor`, iTerm2, Windows Terminal), otherwise 256 colors, 16 for basic `TERM`s (`xterm`, `linux`, `vt100`), none with `NO_COLOR` or `TERM=dumb`. Override with `VURSES_COLOR`. Colors are downsampled, so every app stays readable. |
 | Mouse | SGR mouse reporting (clicks, wheel, hover). `--no-mouse` turns it off so the terminal can select text. |
 | Alternate screen | the app gets its own screen and your scrollback comes back on exit; `--no-alt-screen` draws in the normal buffer. |
 | Synchronized output | frames are wrapped in synchronized-update sequences; terminals without support simply ignore them. |
@@ -42,16 +42,16 @@ VS Code / JetBrains terminals, tmux and screen.
 | No terminal (CI, pipes) | the interactive UI refuses to start with a clear message; `--snapshot` prints a frame instead. |
 | Signals | Ctrl+C, `kill`, closing the terminal (SIGHUP), SIGQUIT and crashes all restore the terminal. Only `kill -9` can't be handled (type `reset`). |
 
-## Existing web apps (`vuecli web`)
+## Existing web apps (`vurses web`)
 
 ### Supported projects
 
 | Project | Status |
 | --- | --- |
 | Vite + Vue 3 (`npm create vue@latest`, `npm create vite -- --template vue`) | ✅ supported, built with the app's own Vite config and plugins |
-| Vue CLI (webpack) | ❌ not supported (vuecli builds with Vite); `vuecli web` says so |
-| Nuxt | ❌ not supported (Nuxt has its own build and server); `vuecli web` says so |
-| Vue 2 | ❌ not supported; `vuecli web` says so |
+| Vue CLI (webpack) | ❌ not supported (vurses builds with Vite); `vurses web` says so |
+| Nuxt | ❌ not supported (Nuxt has its own build and server); `vurses web` says so |
+| Vue 2 | ❌ not supported; `vurses web` says so |
 
 ### CSS
 
@@ -85,7 +85,7 @@ Checked with real apps:
 
 `window`, `document` (`querySelector`, `getElementById`, `activeElement`, `cookie` jar,
 `title`, events), `location` (navigation goes through the router), `history`,
-`localStorage` / `sessionStorage` (persisted, see [Security](SECURITY.md#files-vuecli-writes)),
+`localStorage` / `sessionStorage` (persisted, see [Security](SECURITY.md#files-vurses-writes)),
 `matchMedia`, `getComputedStyle` (including custom properties),
 `requestAnimationFrame`, `requestIdleCallback`, `ResizeObserver` / `MutationObserver` /
 `IntersectionObserver` (simplified), `navigator` (`onLine`, `language`, an in-memory
@@ -122,6 +122,6 @@ browser tab.
 
 ## Reporting a compatibility problem
 
-Run the app with `vuecli web --snapshot --size 100x40` (and `VUECLI_WEB_DEBUG=1` for the
+Run the app with `vurses web --snapshot --size 100x40` (and `VURSES_WEB_DEBUG=1` for the
 layout tree on stderr), and open an issue with the output, the library versions, and a
 small reproduction if you can.

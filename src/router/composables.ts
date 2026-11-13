@@ -9,7 +9,7 @@ import type { RouteParams } from './match.js'
  */
 export function useRouter(): AppRouter {
   const router = inject(ROUTER_KEY, null)
-  if (!router) throw new Error('[vuecli router] useRouter() used outside of an App Router tree (mount createAppRouter(...).component)')
+  if (!router) throw new Error('[vurses router] useRouter() used outside of an App Router tree (mount createAppRouter(...).component)')
   return router
 }
 

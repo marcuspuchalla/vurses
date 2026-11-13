@@ -1,5 +1,5 @@
 /**
- * node:http adapter for a fetch handler (also used by `vuecli start` / `vuecli dev`).
+ * node:http adapter for a fetch handler (also used by `vurses start` / `vurses dev`).
  * Streams response bodies (SSE), aborts `request.signal` and cancels the
  * body stream when the client disconnects.
  */

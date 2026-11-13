@@ -1,5 +1,5 @@
 /**
- * vuecli App Router — file-system routes and layouts for terminal Vue apps
+ * vurses App Router — file-system routes and layouts for terminal Vue apps
  * (Next.js App Router conventions; see ./types.ts for the file conventions).
  *
  * ## Public API

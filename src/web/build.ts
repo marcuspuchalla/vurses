@@ -3,7 +3,7 @@
  * Vite installation and config (aliases, plugins, env files all apply).
  *
  * Differences from a normal `vite build`:
- * - `vue` (and @vue/runtime-*) resolve to vuecli's shim (terminal createApp, v-model, ...)
+ * - `vue` (and @vue/runtime-*) resolve to vurses's shim (terminal createApp, v-model, ...)
  * - `vue-router`'s web/hash histories become memory histories
  * - one ES module (dynamic imports inlined), CSS collected into one string
  */
@@ -107,21 +107,21 @@ export async function buildWebApp(root: string, options: { outDir?: string; log?
   if (!existsSync(htmlPath)) throw new Error(`no index.html in ${root} — is this a Vite app?`)
   const html = readFileSync(htmlPath, 'utf8')
   const entry = findEntry(root, html)
-  const outDir = options.outDir ?? join(root, 'node_modules', '.vuecli-web')
+  const outDir = options.outDir ?? join(root, 'node_modules', '.vurses-web')
 
   let vitePath: string
   try {
     vitePath = resolvePackage(root, 'vite')
   } catch {
-    throw new Error(`vite is not installed in ${root} — vuecli web builds the app with its own Vite (npm install first)`)
+    throw new Error(`vite is not installed in ${root} — vurses web builds the app with its own Vite (npm install first)`)
   }
   const vueDir = dirname(createRequire(join(root, 'package.json')).resolve('vue/package.json'))
   const vite = (await import(pathToFileURL(vitePath).href)) as { version: string; build(config: unknown): Promise<unknown> }
-  const routerId = '\0vuecli-web:vue-router'
+  const routerId = '\0vurses-web:vue-router'
 
   let proxy: Record<string, ProxyRule> | undefined
   const plugin = {
-    name: 'vuecli-web',
+    name: 'vurses-web',
     enforce: 'pre' as const,
     configResolved(cfg: { server?: { proxy?: Record<string, ProxyRule> } }) {
       proxy = cfg.server?.proxy
@@ -141,13 +141,13 @@ export * from ${r}
 // remember the router: location.href = '/x' navigates through it
 export function createRouter(options) {
   const router = realCreateRouter(options)
-  if (globalThis.__VUECLI_WEB__) globalThis.__VUECLI_WEB__.router = router
+  if (globalThis.__VURSES_WEB__) globalThis.__VURSES_WEB__.router = router
   return router
 }
 // the terminal has no URL bar: web and hash histories become memory histories
 export function createWebHistory(base) {
   const history = createMemoryHistory(base)
-  const start = globalThis.__VUECLI_WEB__?.route
+  const start = globalThis.__VURSES_WEB__?.route
   if (start) history.replace(start)
   return history
 }
@@ -187,7 +187,7 @@ export { createWebHistory as createWebHashHistory }
     },
   })
 
-  let css = await linkedCss(root, html, join(outDir, '..', '.vuecli-web-cache'))
+  let css = await linkedCss(root, html, join(outDir, '..', '.vurses-web-cache'))
   const assets = join(outDir, 'assets')
   if (existsSync(assets)) for (const f of readdirSync(assets).sort()) if (f.endsWith('.css')) css += readFileSync(join(assets, f), 'utf8') + '\n'
   for (const f of readdirSync(outDir)) if (f.endsWith('.css')) css += readFileSync(join(outDir, f), 'utf8') + '\n'

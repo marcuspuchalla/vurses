@@ -1,5 +1,5 @@
 /**
- * End-to-end: a real vuecli app + devtools hook runs in Node; the built
+ * End-to-end: a real vurses app + devtools hook runs in Node; the built
  * extension's panel.html runs in Chromium (loaded as an unpacked MV3
  * extension) with `chrome.devtools.inspectedWindow.eval` bridged to Node.
  * Skipped when Playwright / Chromium are unavailable.
@@ -51,7 +51,7 @@ describe.skipIf(!playwright)('DevTools panel (Chromium)', () => {
     execFileSync(process.execPath, ['build.mjs'], { cwd: pkgDir, stdio: 'ignore' })
     r = await render(App, { columns: 30, rows: 8 })
     off = installDevtoolsHook(r.app.runtime!)
-    ctx = await playwright!.chromium.launchPersistentContext(mkdtempSync(join(tmpdir(), 'vuecli-devtools-')), {
+    ctx = await playwright!.chromium.launchPersistentContext(mkdtempSync(join(tmpdir(), 'vurses-devtools-')), {
       channel: 'chromium',
       args: [`--disable-extensions-except=${dist}`, `--load-extension=${dist}`],
     })
@@ -87,9 +87,9 @@ describe.skipIf(!playwright)('DevTools panel (Chromium)', () => {
     const names = await page.$$eval('.tree .name', (els: Element[]) => els.map((e) => e.textContent))
     expect(names).toEqual(['<App>', '<Box>', '<Text>', '<Item>', '<Text>', '<Item>', '<Text>', '<Button>'])
     expect(await page.textContent('[data-ref=status]')).toMatch(/^30×8 · frame \d+/)
-    const frame = await page.textContent('.vuecli-frame')
+    const frame = await page.textContent('.vurses-frame')
     expect(frame).toContain('Count 0')
-    expect(await page.innerHTML('.vuecli-frame')).toContain('color:#0dbc79;font-weight:bold')
+    expect(await page.innerHTML('.vurses-frame')).toContain('color:#0dbc79;font-weight:bold')
   })
 
   it('selects a component: details, highlight overlay and in-app highlight', async () => {
@@ -98,7 +98,7 @@ describe.skipIf(!playwright)('DevTools panel (Chromium)', () => {
     await page.waitForSelector('.details h2')
     expect(await page.textContent('.details h2')).toContain('<Item>')
     expect(await page.textContent('.details')).toContain('"one"')
-    expect(await page.$('.vuecli-hl')).not.toBeNull()
+    expect(await page.$('.vurses-hl')).not.toBeNull()
     // the app itself inverts the component's cells
     r.lastFrame()
     const buf = r.buffer()
@@ -119,12 +119,12 @@ describe.skipIf(!playwright)('DevTools panel (Chromium)', () => {
     expect(r.app.runtime!.isPaused).toBe(false)
     await page.check('input[data-action=wireframe]')
     await page.waitForTimeout(100)
-    expect((globalThis as any).__VUECLI_DEVTOOLS_HOOK__.getState().wireframe).toBe(true)
+    expect((globalThis as any).__VURSES_DEVTOOLS_HOOK__.getState().wireframe).toBe(true)
   })
 
   it('updates when the app changes and shows the timeline', async () => {
     await r.click(...(Object.values(r.locate('inc')!) as [number, number]))
-    await page.waitForFunction(() => document.querySelector('.vuecli-frame')?.textContent?.includes('Count 1'), null, { timeout: 5000 })
+    await page.waitForFunction(() => document.querySelector('.vurses-frame')?.textContent?.includes('Count 1'), null, { timeout: 5000 })
     expect(await page.$$('svg.timeline rect')).not.toHaveLength(0)
     expect(await page.textContent('[data-ref=summary]')).toMatch(/avg [\d.]+ ms/)
   })

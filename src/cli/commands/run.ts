@@ -56,7 +56,7 @@ export async function runRouterApp(appDir: string, flags: Flags = {}) {
   const { createApp } = await import('../../index.js')
   const manifest = await discoverRoutes(appDir)
   if (!manifest.routes.some((r) => r.page)) {
-    console.error(`vuecli: no pages found in ${appDir} (add app/page.vue)`)
+    console.error(`vurses: no pages found in ${appDir} (add app/page.vue)`)
     process.exit(1)
   }
   const route = typeof flags.route === 'string' ? flags.route : '/'
@@ -72,14 +72,14 @@ export async function runRouterApp(appDir: string, flags: Flags = {}) {
 async function run(entry: string | undefined, flags: Flags) {
   const target = resolve(entry ?? '.')
   if (!existsSync(target)) {
-    console.error(`vuecli: file not found: ${entry}`)
+    console.error(`vurses: file not found: ${entry}`)
     process.exit(1)
   }
   if (statSync(target).isDirectory()) {
     const { findAppDir } = await import('../../router/discover.js')
     const appDir = typeof flags.app === 'string' ? resolve(target, flags.app) : await findAppDir(target)
     if (!appDir) {
-      console.error(`vuecli: ${entry ?? '.'} is a directory without an app/ folder (or page.vue / layout.vue)`)
+      console.error(`vurses: ${entry ?? '.'} is a directory without an app/ folder (or page.vue / layout.vue)`)
       process.exit(1)
     }
     return runRouterApp(appDir, flags)
@@ -89,7 +89,7 @@ async function run(entry: string | undefined, flags: Flags) {
 
 const command: Command = {
   summary: 'Run an app in the terminal: an entry file, or a directory with app/ (App Router)',
-  usage: 'vuecli run <entry|dir> [--route /path] [--theme name] [--no-mouse] [--fps n] [--no-alt-screen] [--snapshot --size 80x24 --keys tab,enter]',
+  usage: 'vurses run <entry|dir> [--route /path] [--theme name] [--no-mouse] [--fps n] [--no-alt-screen] [--snapshot --size 80x24 --keys tab,enter]',
   run: (args, flags) => run(args[0], flags),
 }
 export default command

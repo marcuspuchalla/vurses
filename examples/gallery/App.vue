@@ -1,7 +1,7 @@
 <template>
   <Box class="flex-col" :height="size.rows" :width="size.columns">
     <Box class="px-1 shrink-0" bg="surface">
-      <Gradient text="vuecli component gallery" colors="vue" bold />
+      <Gradient text="vurses component gallery" colors="vue" bold />
       <Spacer />
       <Text color="muted">[ ] pages · ? keys · ^Q quit</Text>
     </Box>
@@ -86,7 +86,7 @@
         <!-- ------------------------------------------------ Text -->
         <template #Text>
           <Box class="flex-col gap-1">
-            <AsciiFont text="vuecli" font="slant" :gradient="['primary', 'accent']" />
+            <AsciiFont text="vurses" font="slant" :gradient="['primary', 'accent']" />
             <Box class="gap-4">
               <AsciiFont text="small" font="small" color="warning" />
               <AsciiFont text="mini font" font="mini" color="info" />
@@ -140,7 +140,7 @@
 
 <script setup lang="ts">
 import { defineComponent, h, ref } from 'vue'
-import { useApp, useInterval, useKeymap, type TreeNode } from 'vuecli'
+import { useApp, useInterval, useKeymap, type TreeNode } from 'vurses'
 
 const { exit, size } = useApp()
 
@@ -210,7 +210,7 @@ const vueSample = `<template>
 </template>
 
 <script setup lang="ts">
-const name = 'vuecli'
+const name = 'vurses'
 <\/script>`
 const before = `function greet(name) {
   console.log("Hello " + name)
@@ -225,7 +225,7 @@ const after = `function greet(name, punctuation = "!") {
 }
 
 greet("world")
-greet("vuecli", "?")
+greet("vurses", "?")
 `
 const splitDiff = ref(false)
 

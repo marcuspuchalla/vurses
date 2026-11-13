@@ -64,12 +64,12 @@ export function loadFigletFont(text: string, name?: string): FigletFont {
   const lines = text.replace(/\r\n?/g, '\n').split('\n')
   const header = lines[0] ?? ''
   const m = /^flf2a(.)\s+(.*)$/.exec(header)
-  if (!m) throw new Error(`[vuecli] invalid FIGlet font${name ? ` "${name}"` : ''}: missing "flf2a" signature`)
+  if (!m) throw new Error(`[vurses] invalid FIGlet font${name ? ` "${name}"` : ''}: missing "flf2a" signature`)
   const hardblank = m[1]
   const nums = m[2].trim().split(/\s+/).map((x) => parseInt(x, 10))
   const [height, baseline, maxLength, oldLayout, commentLines] = nums
   if (!(height > 0) || !Number.isFinite(oldLayout) || !Number.isFinite(commentLines)) {
-    throw new Error(`[vuecli] invalid FIGlet font${name ? ` "${name}"` : ''}: bad header "${header}"`)
+    throw new Error(`[vurses] invalid FIGlet font${name ? ` "${name}"` : ''}: bad header "${header}"`)
   }
   const printDirection = Number.isFinite(nums[5]) ? nums[5] : 0
   const fullLayout = Number.isFinite(nums[6]) ? nums[6] : undefined

@@ -8,7 +8,7 @@ export interface FrameHtmlOptions {
   /** Default foreground / background (used for inverse cells without colors). */
   defaultFg?: string
   defaultBg?: string
-  /** Class of the outer `<pre>`. Default `vuecli-frame`. */
+  /** Class of the outer `<pre>`. Default `vurses-frame`. */
   className?: string
   /** Highlight rectangle (cell coordinates), drawn as an outline overlay. */
   highlight?: { x: number; y: number; width: number; height: number } | null
@@ -26,8 +26,8 @@ export function runStyle(r: FrameRun, opts: FrameHtmlOptions = {}): string {
   let fg = r.fg
   let bg = r.bg
   if (f & 16) {
-    const dfg = opts.defaultFg ?? 'var(--vuecli-fg, #d4d4d4)'
-    const dbg = opts.defaultBg ?? 'var(--vuecli-bg, #1e1e1e)'
+    const dfg = opts.defaultFg ?? 'var(--vurses-fg, #d4d4d4)'
+    const dbg = opts.defaultBg ?? 'var(--vurses-bg, #1e1e1e)'
     ;[fg, bg] = [bg ?? dbg, fg ?? dfg]
   }
   const css: string[] = []
@@ -58,21 +58,21 @@ export function rowToHtml(runs: FrameRun[], opts: FrameHtmlOptions = {}): string
  * `<div>` when a highlight overlay is requested.
  */
 export function frameToHtml(snap: FrameSnapshot, opts: FrameHtmlOptions = {}): string {
-  const cls = opts.className ?? 'vuecli-frame'
+  const cls = opts.className ?? 'vurses-frame'
   const body = snap.rows.map((runs) => rowToHtml(runs, opts)).join('\n')
   const pre = `<pre class="${escapeHtml(cls)}" data-cols="${snap.width}" data-rows="${snap.height}">${body}</pre>`
   const hl = opts.highlight
   if (!hl || hl.width <= 0 || hl.height <= 0) return pre
   const overlay =
-    `<div class="vuecli-hl" style="left:calc(var(--vuecli-pad,4px) + ${hl.x}ch);top:calc(var(--vuecli-pad,4px) + ${hl.y * 1.2}em);` +
+    `<div class="vurses-hl" style="left:calc(var(--vurses-pad,4px) + ${hl.x}ch);top:calc(var(--vurses-pad,4px) + ${hl.y * 1.2}em);` +
     `width:${hl.width}ch;height:${hl.height * 1.2}em"></div>`
-  return `<div class="vuecli-frame-wrap">${pre}${overlay}</div>`
+  return `<div class="vurses-frame-wrap">${pre}${overlay}</div>`
 }
 
 /** Default stylesheet for `frameToHtml` output. */
 export const FRAME_CSS = `
-.vuecli-frame{margin:0;padding:var(--vuecli-pad,4px);font:13px/1.2 Menlo,Monaco,Consolas,"DejaVu Sans Mono",monospace;
-color:var(--vuecli-fg,#d4d4d4);background:var(--vuecli-bg,#1e1e1e);white-space:pre;display:inline-block;tab-size:1}
-.vuecli-frame-wrap{position:relative;display:inline-block}
-.vuecli-frame-wrap .vuecli-hl{position:absolute;pointer-events:none;outline:1px solid #ff5ea8;background:rgba(255,94,168,.25);font:13px/1.2 Menlo,Monaco,Consolas,"DejaVu Sans Mono",monospace}
+.vurses-frame{margin:0;padding:var(--vurses-pad,4px);font:13px/1.2 Menlo,Monaco,Consolas,"DejaVu Sans Mono",monospace;
+color:var(--vurses-fg,#d4d4d4);background:var(--vurses-bg,#1e1e1e);white-space:pre;display:inline-block;tab-size:1}
+.vurses-frame-wrap{position:relative;display:inline-block}
+.vurses-frame-wrap .vurses-hl{position:absolute;pointer-events:none;outline:1px solid #ff5ea8;background:rgba(255,94,168,.25);font:13px/1.2 Menlo,Monaco,Consolas,"DejaVu Sans Mono",monospace}
 `.trim()

@@ -4,12 +4,12 @@ import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js'
 import { ResourceUpdatedNotificationSchema } from '@modelcontextprotocol/sdk/types.js'
 import { defineComponent, h } from 'vue'
 import { createRouter, createMemoryHistory, RouterView, type Router } from 'vue-router'
-import { createMcpServer, type VuecliMcpServer } from '../../src/mcp/server.js'
+import { createMcpServer, type VursesMcpServer } from '../../src/mcp/server.js'
 import FixtureApp from './fixtures/app.js'
 
 type ToolResult = { content: { type: string; text: string }[]; isError?: boolean }
 
-let mcp: VuecliMcpServer
+let mcp: VursesMcpServer
 let client: Client
 
 async function connect(opts: Parameters<typeof createMcpServer>[0]) {
@@ -38,7 +38,7 @@ describe('MCP server (entry mode)', () => {
     expect(names).toEqual(['click', 'get_logs', 'get_tree', 'paste', 'press', 'read_frame', 'resize', 'scroll', 'type', 'wait_for'])
     expect(tools.find((t) => t.name === 'press')!.inputSchema.properties).toHaveProperty('keys')
     const { resources } = await client.listResources()
-    expect(resources.map((r) => r.uri).sort()).toEqual(['vuecli://frame', 'vuecli://frame.ansi', 'vuecli://tree'])
+    expect(resources.map((r) => r.uri).sort()).toEqual(['vurses://frame', 'vurses://frame.ansi', 'vurses://tree'])
     expect(client.getInstructions()).toContain('read_frame')
   })
 
@@ -131,16 +131,16 @@ describe('MCP server (entry mode)', () => {
   })
 
   it('serves the frame resource and notifies subscribers', async () => {
-    const res = await client.readResource({ uri: 'vuecli://frame' })
+    const res = await client.readResource({ uri: 'vurses://frame' })
     expect((res.contents[0] as { text: string }).text).toContain('Hello MCP')
-    const tree = await client.readResource({ uri: 'vuecli://tree' })
+    const tree = await client.readResource({ uri: 'vurses://tree' })
     expect((tree.contents[0] as { text: string }).text).toContain('<Counter#')
     const updated = new Promise<string>((resolve) =>
       client.setNotificationHandler(ResourceUpdatedNotificationSchema, (n) => resolve(n.params.uri)),
     )
-    await client.subscribeResource({ uri: 'vuecli://frame' })
+    await client.subscribeResource({ uri: 'vurses://frame' })
     await call('click', { text: 'Add', frame: false })
-    expect(await updated).toBe('vuecli://frame')
+    expect(await updated).toBe('vurses://frame')
   })
 
   it('does not register router tools without a router', async () => {

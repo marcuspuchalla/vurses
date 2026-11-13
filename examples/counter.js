@@ -1,6 +1,6 @@
 // Plain JavaScript, no build step: `node examples/counter.js`
 import { ref } from 'vue'
-import { createApp, useApp, useKeymap } from 'vuecli'
+import { createApp, useApp, useKeymap } from 'vurses'
 
 const App = {
   setup() {

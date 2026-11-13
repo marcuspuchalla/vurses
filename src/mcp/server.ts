@@ -1,5 +1,5 @@
 /**
- * MCP server for a running vuecli app: lets coding agents navigate routes,
+ * MCP server for a running vurses app: lets coding agents navigate routes,
  * press keys and read frames as plain text.
  *
  *   const { server } = await createMcpServer({ component: App })
@@ -10,7 +10,7 @@ import { SubscribeRequestSchema, UnsubscribeRequestSchema, type CallToolResult }
 import type { Component } from 'vue'
 import { z } from 'zod'
 import type { RouteManifest } from '../router/types.js'
-import { isVuecliError, vuecliError } from '../errors.js'
+import { isVursesError, vursesError } from '../errors.js'
 import { HeadlessSession, type SessionOptions } from './session.js'
 import type { RouterLike } from './load.js'
 
@@ -26,20 +26,20 @@ export interface McpServerOptions extends SessionOptions {
   version?: string
 }
 
-export interface VuecliMcpServer {
+export interface VursesMcpServer {
   server: McpServer
   session: HeadlessSession
   close(): Promise<void>
 }
 
-const FRAME_URI = 'vuecli://frame'
-const ANSI_URI = 'vuecli://frame.ansi'
-const TREE_URI = 'vuecli://tree'
+const FRAME_URI = 'vurses://frame'
+const ANSI_URI = 'vurses://frame.ansi'
+const TREE_URI = 'vurses://tree'
 
 const text = (s: string): CallToolResult => ({ content: [{ type: 'text', text: s }] })
 const errorResult = (e: unknown): CallToolResult => ({
   isError: true,
-  content: [{ type: 'text', text: isVuecliError(e) ? `${e.code}: ${e.reason}\n${e.docsUrl}` : e instanceof Error ? e.message : String(e) }],
+  content: [{ type: 'text', text: isVursesError(e) ? `${e.code}: ${e.reason}\n${e.docsUrl}` : e instanceof Error ? e.message : String(e) }],
 })
 
 /** Frame text with a one-line header so agents know the screen size. */
@@ -51,14 +51,14 @@ function framed(session: HeadlessSession, prefix = ''): string {
 
 const frameFlag = z.boolean().optional().describe('Return the resulting frame (default true)')
 
-export async function createMcpServer(options: McpServerOptions): Promise<VuecliMcpServer> {
+export async function createMcpServer(options: McpServerOptions): Promise<VursesMcpServer> {
   const session = options.session ?? (options.component ? await HeadlessSession.mount(options.component, options) : null)
   if (!session) throw new TypeError('createMcpServer: pass `component` or `session`')
   const server = new McpServer(
-    { name: options.name ?? 'vuecli', version: options.version ?? '0.1.0' },
+    { name: options.name ?? 'vurses', version: options.version ?? '0.1.0' },
     {
       instructions:
-        'Drives a vuecli terminal app headlessly. read_frame shows the screen as plain text; ' +
+        'Drives a vurses terminal app headlessly. read_frame shows the screen as plain text; ' +
         'press / type / paste / click / scroll send input and return the new frame. ' +
         'Keys are names like "enter", "tab", "shift+tab", "ctrl+s", "up", "escape", "a". ' +
         (options.manifest ? 'This is an App Router app: list_routes, navigate, back, forward.' : ''),
@@ -67,7 +67,7 @@ export async function createMcpServer(options: McpServerOptions): Promise<Vuecli
 
   const router = () => {
     const r = options.getRouter?.(session) ?? null
-    if (!r) throw vuecliError('VC112', { tool: 'Routing' })
+    if (!r) throw vursesError('VC112', { tool: 'Routing' })
     return r
   }
 

@@ -1,11 +1,11 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { fixtureHandler, readEvents } from './helpers.js'
-import type { VuecliHandler } from '../../src/server/handler.js'
+import type { VursesHandler } from '../../src/server/handler.js'
 import { ScreenState, type FrameDelta } from '../../src/targets/protocol.js'
 import { gridText } from '../../src/targets/grid.js'
 import { revalidatePath } from '../../src/cache/index.js'
 
-let handler: VuecliHandler
+let handler: VursesHandler
 const req = (path: string, init?: RequestInit) => handler(new Request('http://test.local' + path, init))
 
 beforeAll(async () => {
@@ -19,14 +19,14 @@ describe('fetch handler routing', () => {
     expect(res.status).toBe(200)
     expect(res.headers.get('content-type')).toMatch(/text\/html/)
     const html = await res.text()
-    expect(html).toContain('<script type="module" src="/_vuecli/app.js">')
+    expect(html).toContain('<script type="module" src="/_vurses/app.js">')
     expect(html).toMatch(/"mode":"client"/)
   })
 
   it('serves server pages with the frame player', async () => {
     const res = await req('/live')
     const html = await res.text()
-    expect(html).toContain('src="/_vuecli/player.js"')
+    expect(html).toContain('src="/_vurses/player.js"')
     expect(html).toMatch(/"mode":"server"/)
     expect(html).toMatch(/"live":true/)
     expect(html).toContain('<title>Live</title>')
@@ -77,8 +77,8 @@ describe('fetch handler routing', () => {
     expect(res.status).toBe(404)
     res = await req('/nope/nothing')
     expect(res.status).toBe(404)
-    expect(await res.text()).toContain('/_vuecli/app.js') // client shell renders not-found
-    res = await req('/_vuecli/missing.js')
+    expect(await res.text()).toContain('/_vurses/app.js') // client shell renders not-found
+    res = await req('/_vurses/missing.js')
     expect(res.status).toBe(404)
   })
 
@@ -90,7 +90,7 @@ describe('fetch handler routing', () => {
 
 describe('server sessions over SSE', () => {
   it('streams hello + frames and applies POSTed input', async () => {
-    const res = await req('/_vuecli/stream?path=/live&cols=30&rows=4')
+    const res = await req('/_vurses/stream?path=/live&cols=30&rows=4')
     expect(res.status).toBe(200)
     expect(res.headers.get('content-type')).toBe('text/event-stream; charset=utf-8')
     expect(res.headers.get('cache-control')).toMatch(/no-cache/)
@@ -106,13 +106,13 @@ describe('server sessions over SSE', () => {
     expect(gridText(st.screen)).toContain('[layout]')
     expect(st.screen.width).toBe(30)
     // input
-    const post = await req('/_vuecli/input', { method: 'POST', body: JSON.stringify({ sid: hello.sid, data: 'hi\r' }) })
+    const post = await req('/_vurses/input', { method: 'POST', body: JSON.stringify({ sid: hello.sid, data: 'hi\r' }) })
     expect(post.status).toBe(204)
     await r1.cancel()
   })
 
   it('end to end: input changes subsequent frames', async () => {
-    const res = await req('/_vuecli/stream?path=/live&cols=30&rows=4')
+    const res = await req('/_vurses/stream?path=/live&cols=30&rows=4')
     const st = new ScreenState()
     const reader = res.body!.getReader()
     const dec = new TextDecoder()
@@ -135,9 +135,9 @@ describe('server sessions over SSE', () => {
       }
     }
     await pump(() => gridText(st.screen).includes('typed: |'))
-    await req('/_vuecli/input', { method: 'POST', body: JSON.stringify({ sid, data: 'abc' }) })
+    await req('/_vurses/input', { method: 'POST', body: JSON.stringify({ sid, data: 'abc' }) })
     await pump(() => gridText(st.screen).includes('typed: abc|'))
-    await req('/_vuecli/input', { method: 'POST', body: JSON.stringify({ sid, cols: 20, rows: 3 }) })
+    await req('/_vurses/input', { method: 'POST', body: JSON.stringify({ sid, cols: 20, rows: 3 }) })
     await pump(() => st.screen.width === 20)
     expect(gridText(st.screen)).toContain('typed: abc|')
     await reader.cancel()
@@ -146,9 +146,9 @@ describe('server sessions over SSE', () => {
   })
 
   it('rejects streams for client routes, unknown sessions, and runs middleware', async () => {
-    expect((await req('/_vuecli/stream?path=/')).status).toBe(404)
-    expect((await req('/_vuecli/input', { method: 'POST', body: '{"sid":"x","data":"a"}' })).status).toBe(404)
-    const denied = await req('/_vuecli/stream?path=/live', { headers: { 'x-deny': '1' } })
+    expect((await req('/_vurses/stream?path=/')).status).toBe(404)
+    expect((await req('/_vurses/input', { method: 'POST', body: '{"sid":"x","data":"a"}' })).status).toBe(404)
+    const denied = await req('/_vurses/stream?path=/live', { headers: { 'x-deny': '1' } })
     expect(denied.status).toBe(401)
   })
 })
@@ -172,7 +172,7 @@ describe('route-level revalidate', () => {
     const html = await (await edge(new Request('http://x/static-shell'))).text()
     expect(html).toContain('prerendered')
     expect(html).toMatch(/"live":false/)
-    const s = await edge(new Request('http://x/_vuecli/stream?path=/static-shell'))
+    const s = await edge(new Request('http://x/_vurses/stream?path=/static-shell'))
     expect(s.status).toBe(501)
   })
 })

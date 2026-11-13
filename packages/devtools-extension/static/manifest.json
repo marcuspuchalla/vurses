@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "vuecli devtools",
-  "short_name": "vuecli",
+  "name": "vurses devtools",
+  "short_name": "vurses",
   "version": "0.1.0",
-  "description": "Inspect vuecli apps running in the browser: component tree, layout rects, frames and timeline.",
+  "description": "Inspect vurses apps running in the browser: component tree, layout rects, frames and timeline.",
   "devtools_page": "devtools.html",
   "icons": { "16": "icon.png", "48": "icon.png", "128": "icon.png" },
   "minimum_chrome_version": "102"

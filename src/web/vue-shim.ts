@@ -1,6 +1,6 @@
 /**
  * What `import ... from 'vue'` resolves to inside a web app built by
- * `vuecli web`: the real Vue, with the DOM-specific parts replaced.
+ * `vurses web`: the real Vue, with the DOM-specific parts replaced.
  *
  * - `createApp` / `createSSRApp` → terminal page app (see ./app.ts)
  * - `vModelText` & co. → bind form controls of the terminal page
@@ -87,4 +87,4 @@ export function useCssVars(_getter: (ctx: unknown) => Record<string, string>) {
 }
 
 /** Access to a terminal control's state (for advanced integrations). */
-export { controlState as __vuecliControlState }
+export { controlState as __vursesControlState }

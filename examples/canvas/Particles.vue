@@ -15,7 +15,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import type { CanvasPointerEvent, CanvasMode } from 'vuecli'
+import type { CanvasPointerEvent, CanvasMode } from 'vurses'
 import type { Canvas as PixelCanvas, CanvasRenderingContext2D } from 'tty-canvas'
 
 defineProps<{ mode: CanvasMode }>()

@@ -1,11 +1,11 @@
 /**
  * Devtools hook for a running app.
  *
- *  - `globalThis.__VUECLI_DEVTOOLS_HOOK__`: component / element trees, frame
+ *  - `globalThis.__VURSES_DEVTOOLS_HOOK__`: component / element trees, frame
  *    snapshots, a frame timeline, highlight, pause / resume / step. Used by the
  *    Chrome DevTools extension (via `inspectedWindow.eval`) and other tools.
  *    Every method returns JSON-serializable data.
- *  - `globalThis.vuecli` (with `{ repl: true }`): a console REPL to pause,
+ *  - `globalThis.vurses` (with `{ repl: true }`): a console REPL to pause,
  *    resize, wireframe and copy the running app.
  *
  * Browser- and Node-safe: no DOM or Node APIs are assumed.
@@ -32,10 +32,10 @@ import {
   type Rect,
   type TreeOptions,
 } from './tree.js'
-import { createRepl, type VuecliRepl } from './repl.js'
+import { createRepl, type VursesRepl } from './repl.js'
 
-export const HOOK_KEY = '__VUECLI_DEVTOOLS_HOOK__'
-export const REPL_KEY = 'vuecli'
+export const HOOK_KEY = '__VURSES_DEVTOOLS_HOOK__'
+export const REPL_KEY = 'vurses'
 
 export interface FrameRecord {
   frame: number
@@ -325,7 +325,7 @@ export function getDevtoolsHook(): DevtoolsHook | null {
 }
 
 export interface InstallDevtoolsOptions {
-  /** Also expose the `globalThis.vuecli` console REPL. */
+  /** Also expose the `globalThis.vurses` console REPL. */
   repl?: boolean
 }
 
@@ -372,7 +372,7 @@ export function installDevtoolsHook(runtime: Runtime, options: InstallDevtoolsOp
     }
   })
 
-  let repl: VuecliRepl | null = null
+  let repl: VursesRepl | null = null
   if (options.repl) {
     repl = createRepl(h)
     try {

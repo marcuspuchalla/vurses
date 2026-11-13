@@ -165,7 +165,7 @@ export function buildPath(pattern: string, params: RouteParams = {}): string {
       const v = params[s.name]
       if (v === undefined || (Array.isArray(v) && !v.length)) {
         if (s.kind === 'optionalCatchAll') continue
-        throw new Error(`[vuecli router] missing param "${s.name}" for ${pattern}`)
+        throw new Error(`[vurses router] missing param "${s.name}" for ${pattern}`)
       }
       out.push(...(Array.isArray(v) ? v : [v]).map((x) => encodeURIComponent(x)))
     }

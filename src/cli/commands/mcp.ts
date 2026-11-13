@@ -1,10 +1,10 @@
 import type { Command, Flags } from '../shared.js'
-import { formatError, vuecliError } from '../../errors.js'
+import { formatError, vursesError } from '../../errors.js'
 
 function parseSize(v: string | boolean | undefined): { columns: number; rows: number } {
   if (typeof v !== 'string') return { columns: 100, rows: 30 }
   const m = /^(\d+)\s*[x×,]\s*(\d+)$/i.exec(v.trim())
-  if (!m) throw vuecliError('VC131', { flag: 'size', value: v, expected: 'COLSxROWS, e.g. 100x30' })
+  if (!m) throw vursesError('VC131', { flag: 'size', value: v, expected: 'COLSxROWS, e.g. 100x30' })
   return { columns: Math.max(1, Number(m[1])), rows: Math.max(1, Number(m[2])) }
 }
 
@@ -69,17 +69,17 @@ async function runMcp(args: string[], flags: Flags) {
   transport.onclose = () => shutdown(0)
   process.stdin.on('end', () => shutdown(0))
   await server.connect(transport)
-  process.stderr.write(`vuecli mcp: serving ${loaded.target} (${loaded.mode}, ${columns}x${rows}) on stdio\n`)
+  process.stderr.write(`vurses mcp: serving ${loaded.target} (${loaded.mode}, ${columns}x${rows}) on stdio\n`)
 }
 
 const command: Command = {
   summary: 'MCP server: lets coding agents read frames, press keys and navigate routes',
-  usage: 'vuecli mcp <entry|appDir> [--size 100x30] [--theme name] [--route /path] [--jsonl]',
+  usage: 'vurses mcp <entry|appDir> [--size 100x30] [--theme name] [--route /path] [--jsonl]',
   async run(args, flags) {
     try {
       await runMcp(args, flags)
     } catch (e) {
-      process.stderr.write(`vuecli mcp: ${formatError(e)}\n`)
+      process.stderr.write(`vurses mcp: ${formatError(e)}\n`)
       process.exit(1)
     }
   },

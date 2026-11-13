@@ -1,7 +1,7 @@
 :root {
   color-scheme: light dark;
   --bg: #fff; --fg: #1f1f1f; --muted: #6b6b6b; --line: #e3e3e3; --sel: #d3e3fd; --accent: #42b883; --err: #c5221f;
-  --vuecli-fg: #d4d4d4; --vuecli-bg: #1e1e1e;
+  --vurses-fg: #d4d4d4; --vurses-bg: #1e1e1e;
 }
 @media (prefers-color-scheme: dark) {
   :root { --bg: #202124; --fg: #e8eaed; --muted: #9aa0a6; --line: #3c4043; --sel: #174ea6; --err: #f28b82; }

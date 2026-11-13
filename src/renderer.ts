@@ -4,7 +4,7 @@ import { createRenderer, registerRuntimeCompiler, type RenderFunction } from 'vu
 import { TComment, TElement, TTextNode, getElementById, type TNode } from './dom/nodes.js'
 
 import { TERMINAL_TAGS, compilerOptions } from './compiler-options.js'
-import { vuecliError } from './errors.js'
+import { vursesError } from './errors.js'
 import { cloneNode, parseHTML } from './web/html.js'
 export { TERMINAL_TAGS, compilerOptions }
 

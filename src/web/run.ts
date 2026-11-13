@@ -12,7 +12,7 @@ export interface RunWebOptions {
   mount?: MountOptions
   route?: string
   dark?: boolean
-  /** Root of the app (localStorage is persisted under node_modules/.vuecli-web-cache). */
+  /** Root of the app (localStorage is persisted under node_modules/.vurses-web-cache). */
   root: string
   /** Where relative fetch() URLs go when no Vite proxy rule matches (`--origin`). */
   origin?: string
@@ -26,8 +26,8 @@ export async function runWebApp(build: WebBuild, o: RunWebOptions): Promise<TuiA
   process.env.NODE_ENV ??= 'production'
   // like a browser tab: an error thrown in a timer or an unhandled rejection is logged,
   // the page keeps running (in Node it would end the process)
-  process.on('uncaughtException', (e) => console.error('[vuecli web] uncaught error:', e))
-  process.on('unhandledRejection', (e) => console.error('[vuecli web] unhandled rejection:', e))
+  process.on('uncaughtException', (e) => console.error('[vurses web] uncaught error:', e))
+  process.on('unhandledRejection', (e) => console.error('[vurses web] unhandled rejection:', e))
   const { setWebConfig, current } = await import('./app.js')
   const { installGlobals } = await import('./globals.js')
   const dark = o.dark ?? true
@@ -39,11 +39,11 @@ export async function runWebApp(build: WebBuild, o: RunWebOptions): Promise<TuiA
     mount: o.mount ?? {},
     dark,
     route: o.route,
-    storageFile: join(o.root, 'node_modules', '.vuecli-web-cache', 'localStorage.json'),
+    storageFile: join(o.root, 'node_modules', '.vurses-web-cache', 'localStorage.json'),
     onMount: (app) => resolveMount(app),
   })
   current.globals = installGlobals({
-    storageFile: join(o.root, 'node_modules', '.vuecli-web-cache', 'localStorage.json'),
+    storageFile: join(o.root, 'node_modules', '.vurses-web-cache', 'localStorage.json'),
     url: `http://localhost${o.route ?? '/'}`,
     scope: () => current.scope,
     proxy: build.proxy,

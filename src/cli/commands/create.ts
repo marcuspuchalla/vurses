@@ -29,7 +29,7 @@ export const metadata = { title: { default: '__NAME__', template: '%s · __NAME_
 </script>
 
 <script setup lang="ts">
-import { useApp, useMetadata, usePathname } from 'vuecli'
+import { useApp, useMetadata, usePathname } from 'vurses'
 
 const { size } = useApp()
 const pathname = usePathname()
@@ -85,7 +85,7 @@ export function generateMetadata({ params }: { params: { id: string } }) {
 </script>
 
 <script setup lang="ts">
-import { notFound } from 'vuecli'
+import { notFound } from 'vurses'
 
 const props = defineProps<{ params: { id: string } }>()
 
@@ -106,16 +106,16 @@ if (!/^\\d+$/.test(props.params.id)) notFound()
 </template>
 
 <script setup lang="ts">
-import { usePathname } from 'vuecli'
+import { usePathname } from 'vurses'
 const pathname = usePathname()
 </script>
 `,
-  'app/api/hello/route.ts': `// Route handler (served over HTTP by \`vuecli dev\` / \`vuecli start\`).
+  'app/api/hello/route.ts': `// Route handler (served over HTTP by \`vurses dev\` / \`vurses start\`).
 export function GET() {
   return Response.json({ hello: 'world' })
 }
 `,
-  'middleware.ts': `import { RouteResponse, type RouteRequest } from 'vuecli'
+  'middleware.ts': `import { RouteResponse, type RouteRequest } from 'vurses'
 
 // Runs before navigations in the terminal and before HTTP requests.
 export function middleware(request: RouteRequest) {
@@ -125,7 +125,7 @@ export function middleware(request: RouteRequest) {
 
 export const config = { matcher: ['/home'] }
 `,
-  '.gitignore': 'node_modules\ndist\n.vuecli\n',
+  '.gitignore': 'node_modules\ndist\n.vurses\n',
 }
 
 // ------------------------------------------------------------- single file
@@ -150,7 +150,7 @@ const TEMPLATE_APP = `<template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useApp, useKeymap } from 'vuecli'
+import { useApp, useKeymap } from 'vurses'
 
 const { exit } = useApp()
 const count = ref(0)
@@ -164,12 +164,12 @@ useKeymap({
 </script>
 `
 
-/** Editor support: loads vuecli's types, which declare the global components (<Box>, <Button>, ...). */
+/** Editor support: loads vurses's types, which declare the global components (<Box>, <Button>, ...). */
 const TSCONFIG = JSON.stringify(
   {
-    compilerOptions: { target: 'ES2022', module: 'ESNext', moduleResolution: 'Bundler', strict: true, noEmit: true, jsx: 'preserve', types: ['vuecli'] },
+    compilerOptions: { target: 'ES2022', module: 'ESNext', moduleResolution: 'Bundler', strict: true, noEmit: true, jsx: 'preserve', types: ['vurses'] },
     include: ['**/*.ts', '**/*.vue'],
-    exclude: ['node_modules', 'dist', '.vuecli'],
+    exclude: ['node_modules', 'dist', '.vurses'],
   },
   null,
   2,
@@ -178,17 +178,17 @@ const TSCONFIG = JSON.stringify(
 function create(dir: string, flags: Flags) {
   const target = resolve(dir)
   if (existsSync(target) && existsSync(join(target, 'package.json'))) {
-    console.error(`vuecli: ${dir} already contains a package.json`)
+    console.error(`vurses: ${dir} already contains a package.json`)
     process.exit(1)
   }
   const name = basename(target)
   const single = flags.single === true || flags.template === 'single'
   const files: Record<string, string> = { ...(single ? { 'App.vue': TEMPLATE_APP } : ROUTER_FILES), 'tsconfig.json': TSCONFIG }
-  const scripts = single ? { start: 'vuecli App.vue' } : { start: 'vuecli run .', 'start:about': 'vuecli run . --route /about', dev: 'vuecli dev' }
+  const scripts = single ? { start: 'vurses App.vue' } : { start: 'vurses run .', 'start:about': 'vurses run . --route /about', dev: 'vurses dev' }
   mkdirSync(target, { recursive: true })
   writeFileSync(
     join(target, 'package.json'),
-    JSON.stringify({ name, private: true, type: 'module', scripts, dependencies: { vue: '^3.5.0', vuecli: `^${pkg.version}` } }, null, 2) + '\n',
+    JSON.stringify({ name, private: true, type: 'module', scripts, dependencies: { vue: '^3.5.0', vurses: `^${pkg.version}` } }, null, 2) + '\n',
   )
   for (const [file, content] of Object.entries(files)) {
     const out = join(target, file)
@@ -205,7 +205,7 @@ function create(dir: string, flags: Flags) {
         '    users/[id]/page.vue /users/:id (async, uses loading.vue)',
         '    loading.vue         Suspense fallback',
         '    not-found.vue       404',
-        '    api/hello/route.ts  GET /api/hello (vuecli dev)',
+        '    api/hello/route.ts  GET /api/hello (vurses dev)',
         '  middleware.ts         redirects /home → /',
         '  tsconfig.json         editor support (component types)',
       ].join('\n')
@@ -214,10 +214,10 @@ function create(dir: string, flags: Flags) {
 
 const command: Command = {
   summary: 'Scaffold a new app (App Router project; --single for one App.vue)',
-  usage: 'vuecli create <dir> [--single]',
+  usage: 'vurses create <dir> [--single]',
   run(args, flags) {
     if (!args[0]) {
-      console.error('Usage: vuecli create <dir> [--single]')
+      console.error('Usage: vurses create <dir> [--single]')
       process.exit(1)
     }
     create(args[0], flags)

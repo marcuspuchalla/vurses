@@ -1,11 +1,11 @@
 {
-  "name": "vuecli-server-app",
+  "name": "vurses-server-app",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vuecli dev",
-    "dev:terminal": "vuecli dev --terminal",
-    "build": "vuecli build --adapter node",
-    "start": "vuecli start"
+    "dev": "vurses dev",
+    "dev:terminal": "vurses dev --terminal",
+    "build": "vurses build --adapter node",
+    "start": "vurses start"
   }
 }

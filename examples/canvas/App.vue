@@ -1,7 +1,7 @@
 <template>
   <Box class="flex-col" :width="size.columns" :height="size.rows">
     <Box class="gap-2" :padding-x="1">
-      <Text bold color="primary">tty-canvas × vuecli</Text>
+      <Text bold color="primary">tty-canvas × vurses</Text>
       <RadioGroup v-model="tab" horizontal :options="['paint', 'particles', 'web page']" auto-focus />
     </Box>
     <Box class="gap-1" :padding-x="1">
@@ -26,7 +26,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { fileURLToPath } from 'node:url'
-import { useApp, useKeymap, CANVAS_MODES, type CanvasMode } from 'vuecli'
+import { useApp, useKeymap, CANVAS_MODES, type CanvasMode } from 'vurses'
 import Paint from './Paint.vue'
 import Particles from './Particles.vue'
 

@@ -430,7 +430,7 @@ export const DevTools = defineComponent({
             bg: 'surface',
             border: 'round',
             borderColor: 'accent',
-            title: 'vuecli devtools · F12',
+            title: 'vurses devtools · F12',
             flexDirection: 'column',
             paddingX: 1,
           },

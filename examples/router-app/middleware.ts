@@ -1,4 +1,4 @@
-import { RouteResponse, type RouteRequest } from 'vuecli'
+import { RouteResponse, type RouteRequest } from 'vurses'
 
 // Runs before every navigation (terminal) and every request (server).
 export function middleware(request: RouteRequest) {

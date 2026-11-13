@@ -174,11 +174,11 @@ class ModuleCache {
   }
 }
 
-const CACHE_KEY = Symbol('vuecli-router-cache') as import('vue').InjectionKey<ModuleCache>
+const CACHE_KEY = Symbol('vurses-router-cache') as import('vue').InjectionKey<ModuleCache>
 
 function defaultExport(mod: Mod, file: string): Component {
   const c = (mod.default ?? mod.Page ?? mod.Layout) as Component | undefined
-  if (!c) throw new Error(`[vuecli router] ${file} has no default export (a Vue component)`)
+  if (!c) throw new Error(`[vurses router] ${file} has no default export (a Vue component)`)
   return c
 }
 
@@ -321,7 +321,7 @@ function resolveTitle(chain: Metadata[]): ResolvedMetadata {
   return out
 }
 
-const APP_META = '__vuecliAppRoute'
+const APP_META = '__vursesAppRoute'
 const apps = new WeakMap<object, AppRouter>()
 
 /** The {@link AppRouter} of a mounted app (MCP, devtools, tests). */
@@ -469,13 +469,13 @@ export function createAppRouter(options: AppRouterOptions): AppRouter {
             if (res.type === 'redirect' || res.type === 'rewrite') {
               const u = new URL(res.url)
               if (u.origin !== new URL(origin).origin) {
-                console.warn(`[vuecli router] ignoring external ${res.type} to ${res.url}`)
+                console.warn(`[vurses router] ignoring external ${res.type} to ${res.url}`)
                 return false
               }
               if (res.type === 'redirect') {
                 if (++redirects > 20) {
                   redirects = 0
-                  throw new Error(`[vuecli router] too many middleware redirects (at ${to.fullPath})`)
+                  throw new Error(`[vurses router] too many middleware redirects (at ${to.fullPath})`)
                 }
                 lastRedirect.value = { from: to.fullPath, to: u.pathname + u.search + u.hash, status: res.status }
                 return u.pathname + u.search + u.hash
@@ -517,13 +517,13 @@ export function createAppRouter(options: AppRouterOptions): AppRouter {
   })
 
   vr.onError((err) => {
-    console.error('[vuecli router] navigation error:', err)
+    console.error('[vurses router] navigation error:', err)
   })
 
   const navigate = async (href: Href, replace: boolean) => {
     const target = toHrefString(href)
     if (/^[a-z][a-z\d+.-]*:/i.test(target) && !target.startsWith(origin)) {
-      console.warn(`[vuecli router] cannot open external URL ${target} in the terminal`)
+      console.warn(`[vurses router] cannot open external URL ${target} in the terminal`)
       return
     }
     await (replace ? vr.replace(target) : vr.push(target))
@@ -740,7 +740,7 @@ export function createAppRouter(options: AppRouterOptions): AppRouter {
         stable = idle ? stable + 1 : 0
         if (stable >= 3) return
       }
-      throw new Error('[vuecli router] waitForIdle timed out')
+      throw new Error('[vurses router] waitForIdle timed out')
     },
     onNavigate(cb) {
       listeners.add(cb)
@@ -754,7 +754,7 @@ export function createAppRouter(options: AppRouterOptions): AppRouter {
 
   // first navigation (replace: a deep link has no "back")
   const initial = options.initialPath ?? (options.history ? base.location : '/') ?? '/'
-  vr.replace(initial || '/').catch((err) => console.error('[vuecli router] initial navigation failed:', err))
+  vr.replace(initial || '/').catch((err) => console.error('[vurses router] initial navigation failed:', err))
   return router
 }
 

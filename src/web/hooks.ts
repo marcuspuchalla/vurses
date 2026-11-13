@@ -1,6 +1,6 @@
 /**
- * Node module hooks for `vuecli web`: every `vue` / `@vue/*` import (from
- * vuecli itself, the shim and the app bundle) resolves to the app's own Vue,
+ * Node module hooks for `vurses web`: every `vue` / `@vue/*` import (from
+ * vurses itself, the shim and the app bundle) resolves to the app's own Vue,
  * so the renderer, the compiled templates and libraries share one runtime.
  */
 type Resolve = (specifier: string, context: { parentURL?: string; conditions?: string[] }) => Promise<{ url: string; format?: string | null; shortCircuit?: boolean }>

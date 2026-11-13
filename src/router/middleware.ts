@@ -4,7 +4,7 @@
  *
  * ```ts
  * // middleware.ts
- * import { RouteResponse, type RouteRequest } from 'vuecli'
+ * import { RouteResponse, type RouteRequest } from 'vurses'
  *
  * export function middleware(req: RouteRequest) {
  *   if (req.nextUrl.pathname === '/old') return RouteResponse.redirect(new URL('/new', req.url))
@@ -189,7 +189,7 @@ export function compileMatcher(source: string): RegExp {
       if (c === '(') depth++
       else if (c === ')' && --depth === 0) return j + 1
     }
-    throw new Error(`[vuecli router] unbalanced "(" in matcher ${source}`)
+    throw new Error(`[vurses router] unbalanced "(" in matcher ${source}`)
   }
   while (i < source.length) {
     const c = source[i]
@@ -287,7 +287,7 @@ export async function runMiddleware(mod: MiddlewareModule, request: Request | Ro
   const res = await fn(req, event)
   if (res === undefined || res === null) return { type: 'next' }
   if (!(res instanceof Response)) {
-    throw new TypeError('[vuecli router] middleware must return a Response (RouteResponse.next/redirect/rewrite) or nothing')
+    throw new TypeError('[vurses router] middleware must return a Response (RouteResponse.next/redirect/rewrite) or nothing')
   }
   const abs = (u: string) => new URL(u, req.url).href
   const rewrite = res.headers.get(H_REWRITE)

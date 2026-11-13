@@ -1,34 +1,34 @@
-# Running existing Vue web apps in the terminal (`vuecli web`)
+# Running existing Vue web apps in the terminal (`vurses web`)
 
-`vuecli web` takes an existing **Vite + Vue 3** web app, the kind you'd scaffold with
+`vurses web` takes an existing **Vite + Vue 3** web app, the kind you'd scaffold with
 `npm create vue@latest`, and runs it in the terminal. You don't need to change any app
 code.
 
 ```sh
 cd my-existing-vue-app
-npm install -D vuecli          # or: npm link /path/to/vuecli
-npx vuecli web                 # build + run in the terminal
+npm install -D vurses          # or: npm link /path/to/vurses
+npx vurses web                 # build + run in the terminal
 ```
 
 > **The app runs in Node, outside the browser sandbox**, with your user's privileges (files,
 > environment variables, network without CORS). Only run apps you'd also run with `node`.
-> See [Security](SECURITY.md#running-existing-web-apps-vuecli-web).
+> See [Security](SECURITY.md#running-existing-web-apps-vurses-web).
 
 Add a script if you use it often:
 
 ```json
-{ "scripts": { "tui": "vuecli web" } }
+{ "scripts": { "tui": "vurses web" } }
 ```
 
 ## What happens
 
 1. **Build:** the app is built with **its own Vite and `vite.config`**, so aliases,
-   plugins, `.env` files and CSS imports all work as usual. vuecli adds one plugin:
+   plugins, `.env` files and CSS imports all work as usual. vurses adds one plugin:
    - `vue` resolves to a shim. It is the real Vue with `createApp`, `v-model` and
      `<Transition>` replaced by terminal versions.
    - vue-router's `createWebHistory` / `createWebHashHistory` become memory
      histories. Use `--route /path` to deep link.
-   - Everything goes into one ES module, in `node_modules/.vuecli-web`.
+   - Everything goes into one ES module, in `node_modules/.vurses-web`.
 2. **Run:** the app's `index.html` becomes the page shell (`<html>`, `<body>` and any
    static markup). The Vue app mounts exactly where the browser would mount it (`#app`,
    `.todoapp`, ...).
@@ -58,7 +58,7 @@ Pixel *heights* are ignored because they would clip content in a short terminal.
 | `↑ ↓ ← →` | cycle `<select>` options, move a range slider; scroll the page otherwise |
 | `PgUp` / `PgDn`, mouse wheel | scroll the page |
 | mouse click / double click | `click` / `dblclick` on the element under the cursor |
-| `Ctrl+C` | quit (`F12` opens vuecli's devtools, with logs) |
+| `Ctrl+C` | quit (`F12` opens vurses's devtools, with logs) |
 
 Event handlers receive DOM-shaped events, so `@keyup.enter`, `@click.prevent`,
 `@submit.prevent`, `event.target.value` and vue-router's `RouterLink` all work as they do
@@ -78,7 +78,7 @@ goes through the router), `history`, `localStorage` / `sessionStorage`, `matchMe
 more; elements support the common DOM members. The full list, and what's missing, is in
 [Compatibility](COMPATIBILITY.md#browser-apis).
 
-- **`localStorage`** is saved to `node_modules/.vuecli-web-cache/localStorage.json`
+- **`localStorage`** is saved to `node_modules/.vurses-web-cache/localStorage.json`
   (readable only by you), so logins and settings survive restarts.
 - **`fetch`** is Node's own, so apps that call real APIs work. Relative URLs
   (`fetch('/api/users')`) go through the app's Vite `server.proxy` rules, otherwise to
@@ -89,7 +89,7 @@ more; elements support the common DOM members. The full list, and what's missing
 ## Options
 
 ```
-vuecli web [dir]
+vurses web [dir]
   --route /path          initial route (vue-router apps)
   --origin https://…     where relative fetch('/api/…') URLs go when no Vite proxy rule matches
   --theme light|dark     terminal theme; also decides prefers-color-scheme
@@ -102,7 +102,7 @@ vuecli web [dir]
   --wait 1500            ms to wait before the snapshot (for data fetching)
 ```
 
-`VUECLI_WEB_DEBUG=1` with `--snapshot` also prints the element tree with layout boxes to
+`VURSES_WEB_DEBUG=1` with `--snapshot` also prints the element tree with layout boxes to
 stderr.
 
 ## Page colours

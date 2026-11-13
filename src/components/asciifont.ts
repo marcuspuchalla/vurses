@@ -16,7 +16,7 @@ export type { FigletFont, FigletLayout }
 
 /**
  * Large text rendered with a FIGlet font.
- *   <AsciiFont text="vuecli" font="slant" color="primary" />
+ *   <AsciiFont text="vurses" font="slant" color="primary" />
  *   <AsciiFont text="Hi" :gradient="['#42b883', '#7aa2f7']" />
  * Bundled fonts: standard, slant, small, mini. Register more with
  * `registerFigletFont(name, flfSource)` or pass a parsed font (`loadFigletFont(src)`).

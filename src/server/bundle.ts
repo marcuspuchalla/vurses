@@ -5,7 +5,7 @@
  *  - `.vue` files compile through `compileSFC` (src/sfc/compile.ts)
  *  - `vue` is aliased to this package's esm-bundler runtime build (one Vue
  *    instance; feature flags defined)
- *  - `vuecli` resolves to the browser entry (client), the full index (node
+ *  - `vurses` resolves to the browser entry (client), the full index (node
  *    server) or the request-time API subset (edge)
  */
 import { existsSync } from 'node:fs'
@@ -21,11 +21,11 @@ import type { Shell } from './session.js'
 const here = dirname(fileURLToPath(import.meta.url))
 const require = createRequire(import.meta.url)
 
-/** Absolute path of one of vuecli's own modules (dist .js or src .ts). */
+/** Absolute path of one of vurses's own modules (dist .js or src .ts). */
 export function ownModule(rel: string): string {
   const base = resolve(here, rel)
   for (const ext of ['.js', '.ts']) if (existsSync(base + ext)) return base + ext
-  throw new Error(`[vuecli] internal module not found: ${base}`)
+  throw new Error(`[vurses] internal module not found: ${base}`)
 }
 
 const VUE_RUNTIME = require.resolve('vue/dist/vue.runtime.esm-bundler.js')
@@ -42,7 +42,7 @@ export function vueDefines(dev: boolean): Record<string, string> {
 /** Compiles `.vue` single-file components. */
 export function sfcPlugin(): Plugin {
   return {
-    name: 'vuecli-sfc',
+    name: 'vurses-sfc',
     setup(b) {
       b.onLoad({ filter: /\.vue$/ }, async (args) => {
         const { compileSFC } = await import(ownModule('../sfc/compile'))
@@ -56,12 +56,12 @@ export function sfcPlugin(): Plugin {
   }
 }
 
-/** Resolves `vue` and `vuecli` to single, target-appropriate modules. */
-export function resolvePlugin(vuecliEntry: string, vue: string | null = VUE_RUNTIME): Plugin {
+/** Resolves `vue` and `vurses` to single, target-appropriate modules. */
+export function resolvePlugin(vursesEntry: string, vue: string | null = VUE_RUNTIME): Plugin {
   return {
-    name: 'vuecli-resolve',
+    name: 'vurses-resolve',
     setup(b) {
-      b.onResolve({ filter: /^vuecli$/ }, () => ({ path: vuecliEntry }))
+      b.onResolve({ filter: /^vurses$/ }, () => ({ path: vursesEntry }))
       if (vue) b.onResolve({ filter: /^vue$/ }, () => ({ path: vue }))
     },
   }
@@ -90,7 +90,7 @@ const q = JSON.stringify
 
 function moduleMap(ids: Iterable<[string, string]>, extra = ''): string {
   const lines = [...ids].map(([id, file]) => `  ${q(id)}: () => import(${q(file)}),`)
-  return `const modules = {\n${lines.join('\n')}\n${extra}}\nconst load = (f) => { const m = modules[f]; return m ? m() : Promise.reject(new Error('[vuecli] module not bundled: ' + f)) }\n`
+  return `const modules = {\n${lines.join('\n')}\n${extra}}\nconst load = (f) => { const m = modules[f]; return m ? m() : Promise.reject(new Error('[vurses] module not bundled: ' + f)) }\n`
 }
 
 export interface ClientBundleOptions {
@@ -111,7 +111,7 @@ export function clientEntrySource(project: Project, o: ClientBundleOptions = {})
     // route handlers and server pages stay on the server
     delete r.handler
     if (r.page && r.runtime === 'server') {
-      const id = `vuecli:server:${r.pattern}`
+      const id = `vurses:server:${r.pattern}`
       stubs.push(`  ${q(id)}: () => Promise.resolve({ default: serverRouteStub(${q(r.pattern)}, ${q(o.serverRoutes ?? 'navigate')}) }),`)
       r.page = id
     } else if (r.page) files.set(r.page, abs(r.page))
@@ -120,7 +120,7 @@ export function clientEntrySource(project: Project, o: ClientBundleOptions = {})
   delete manifest.middleware
   for (const f of [manifest.notFound, manifest.rootLayout, manifest.root?.layout, manifest.root?.loading, manifest.root?.error, manifest.root?.notFound]) if (f) files.set(f, abs(f))
   manifest.routes = manifest.routes.filter((r) => r.page)
-  return `import { bootBrowser, serverRouteStub } from 'vuecli'
+  return `import { bootBrowser, serverRouteStub } from 'vurses'
 const manifest = ${q(manifest)}
 ${moduleMap(files, stubs.join('\n') + '\n')}
 bootBrowser({ manifest, load })
@@ -144,7 +144,7 @@ const browserBase = (dev: boolean, minify: boolean): BuildOptions => ({
 export async function bundleClient(project: Project, o: ClientBundleOptions = {}): Promise<string> {
   const r = await build({
     ...browserBase(!!o.dev, o.minify ?? !o.dev),
-    stdin: { contents: clientEntrySource(project, o), resolveDir: project.root, sourcefile: 'vuecli-client-entry.js', loader: 'js' },
+    stdin: { contents: clientEntrySource(project, o), resolveDir: project.root, sourcefile: 'vurses-client-entry.js', loader: 'js' },
     plugins: [resolvePlugin(ownModule('../browser')), sfcPlugin()],
   })
   return r.outputFiles![0].text
@@ -159,12 +159,12 @@ export async function bundlePlayer(o: { minify?: boolean } = {}): Promise<string
   return r.outputFiles![0].text
 }
 
-/** Bundles a plain root component for the browser (`vuecli dev App.vue`). */
+/** Bundles a plain root component for the browser (`vurses dev App.vue`). */
 export async function bundleComponent(entry: string, o: { dev?: boolean; minify?: boolean } = {}): Promise<string> {
-  const contents = `import { bootBrowser } from 'vuecli'\nimport App from ${q(resolve(entry))}\nbootBrowser({ root: App })\n`
+  const contents = `import { bootBrowser } from 'vurses'\nimport App from ${q(resolve(entry))}\nbootBrowser({ root: App })\n`
   const r = await build({
     ...browserBase(!!o.dev, o.minify ?? !o.dev),
-    stdin: { contents, resolveDir: dirname(resolve(entry)), sourcefile: 'vuecli-component-entry.js', loader: 'js' },
+    stdin: { contents, resolveDir: dirname(resolve(entry)), sourcefile: 'vurses-component-entry.js', loader: 'js' },
     plugins: [resolvePlugin(ownModule('../browser')), sfcPlugin()],
   })
   return r.outputFiles![0].text
@@ -197,11 +197,11 @@ export function serverEntrySource(project: Project, o: Omit<ServerBundleOptions,
     src += `import { createLive } from ${own('./live')}\nimport { fsAssets } from ${own('./assets')}\nexport { serve, toNodeListener } from ${own('./node')}\n`
     src += `export function createServerHandler(options = {}) {
   const { staticDir, live, ...rest } = options
-  return createHandler({ app, shells, title: ${q(o.title ?? 'vuecli app')}, assets: staticDir ? fsAssets([staticDir]) : undefined, live: live === false ? undefined : createLive(app, live), ...rest })
+  return createHandler({ app, shells, title: ${q(o.title ?? 'vurses app')}, assets: staticDir ? fsAssets([staticDir]) : undefined, live: live === false ? undefined : createLive(app, live), ...rest })
 }\n`
   } else {
     const note = 'live server sessions need a long-running server (node or bun adapter); showing the prerendered frame'
-    src += `const handler = createHandler({ app, shells, title: ${q(o.title ?? 'vuecli app')}, liveUnavailableNote: ${q(note)} })\n`
+    src += `const handler = createHandler({ app, shells, title: ${q(o.title ?? 'vurses app')}, liveUnavailableNote: ${q(note)} })\n`
     src += o.edgeExport === 'worker' ? `export default { fetch: (request, env, ctx) => handler(request) }\n` : `export default handler\n`
   }
   return src
@@ -220,8 +220,8 @@ export async function bundleServer(project: Project, o: ServerBundleOptions): Pr
     logLevel: 'silent',
     legalComments: 'none',
     outfile: o.outfile,
-    banner: node ? { js: "import { createRequire as __vuecliCreateRequire } from 'node:module'; const require = __vuecliCreateRequire(import.meta.url);" } : undefined,
-    stdin: { contents: serverEntrySource(project, o), resolveDir: project.root, sourcefile: 'vuecli-server-entry.js', loader: 'js' },
+    banner: node ? { js: "import { createRequire as __vursesCreateRequire } from 'node:module'; const require = __vursesCreateRequire(import.meta.url);" } : undefined,
+    stdin: { contents: serverEntrySource(project, o), resolveDir: project.root, sourcefile: 'vurses-server-entry.js', loader: 'js' },
     plugins: [resolvePlugin(ownModule(node ? '../index' : './edge-api')), sfcPlugin()],
   })
 }

@@ -1,4 +1,4 @@
-import { revalidatePath, revalidateTag } from 'vuecli'
+import { revalidatePath, revalidateTag } from 'vurses'
 
 /** POST /api/revalidate?tag=quotes  or  ?path=/stats */
 export function POST(request: Request) {

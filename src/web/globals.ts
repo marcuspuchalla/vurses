@@ -172,7 +172,7 @@ export function installGlobals(o: GlobalsOptions): WebGlobals {
   /** location.href = …: same-origin URLs go through the app's router, others can't open here. */
   const navigate = (v: string, replace: boolean) => {
     const next = new URL(String(v), url)
-    const router = (g.__VUECLI_WEB__ as { router?: { push(p: string): unknown; replace(p: string): unknown } } | undefined)?.router
+    const router = (g.__VURSES_WEB__ as { router?: { push(p: string): unknown; replace(p: string): unknown } } | undefined)?.router
     if (next.origin === url.origin && router) {
       const path = next.pathname + next.search + next.hash
       void (replace ? router.replace(path) : router.push(path))
@@ -343,20 +343,20 @@ export function installGlobals(o: GlobalsOptions): WebGlobals {
 
   // fetch: relative URLs resolve like in the browser (through the app's dev proxy / --origin)
   const nodeFetch = g.fetch as typeof fetch | undefined
-  if (nodeFetch && !(nodeFetch as { __vuecli?: boolean }).__vuecli) {
+  if (nodeFetch && !(nodeFetch as { __vurses?: boolean }).__vurses) {
     const wrapped = (input: unknown, init?: RequestInit) => {
       const raw = typeof input === 'string' ? input : input instanceof URL ? input.href : (input as { url?: string })?.url
       if (typeof raw === 'string' && !/^[a-z][a-z\d+.-]*:/i.test(raw)) {
         const abs = resolveFetchUrl(raw, o.proxy, o.origin)
         if (!abs)
           return Promise.reject(
-            new TypeError(`vuecli web: fetch('${raw}') has no server here (the page isn't served by a browser). Add a Vite server.proxy rule for it, or pass --origin https://your-site.example`),
+            new TypeError(`vurses web: fetch('${raw}') has no server here (the page isn't served by a browser). Add a Vite server.proxy rule for it, or pass --origin https://your-site.example`),
           )
         return nodeFetch(typeof input === 'string' || input instanceof URL ? abs : new Request(abs, input as Request), init)
       }
       return nodeFetch(input as RequestInfo, init)
     }
-    ;(wrapped as { __vuecli?: boolean }).__vuecli = true
+    ;(wrapped as { __vurses?: boolean }).__vurses = true
     define('fetch', wrapped)
   }
   define('window', globalThis)
@@ -374,7 +374,7 @@ export function installGlobals(o: GlobalsOptions): WebGlobals {
     try {
       cb(...a)
     } catch (e) {
-      console.error(`[vuecli web] error in ${what}:`, e)
+      console.error(`[vurses web] error in ${what}:`, e)
     }
   }
   define('requestAnimationFrame', (cb: (t: number) => void) => setTimeout(guarded('requestAnimationFrame', () => cb(performance.now())), 16) as unknown as number)

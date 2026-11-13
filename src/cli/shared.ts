@@ -5,9 +5,9 @@ import { fileURLToPath } from 'node:url'
 export type Flags = Record<string, string | boolean>
 
 export interface Command {
-  /** One-line description for `vuecli --help`. */
+  /** One-line description for `vurses --help`. */
   summary: string
-  /** Usage line, e.g. `vuecli run <entry> [--theme name]`. */
+  /** Usage line, e.g. `vurses run <entry> [--theme name]`. */
   usage: string
   run(args: string[], flags: Flags): Promise<void> | void
 }

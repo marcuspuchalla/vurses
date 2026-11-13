@@ -1,8 +1,8 @@
 {
-  "name": "vuecli-devtools",
+  "name": "vurses-devtools",
   "version": "0.1.0",
   "private": true,
-  "description": "Chrome DevTools panel for vuecli apps running in the browser",
+  "description": "Chrome DevTools panel for vurses apps running in the browser",
   "type": "module",
   "license": "GPL-3.0-or-later",
   "scripts": {

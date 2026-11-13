@@ -1,5 +1,5 @@
 /**
- * Calls methods of `__VUECLI_DEVTOOLS_HOOK__` in the inspected page via
+ * Calls methods of `__VURSES_DEVTOOLS_HOOK__` in the inspected page via
  * `chrome.devtools.inspectedWindow.eval`. Every hook method returns JSON data.
  */
 export interface HookBridge {
@@ -10,14 +10,14 @@ export interface HookBridge {
 export class HookMissingError extends Error {
   readonly code = 'VC116'
   constructor() {
-    super('No vuecli app with devtools on this page (globalThis.__VUECLI_DEVTOOLS_HOOK__ is missing).')
+    super('No vurses app with devtools on this page (globalThis.__VURSES_DEVTOOLS_HOOK__ is missing).')
   }
 }
 
 /** The expression evaluated in the page for `call(method, ...args)`. */
 export function callExpression(method: string, args: unknown[]): string {
   return (
-    '(function(){var h=window.__VUECLI_DEVTOOLS_HOOK__;if(!h||typeof h[' + JSON.stringify(method) + "]!=='function')return {__vuecliMissing:true};" +
+    '(function(){var h=window.__VURSES_DEVTOOLS_HOOK__;if(!h||typeof h[' + JSON.stringify(method) + "]!=='function')return {__vursesMissing:true};" +
     'var r=h[' + JSON.stringify(method) + '].apply(h,' + JSON.stringify(args) + ');' +
     "if(r&&typeof r.then==='function')return null;return r===undefined?null:r})()"
   )
@@ -31,7 +31,7 @@ export function evalBridge(evaluate: Eval): HookBridge {
       return new Promise<T>((resolve, reject) => {
         evaluate(callExpression(method, args), (result, ex) => {
           if (ex && (ex.isException || ex.description || ex.value)) return reject(new Error(ex.value ?? ex.description ?? 'eval failed'))
-          if (result && typeof result === 'object' && (result as { __vuecliMissing?: boolean }).__vuecliMissing) return reject(new HookMissingError())
+          if (result && typeof result === 'object' && (result as { __vursesMissing?: boolean }).__vursesMissing) return reject(new HookMissingError())
           resolve(result as T)
         })
       })

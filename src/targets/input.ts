@@ -88,11 +88,11 @@ export interface HiddenInputOptions {
 export function attachHiddenInput(options: HiddenInputOptions): { textarea: HTMLTextAreaElement; focus(): void; dispose(): void } {
   const doc = options.document ?? (globalThis as any).document as Document
   const ta = doc.createElement('textarea')
-  ta.setAttribute('aria-label', 'vuecli keyboard input')
+  ta.setAttribute('aria-label', 'vurses keyboard input')
   ta.setAttribute('autocapitalize', 'off')
   ta.setAttribute('autocomplete', 'off')
   ta.setAttribute('spellcheck', 'false')
-  ta.dataset.vuecliInput = ''
+  ta.dataset.vursesInput = ''
   // invisible but focusable (display:none would not receive keys)
   ta.style.cssText = 'position:fixed;left:0;top:0;width:1px;height:1px;opacity:0;border:0;padding:0;resize:none;overflow:hidden;z-index:-1'
   doc.body.appendChild(ta)

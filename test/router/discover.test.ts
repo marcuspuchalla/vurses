@@ -104,7 +104,7 @@ describe('discoverRoutes', async () => {
 
 describe('discovery edge cases', () => {
   it('throws on conflicting routes (route groups resolving to the same URL)', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'vuecli-router-'))
+    const dir = await mkdtemp(join(tmpdir(), 'vurses-router-'))
     try {
       for (const g of ['(a)', '(b)']) {
         await mkdir(join(dir, 'app', g, 'x'), { recursive: true })
@@ -117,7 +117,7 @@ describe('discovery edge cases', () => {
   })
 
   it('finds the app dir (app/, src/app/, or the dir itself) and proxy.ts', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'vuecli-router-'))
+    const dir = await mkdtemp(join(tmpdir(), 'vurses-router-'))
     try {
       await mkdir(join(dir, 'src', 'app'), { recursive: true })
       await writeFile(join(dir, 'src', 'app', 'page.vue'), '<template><Text>hi</Text></template>')

@@ -8,10 +8,10 @@
  *
  * Request pipeline:
  *
- *   /_vuecli/stream   SSE: open a live server session (server routes)
- *   /_vuecli/input    POST: keys / resize for a session
- *   /_vuecli/reload   SSE: dev live reload
- *   /_vuecli/*        built assets (app bundle, player)
+ *   /_vurses/stream   SSE: open a live server session (server routes)
+ *   /_vurses/input    POST: keys / resize for a session
+ *   /_vurses/reload   SSE: dev live reload
+ *   /_vurses/*        built assets (app bundle, player)
  *   ─ middleware.ts   (config.matcher) redirect / rewrite / respond / next(+headers)
  *   ─ static files    public/ (+ build output)
  *   ─ route handlers  app/**\/route.ts  GET POST PUT PATCH DELETE HEAD OPTIONS
@@ -47,9 +47,9 @@ export interface HandlerOptions {
   app: ServerApp
   /** Static files (public/ and build output). Return null when not found. */
   assets?: (pathname: string, request: Request) => Promise<Response | null> | Response | null
-  /** URL of the client app bundle. null: client routes are not available. Default: `/_vuecli/app.js`. */
+  /** URL of the client app bundle. null: client routes are not available. Default: `/_vurses/app.js`. */
   clientScript?: string | null
-  /** URL of the frame player. Default: `/_vuecli/player.js`. */
+  /** URL of the frame player. Default: `/_vurses/player.js`. */
   playerScript?: string
   live?: LiveRenderer
   /** Build-time prerendered shells (Partial Prerendering), keyed by pathname. */
@@ -86,13 +86,13 @@ function titleOf(mod: Record<string, unknown> | null): string | undefined {
   return undefined
 }
 
-export interface VuecliHandler extends FetchHandler {
+export interface VursesHandler extends FetchHandler {
   readonly options: HandlerOptions
   /** Closes live sessions (server shutdown). */
   close(): void
 }
 
-export function createHandler(options: HandlerOptions): VuecliHandler {
+export function createHandler(options: HandlerOptions): VursesHandler {
   const { manifest, load } = options.app
   const clientScript = options.clientScript === undefined ? `${INTERNAL_PREFIX}app.js` : options.clientScript
   const playerScript = options.playerScript ?? `${INTERNAL_PREFIX}player.js`
@@ -148,7 +148,7 @@ export function createHandler(options: HandlerOptions): VuecliHandler {
       else return text('405 — method not allowed', 405, { allow: allowed.join(', ') })
     }
     const res = await fn!(routeRequest(request), { params: awaitableParams(m.params) })
-    if (!(res instanceof Response)) throw new TypeError(`[vuecli] route handler ${m.route.pattern} ${method} must return a Response`)
+    if (!(res instanceof Response)) throw new TypeError(`[vurses] route handler ${m.route.pattern} ${method} must return a Response`)
     if (method === 'HEAD') return new Response(null, { status: res.status, statusText: res.statusText, headers: res.headers })
     return res
   }
@@ -160,7 +160,7 @@ export function createHandler(options: HandlerOptions): VuecliHandler {
     const path = url.pathname + url.search
     const rv = route.revalidate
     if (typeof rv === 'number' && rv > 0) {
-      return cached(`vuecli:frame:${path}:${screen.columns}x${screen.rows}`, () => live.renderShell!(path, screen), {
+      return cached(`vurses:frame:${path}:${screen.columns}x${screen.rows}`, () => live.renderShell!(path, screen), {
         revalidate: rv,
         tags: [pathTag(url.pathname)],
       })
@@ -307,7 +307,7 @@ export function createHandler(options: HandlerOptions): VuecliHandler {
     } catch (e) {
       return fail(e, request)
     }
-  }) as VuecliHandler
+  }) as VursesHandler
   Object.defineProperty(handler, 'options', { value: options })
   handler.close = () => live.sessions?.closeAll()
   return handler

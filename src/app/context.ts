@@ -64,4 +64,4 @@ export interface AppContext {
   runtime: import('./app.js').Runtime
 }
 
-export const APP_CONTEXT: InjectionKey<AppContext> = Symbol('vuecli-app')
+export const APP_CONTEXT: InjectionKey<AppContext> = Symbol('vurses-app')

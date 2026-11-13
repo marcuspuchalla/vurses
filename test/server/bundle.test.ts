@@ -17,7 +17,7 @@ describe('bundles', () => {
   it('client bundle builds for the browser without Node built-ins and excludes server code', async () => {
     const project = await loadProject(FIXTURE)
     const src = clientEntrySource(project)
-    expect(src).toContain('vuecli:server:/live')
+    expect(src).toContain('vurses:server:/live')
     expect(src).not.toContain('route.ts')
     expect(src).not.toContain('middleware')
     expect(src).not.toContain(FIXTURE + '/app/live/page.ts')

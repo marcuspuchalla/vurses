@@ -1,29 +1,29 @@
-# vuecli error codes
+# vurses error codes
 
-Errors that vuecli raises on purpose carry a stable `VC###` code and link to this page:
+Errors that vurses raises on purpose carry a stable `VC###` code and link to this page:
 
 ```
-VuecliError: [VC001] useApp() was called outside a vuecli app. Call it from setup() of a component rendered by createApp(...).mount().
-  → https://github.com/marcuspuchalla/vuecli/blob/HEAD/docs/errors.md#vc001
+VursesError: [VC001] useApp() was called outside a vurses app. Call it from setup() of a component rendered by createApp(...).mount().
+  → https://github.com/marcuspuchalla/vurses/blob/HEAD/docs/errors.md#vc001
 ```
 
 In code:
 
 ```ts
-import { VuecliError, isVuecliError, vuecliError } from 'vuecli'
+import { VursesError, isVursesError, vursesError } from 'vurses'
 
 try {
   await router.push('/nope')
 } catch (e) {
-  if (isVuecliError(e, 'VC060')) console.log(e.code, e.reason, e.docsUrl, e.params)
+  if (isVursesError(e, 'VC060')) console.log(e.code, e.reason, e.docsUrl, e.params)
 }
 
-throw vuecliError('VC061', { route: '/users/[id]', reason: 'id is required' })
+throw vursesError('VC061', { route: '/users/[id]', reason: 'id is required' })
 ```
 
-`VuecliError` has `code`, `reason` (the message without the prefix and link),
+`VursesError` has `code`, `reason` (the message without the prefix and link),
 `docsUrl`, `params` (the values the message was built from) and `cause`.
-`vuecliWarn(code, params)` logs a coded warning once. `formatError(err)` prints
+`vursesWarn(code, params)` logs a coded warning once. `formatError(err)` prints
 any error for a terminal. Codes are never renumbered.
 
 | Range | Area |
@@ -45,9 +45,9 @@ any error for a terminal. Codes are never renumbered.
 ## App lifecycle
 
 <a id="vc001"></a>
-## VC001 Composable used outside a vuecli app
+## VC001 Composable used outside a vurses app
 
-`useApp()`, `useInput()`, `useFocus()`, `useTerminalSize()` and the other vuecli
+`useApp()`, `useInput()`, `useFocus()`, `useTerminalSize()` and the other vurses
 composables read the app context that `createApp(...).mount()` provides. They
 were called somewhere that context does not exist: outside `setup()`, after an
 `await` in `setup()`, in a plain module, or in a component mounted by a
@@ -55,8 +55,8 @@ different Vue app (for example two copies of `vue` in `node_modules`).
 
 **Fix:** call the composable synchronously at the top of `setup()` /
 `<script setup>`. If you run your own Node entry point, make sure there is one
-copy of `vue` (`npm ls vue`). The `vuecli` CLI and `vuecli/register` resolve
-`vue` through vuecli for you.
+copy of `vue` (`npm ls vue`). The `vurses` CLI and `vurses/register` resolve
+`vue` through vurses for you.
 
 <a id="vc002"></a>
 ## VC002 App is not mounted
@@ -101,10 +101,10 @@ Vue's compiler can stringify large static subtrees into HTML strings
 (`insertStaticContent`). That only works with a DOM, so the terminal renderer
 cannot insert them.
 
-**Fix:** compile templates with vuecli's `compilerOptions` (they set
-`hoistStatic: false`). `.vue` files loaded through the vuecli CLI,
-`vuecli/register` or the vuecli build already do this. If you use your own
-bundler plugin, pass `compilerOptions` from `vuecli` to it.
+**Fix:** compile templates with vurses's `compilerOptions` (they set
+`hoistStatic: false`). `.vue` files loaded through the vurses CLI,
+`vurses/register` or the vurses build already do this. If you use your own
+bundler plugin, pass `compilerOptions` from `vurses` to it.
 
 <a id="vc011"></a>
 ## VC011 Unknown element
@@ -113,9 +113,9 @@ An HTML tag with no terminal meaning (`<input>`, `<button>`, `<img>`, `<a>`,
 `<ul>`, `<table>`, ...) was rendered. It is laid out as a plain box and loses its
 HTML behavior.
 
-**Fix:** use the vuecli component: `TextInput`, `Button`, `Image`, `List`,
+**Fix:** use the vurses component: `TextInput`, `Button`, `Image`, `List`,
 `Table`, `Select`, `Checkbox`, ... `div` / `span` / `p` / `box` / `text` are
-valid aliases. The ESLint rule `vuecli/no-dom-elements` catches these at edit time.
+valid aliases. The ESLint rule `vurses/no-dom-elements` catches these at edit time.
 
 <a id="vc012"></a>
 ## VC012 Box inside Text
@@ -125,7 +125,7 @@ Text elements lay out inline text only, so the box's size, border and padding
 are ignored.
 
 **Fix:** put the box next to the text, or wrap both in a `<Box>`. Nested
-`<Text>` elements (inline spans) are fine. See ESLint rule `vuecli/no-box-in-text`.
+`<Text>` elements (inline spans) are fine. See ESLint rule `vurses/no-box-in-text`.
 
 ## Templates
 
@@ -145,7 +145,7 @@ A component uses a `template:` string but the build in use has no runtime
 compiler (for example a browser bundle built without `@vue/compiler-dom`).
 
 **Fix:** precompile components (`.vue` files or render functions), or import
-from the full `vuecli` entry.
+from the full `vurses` entry.
 
 ## Single-file components
 
@@ -170,16 +170,16 @@ The `<template>` of a `.vue` file failed to compile.
 `<script>` / `<script setup>` failed to compile or to strip TypeScript (for
 example invalid `defineProps` usage or a syntax error).
 
-**Fix:** check the message. vuecli strips types with esbuild; it does not type
+**Fix:** check the message. vurses strips types with esbuild; it does not type
 check. Run `vue-tsc` for type errors.
 
 <a id="vc033"></a>
 ## VC033 .vue loader not registered
 
-Node tried to import a `.vue` file without the vuecli loader hooks.
+Node tried to import a `.vue` file without the vurses loader hooks.
 
-**Fix:** run the app with `vuecli <entry>`, or start Node with
-`node --import vuecli/register main.js`.
+**Fix:** run the app with `vurses <entry>`, or start Node with
+`node --import vurses/register main.js`.
 
 ## Styles, colors, themes
 
@@ -210,7 +210,7 @@ A color string could not be parsed.
 <a id="vc043"></a>
 ## VC043 Unknown utility class
 
-A `class` contains a name vuecli does not recognize. It is ignored.
+A `class` contains a name vurses does not recognize. It is ignored.
 
 **Fix:** see the list of utility classes in the README.
 
@@ -270,7 +270,7 @@ an array.
 <a id="vc062"></a>
 ## VC062 App directory not found
 
-`vuecli dev`, `vuecli mcp <dir>` or the router could not find an app directory
+`vurses dev`, `vurses mcp <dir>` or the router could not find an app directory
 (`app/`, `src/app/`, or a directory with `page.vue` / `layout.vue`).
 
 **Fix:** create `app/page.vue`, or pass an entry file instead of a directory.
@@ -289,7 +289,7 @@ Two files resolve to the same URL, usually through route groups:
 `useRouter()` / `useRoute()` / `<Link>` was used in an app that was not started
 with the App Router.
 
-**Fix:** run the app directory (`vuecli dev`) or install the router with
+**Fix:** run the app directory (`vurses dev`) or install the router with
 `app.use(createAppRouter(...))`.
 
 <a id="vc065"></a>
@@ -362,7 +362,7 @@ package), or keep links internal.
 <a id="vc080"></a>
 ## VC080 Port in use
 
-`vuecli dev` / `vuecli start` could not listen on the port.
+`vurses dev` / `vurses start` could not listen on the port.
 
 **Fix:** stop the other process or pass `--port <n>`.
 
@@ -408,7 +408,7 @@ maximum number of concurrent sessions is reached.
 <a id="vc086"></a>
 ## VC086 Unknown build adapter
 
-`vuecli build --adapter <name>` got an adapter that does not exist.
+`vurses build --adapter <name>` got an adapter that does not exist.
 
 **Fix:** use one of the adapters listed in the message.
 
@@ -418,7 +418,7 @@ maximum number of concurrent sessions is reached.
 The browser build was asked for a route module that is not in its module map,
 usually because the file was added after the build.
 
-**Fix:** rebuild (`vuecli build`), or restart `vuecli dev`.
+**Fix:** rebuild (`vurses build`), or restart `vurses dev`.
 
 <a id="vc088"></a>
 ## VC088 Invalid browser boot options
@@ -456,7 +456,7 @@ A canvas was created or resized with a non-positive or non-finite size.
 <a id="vc110"></a>
 ## VC110 Entry not found
 
-`vuecli mcp` (or another command) was given a path that does not exist.
+`vurses mcp` (or another command) was given a path that does not exist.
 
 **Fix:** pass a `.vue` / `.js` / `.ts` entry file or an app directory.
 
@@ -474,7 +474,7 @@ A routing tool (`list_routes`, `navigate`, `back`, `forward`) was called, or an
 app directory was run, but the app has no App Router (or the router module is
 not available in this build).
 
-**Fix:** start the MCP server with the app directory (`vuecli mcp ./my-app`)
+**Fix:** start the MCP server with the app directory (`vurses mcp ./my-app`)
 instead of a single entry file.
 
 <a id="vc113"></a>
@@ -508,9 +508,9 @@ modifiers `ctrl`, `alt` (`meta`, `cmd`, `option`) and `shift`.
 ## VC116 Devtools hook not installed
 
 A devtools client (the Chrome extension, the REPL) could not find
-`globalThis.__VUECLI_DEVTOOLS_HOOK__`.
+`globalThis.__VURSES_DEVTOOLS_HOOK__`.
 
-**Fix:** reload the page after the vuecli app has started, and make sure the
+**Fix:** reload the page after the vurses app has started, and make sure the
 app is mounted with devtools enabled (the browser entry installs the hook).
 
 ## CLI
@@ -518,7 +518,7 @@ app is mounted with devtools enabled (the browser entry installs the hook).
 <a id="vc130"></a>
 ## VC130 Unknown command
 
-**Fix:** run `vuecli --help` for the list of commands.
+**Fix:** run `vurses --help` for the list of commands.
 
 <a id="vc131"></a>
 ## VC131 Invalid flag value
@@ -526,4 +526,4 @@ app is mounted with devtools enabled (the browser entry installs the hook).
 A flag got a value of the wrong shape, for example `--size 80` instead of
 `--size 80x24`.
 
-**Fix:** see `vuecli <command> --help`.
+**Fix:** see `vurses <command> --help`.

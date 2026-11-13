@@ -20,7 +20,7 @@
 </template>
 
 <script lang="ts">
-// Rendered on the server: one headless vuecli runtime per browser session,
+// Rendered on the server: one headless vurses runtime per browser session,
 // frames stream over SSE as row deltas, keys come back via POST.
 export const runtime = 'server'
 export const metadata = { title: 'Live' }
@@ -28,7 +28,7 @@ export const metadata = { title: 'Live' }
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useInput, useInterval } from 'vuecli'
+import { useInput, useInterval } from 'vurses'
 import { getQuotes, type Quote } from '../../lib/quotes.ts'
 
 const quotes = ref<Quote[]>([])

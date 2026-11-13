@@ -1,7 +1,7 @@
 <template>
   <Box class="flex-col" :height="size.rows" :width="size.columns">
     <Box class="px-1 shrink-0 gap-1" bg="surface">
-      <Text bold color="primary">◆ vuecli</Text>
+      <Text bold color="primary">◆ vurses</Text>
       <Text color="muted">server app</Text>
       <Spacer />
       <Text color="accent">{{ meta.title }}</Text>
@@ -23,11 +23,11 @@
 </template>
 
 <script lang="ts">
-export const metadata = { title: { default: 'vuecli server app', template: '%s · vuecli server app' } }
+export const metadata = { title: { default: 'vurses server app', template: '%s · vurses server app' } }
 </script>
 
 <script setup lang="ts">
-import { useApp, useMetadata, usePathname } from 'vuecli'
+import { useApp, useMetadata, usePathname } from 'vurses'
 
 const { size } = useApp()
 const pathname = usePathname()

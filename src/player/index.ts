@@ -1,5 +1,5 @@
 /**
- * vuecli frame player: the browser half of server-rendered routes
+ * vurses frame player: the browser half of server-rendered routes
  * (`export const runtime = 'server'`). No Vue in here — it only
  *
  *  1. paints the server-rendered first frame (shell) embedded in the page,
@@ -10,7 +10,7 @@
  *  4. sends keys / paste / IME text (hidden textarea), mouse (DOM view) and
  *     resizes back with POST requests, in order.
  *
- * Built with esbuild into `/_vuecli/player.js` (a few kB gzipped).
+ * Built with esbuild into `/_vurses/player.js` (a few kB gzipped).
  */
 import { readBoot, type BootData } from '../server/html.js'
 import { DomView } from '../targets/dom-view.js'
@@ -113,7 +113,7 @@ export function startPlayer(boot: BootData): PlayerHandle {
       es?.close()
       sid = null
       chrome.status(`session ended (${reason}) — reload to restart`)
-      console.info(`[vuecli] session ended (${reason})`)
+      console.info(`[vurses] session ended (${reason})`)
     })
     es.addEventListener('error', () => {
       sid = null
@@ -153,5 +153,5 @@ export function startPlayer(boot: BootData): PlayerHandle {
 
 const boot = typeof document !== 'undefined' ? readBoot() : null
 if (boot?.mode === 'server') {
-  ;(globalThis as any).__VUECLI_PLAYER__ = startPlayer(boot)
+  ;(globalThis as any).__VURSES_PLAYER__ = startPlayer(boot)
 }

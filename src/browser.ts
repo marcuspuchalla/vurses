@@ -1,6 +1,6 @@
 /**
- * Browser entry of vuecli (`import ... from 'vuecli'` resolves here in browser
- * bundles built by `vuecli dev` / `vuecli build`).
+ * Browser entry of vurses (`import ... from 'vurses'` resolves here in browser
+ * bundles built by `vurses dev` / `vurses build`).
  *
  * Re-exports the core API (no Node built-ins) plus the browser targets, and
  * `bootBrowser()`, which mounts an App-Router app (or any root component)
@@ -30,7 +30,7 @@ export interface BootBrowserOptions extends BrowserTargetOptions {
   root?: Component
   /** Theme name (`dark`, `light`, `dracula`) or object. */
   theme?: string
-  /** Install `window.vuecli` REPL + devtools hook. Default: true. */
+  /** Install `window.vurses` REPL + devtools hook. Default: true. */
   devtools?: boolean
 }
 
@@ -44,7 +44,7 @@ export async function bootBrowser(options: BootBrowserOptions = {}): Promise<Tui
   const path = location.pathname + location.search + location.hash
   let component = root
   if (!component) {
-    if (!manifest || !load) throw new Error('[vuecli] bootBrowser needs `root` or `manifest` + `load`')
+    if (!manifest || !load) throw new Error('[vurses] bootBrowser needs `root` or `manifest` + `load`')
     component = await createRouteRoot({ manifest, load, path, history: 'web' })
   }
   let target: BrowserTarget | null = null

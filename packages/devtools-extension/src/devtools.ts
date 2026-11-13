@@ -1,2 +1,2 @@
-// devtools_page: registers the "vuecli" panel.
-chrome.devtools.panels.create('vuecli', 'icon.png', 'panel.html')
+// devtools_page: registers the "vurses" panel.
+chrome.devtools.panels.create('vurses', 'icon.png', 'panel.html')

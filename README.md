@@ -1,4 +1,4 @@
-# vuecli
+# vurses
 
 **Vue 3 in the terminal.** Write ordinary Vue components (SFCs, `<script setup>`, TypeScript,
 `ref`, `computed`, `v-model`, slots, Teleport, Suspense) and they render as a real terminal
@@ -9,12 +9,12 @@ UI: flexbox layout, borders, colors, themes, keyboard focus and mouse support.
 <sub>`npm run example:dashboard`, captured from a real terminal session.</sub>
 
 - **Build terminal apps with Vue:** 49 components, a file-based App Router, a Canvas 2D API, themes, testing utilities.
-- **Run existing Vue web apps in the terminal, unchanged:** `npx vuecli web` builds a Vite + Vue 3 app with its own config and renders it with its CSS, links, forms and router.
+- **Run existing Vue web apps in the terminal, unchanged:** `npx vurses web` builds a Vite + Vue 3 app with its own config and renders it with its CSS, links, forms and router.
 - **Run the same app in other places:** inside the browser devtools console, or streamed from a server.
 
 ## Quick start
 
-Requires **Node.js 20.6+** and any modern terminal. vuecli isn't on npm yet: install it from a
+Requires **Node.js 20.6+** and any modern terminal. vurses isn't on npm yet: install it from a
 checkout ([details](docs/GETTING-STARTED.md#install)), then:
 
 ```vue
@@ -36,8 +36,8 @@ const count = ref(0)
 ```
 
 ```sh
-npx vuecli App.vue            # Tab / Enter / mouse, Ctrl+C quits
-npx vuecli create my-app      # or start a project with routes
+npx vurses App.vue            # Tab / Enter / mouse, Ctrl+C quits
+npx vurses create my-app      # or start a project with routes
 ```
 
 More in **[Getting started](docs/GETTING-STARTED.md)**: the examples, every CLI flag and
@@ -60,13 +60,15 @@ troubleshooting.
 
 ```sh
 cd my-vite-vue-app
-npx vuecli web
+npx vurses web
 ```
+
+![TodoMVC's unmodified Vue example running in a terminal with vurses web: adding three todos, completing one, switching filters and clearing completed](docs/images/todomvc-terminal.gif)
 
 <table>
   <tr>
     <th width="50%">In the browser (<code>npm run dev</code>)</th>
-    <th width="50%">In the terminal (<code>npx vuecli web</code>)</th>
+    <th width="50%">In the terminal (<code>npx vurses web</code>)</th>
   </tr>
   <tr>
     <td><img src="docs/images/todomvc-browser.png" alt="TodoMVC in Chrome: three todos, the first one completed, 2 items left"></td>
@@ -83,15 +85,15 @@ npx vuecli web
 
 What works (Tailwind v3/v4, vue-router, Pinia, VueUse, component libraries, browser APIs)
 and what doesn't is listed in **[Compatibility](docs/COMPATIBILITY.md)**. The app runs in
-Node, outside the browser sandbox: read the **[security note](docs/SECURITY.md#running-existing-web-apps-vuecli-web)**
+Node, outside the browser sandbox: read the **[security note](docs/SECURITY.md#running-existing-web-apps-vurses-web)**
 first. Details: [docs/WEB.md](docs/WEB.md).
 
 ## In the browser devtools console
 
 <table>
   <tr>
-    <th width="50%">In the terminal (<code>vuecli run</code>)</th>
-    <th width="50%">In the Chrome devtools console (<code>vuecli dev</code>)</th>
+    <th width="50%">In the terminal (<code>vurses run</code>)</th>
+    <th width="50%">In the Chrome devtools console (<code>vurses dev</code>)</th>
   </tr>
   <tr>
     <td><img src="docs/images/server-app-terminal.png" alt="examples/server-app in a terminal: a routes sidebar, a page with -1/+1 buttons and a key bar"></td>
@@ -105,11 +107,13 @@ there), or streams from a server to a 5.6 kB player. See
 
 ## Documentation
 
+**[marcuspuchalla.github.io/vurses](https://marcuspuchalla.github.io/vurses/)**, or browse the pages here:
+
 | | |
 | --- | --- |
 | [Getting started](docs/GETTING-STARTED.md) | install, first app, examples, CLI reference, troubleshooting |
 | [Building apps](docs/GUIDE.md) | layout and styling, components, composables, input, themes, router, canvas, testing |
-| [Existing web apps](docs/WEB.md) | `vuecli web` in detail |
+| [Existing web apps](docs/WEB.md) | `vurses web` in detail |
 | [Browser, server and deployment](docs/SERVER.md) | console target, server routes, adapters |
 | [Compatibility](docs/COMPATIBILITY.md) | Node, terminals, web apps, CSS, libraries, known gaps |
 | [Security](docs/SECURITY.md) | trust model, safe defaults, deployment, files written |
@@ -127,7 +131,7 @@ All pages: [docs/](docs/README.md).
 ## Development
 
 ```sh
-git clone https://github.com/marcuspuchalla/vuecli.git && cd vuecli
+git clone https://github.com/marcuspuchalla/vurses.git && cd vurses
 npm install         # installs and builds
 npm test            # vitest (root suite)
 npm run test:all    # root suite + every package (tty-canvas, eslint plugin, VS Code, DevTools)
@@ -137,11 +141,11 @@ npm run typecheck
 How the code fits together: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Security issues:
 see [SECURITY.md](SECURITY.md).
 
-## Why vuecli
+## Why vurses
 
 I recently saw a tool on Hacker News that lets React apps run on the command line, and I
 thought Vue apps deserved the same. I'm a big fan of Vue: I find it much more pleasant to
-read and to work with than React. So I built vuecli, and I'm really happy with how it has
+read and to work with than React. So I built vurses, and I'm really happy with how it has
 turned out so far. It was built in collaboration with AI coding agents.
 
 ## Contributing

@@ -14,7 +14,7 @@
 </template>
 
 <script lang="ts">
-export const metadata = { title: { default: 'Users', template: '%s · Users · vuecli router' } }
+export const metadata = { title: { default: 'Users', template: '%s · Users · vurses router' } }
 </script>
 
 <script setup lang="ts">

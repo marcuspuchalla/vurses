@@ -161,7 +161,7 @@ export function formatElementTree(info: ElementInfo, indent = ''): string {
 
 // ------------------------------------------------------------------ components
 
-const HIDDEN_COMPONENTS = new Set(['VueCliRoot', 'DevTools'])
+const HIDDEN_COMPONENTS = new Set(['VursesRoot', 'DevTools'])
 
 /** Display name of a component instance. */
 export function componentName(i: ComponentInternalInstance): string {
@@ -251,7 +251,7 @@ function componentInfo(i: ComponentInternalInstance, opts: TreeOptions, depth: n
   ]
 }
 
-/** The root component instance of a runtime (the user's root, below vuecli's wrapper). */
+/** The root component instance of a runtime (the user's root, below vurses's wrapper). */
 export function rootInstance(runtime: Runtime): ComponentInternalInstance | null {
   const app = (runtime as unknown as { app?: { _instance?: ComponentInternalInstance | null } }).app
   if (app?._instance) return app._instance

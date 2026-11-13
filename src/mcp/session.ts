@@ -13,7 +13,7 @@ import type { Theme } from '../style/theme.js'
 import { keyFromCombo } from '../testing.js'
 import { frameToAnsi, locateText, snapshotFrame, styleSpans, type FrameSnapshot, type StyleSpan } from '../devtools/frame.js'
 import { componentTree, elementTree, formatComponentTree, formatElementTree, type ComponentInfo, type ElementInfo } from '../devtools/tree.js'
-import { vuecliError } from '../errors.js'
+import { vursesError } from '../errors.js'
 
 export interface SessionOptions {
   columns?: number
@@ -67,14 +67,14 @@ const MODS = new Set(['ctrl', 'meta', 'alt', 'shift'])
  * KeyEvent. Throws VC115 for malformed combos.
  */
 export function parseKey(combo: string): KeyEvent {
-  if (typeof combo !== 'string' || combo.length === 0) throw vuecliError('VC115', { key: combo })
+  if (typeof combo !== 'string' || combo.length === 0) throw vursesError('VC115', { key: combo })
   if ([...combo].length === 1) return keyFromCombo(combo)
   const parts = combo.split('+')
   // 'ctrl++' → ['ctrl', '', ''] means the '+' key
   if (combo.endsWith('++')) parts.splice(-2, 2, '+')
   const name = parts.pop()!
   const mods = parts.map((p) => MOD_ALIASES[p.toLowerCase()] ?? p.toLowerCase())
-  if (!name || mods.some((m) => !MODS.has(m))) throw vuecliError('VC115', { key: combo })
+  if (!name || mods.some((m) => !MODS.has(m))) throw vursesError('VC115', { key: combo })
   let key = name.length === 1 ? name : name.toLowerCase()
   key = KEY_ALIASES[key] ?? key
   const ctrl = mods.includes('ctrl')
@@ -228,10 +228,10 @@ export class HeadlessSession {
   private resolvePoint(o: { x?: number; y?: number; text?: string; nth?: number }): { x: number; y: number } {
     if (o.text !== undefined) {
       const p = this.locate(o.text, o.nth ?? 0)
-      if (!p) throw vuecliError('VC113', { text: o.text })
+      if (!p) throw vursesError('VC113', { text: o.text })
       return p
     }
-    if (typeof o.x !== 'number' || typeof o.y !== 'number') throw vuecliError('VC113', { text: '(no x/y or text given)' })
+    if (typeof o.x !== 'number' || typeof o.y !== 'number') throw vursesError('VC113', { text: '(no x/y or text given)' })
     return { x: Math.floor(o.x), y: Math.floor(o.y) }
   }
 
@@ -280,7 +280,7 @@ export class HeadlessSession {
       await this.settle()
       const frame = this.text()
       if (frame.includes(text) !== gone) return frame
-      if (Date.now() >= deadline || this.isClosed) throw vuecliError('VC114', { text, timeout, gone })
+      if (Date.now() >= deadline || this.isClosed) throw vursesError('VC114', { text, timeout, gone })
       await sleep(Math.min(interval, Math.max(1, deadline - Date.now())))
     }
   }

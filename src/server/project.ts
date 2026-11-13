@@ -35,7 +35,7 @@ export function registerSfcHooks() {
 export async function loadProject(dir: string = process.cwd(), options: { appDir?: string } = {}): Promise<Project> {
   const root = resolve(dir)
   const appDir = options.appDir ? resolve(root, options.appDir) : await findAppDir(root)
-  if (!appDir) throw new Error(`[vuecli] no app directory found in ${root} (expected app/ or src/app/ with page/layout files)`)
+  if (!appDir) throw new Error(`[vurses] no app directory found in ${root} (expected app/ or src/app/ with page/layout files)`)
   const manifest = await discoverRoutes(appDir)
   registerSfcHooks()
   const load: ModuleLoader = (file) => import(pathToFileURL(file).href) as Promise<Record<string, unknown>>

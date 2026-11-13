@@ -17,11 +17,11 @@ import { nextFocusId, type FocusEntry } from './app/focus.js'
 import type { TElement } from './dom/nodes.js'
 import { matchKey, type KeyEvent } from './input/keys.js'
 import type { Theme } from './style/theme.js'
-import { vuecliError } from './errors.js'
+import { vursesError } from './errors.js'
 
 export function useAppContext(): AppContext {
   const ctx = inject(APP_CONTEXT, null)
-  if (!ctx) throw vuecliError('VC001', { name: 'useAppContext' })
+  if (!ctx) throw vursesError('VC001', { name: 'useAppContext' })
   return ctx
 }
 
@@ -254,5 +254,5 @@ export function useFrameStats() {
 
 /** Throws if called outside setup(). */
 export function assertSetup(name: string) {
-  if (!getCurrentInstance()) throw vuecliError('VC050', { name })
+  if (!getCurrentInstance()) throw vursesError('VC050', { name })
 }

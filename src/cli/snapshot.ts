@@ -1,6 +1,6 @@
 /**
  * `--snapshot`: render one frame as text (or HTML) and exit. For CI, docs, piping and
- * debugging; shared by `vuecli run` and `vuecli web`.
+ * debugging; shared by `vurses run` and `vurses web`.
  *
  *   --snapshot[=html]  --size 100x40  --keys "tab,type:hello,enter"  --wait 300  --keywait 60
  */
@@ -53,8 +53,8 @@ export async function printSnapshot(runtime: Runtime, flags: Flags, debug?: () =
 export function requireTerminal(command: string) {
   if (process.stdout.isTTY) return
   process.stderr.write(
-    `vuecli ${command}: stdout is not a terminal, so the interactive app can't run here.\n` +
-      `  Run it in a terminal, or print one frame as text: vuecli ${command} … --snapshot --size 100x40\n`,
+    `vurses ${command}: stdout is not a terminal, so the interactive app can't run here.\n` +
+      `  Run it in a terminal, or print one frame as text: vurses ${command} … --snapshot --size 100x40\n`,
   )
   process.exit(2)
 }

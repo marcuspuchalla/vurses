@@ -1,4 +1,4 @@
-# vuecli devtools hook and REPL
+# vurses devtools hook and REPL
 
 `installDevtoolsHook(runtime, { repl })` exposes a running app to tools. It is
 browser- and Node-safe (no DOM / Node APIs) and returns an uninstall function
@@ -6,12 +6,12 @@ browser- and Node-safe (no DOM / Node APIs) and returns an uninstall function
 with `{ repl: true }`.
 
 ```ts
-import { createApp, installDevtoolsHook } from 'vuecli'
+import { createApp, installDevtoolsHook } from 'vurses'
 const app = createApp(App).mount()
 installDevtoolsHook(app.runtime!, { repl: true })
 ```
 
-## `globalThis.__VUECLI_DEVTOOLS_HOOK__`
+## `globalThis.__VURSES_DEVTOOLS_HOOK__`
 
 Every method returns JSON-serializable data, so it can be called through
 `chrome.devtools.inspectedWindow.eval` (the Chrome extension does this).
@@ -35,17 +35,17 @@ Every method returns JSON-serializable data, so it can be called through
 
 `runtimes` lists every registered app; methods act on the most recent one.
 
-## `vuecli` console REPL
+## `vurses` console REPL
 
 ```
-vuecli.pause()           vuecli.resume()        vuecli.step()
-vuecli.resize(100, 30)   vuecli.wireframe()     // toggles; or wireframe(true)
-vuecli.copy()            // frame as plain text, also to the clipboard in browsers
-vuecli.frame()           vuecli.ansi()
-vuecli.tree()            // prints the component tree with rects, returns it
-vuecli.elements()        vuecli.highlight(5)
-vuecli.press('tab', 'enter')   vuecli.type('hello')
-vuecli.stats()           vuecli.help()
+vurses.pause()           vurses.resume()        vurses.step()
+vurses.resize(100, 30)   vurses.wireframe()     // toggles; or wireframe(true)
+vurses.copy()            // frame as plain text, also to the clipboard in browsers
+vurses.frame()           vurses.ansi()
+vurses.tree()            // prints the component tree with rects, returns it
+vurses.elements()        vurses.highlight(5)
+vurses.press('tab', 'enter')   vurses.type('hello')
+vurses.stats()           vurses.help()
 ```
 
 ## Building blocks

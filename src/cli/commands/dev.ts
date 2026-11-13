@@ -2,7 +2,7 @@ import { existsSync, statSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { packageRoot, type Command, type Flags } from '../shared.js'
 
-const bin = join(packageRoot, 'bin', 'vuecli.js')
+const bin = join(packageRoot, 'bin', 'vurses.js')
 
 function passthrough(flags: Flags, keys: string[]) {
   const out: string[] = []
@@ -19,7 +19,7 @@ function passthrough(flags: Flags, keys: string[]) {
 async function dev(args: string[], flags: Flags) {
   const entry = resolve(args[0] ?? '.')
   if (!existsSync(entry)) {
-    console.error(`vuecli dev: not found: ${args[0]}`)
+    console.error(`vurses dev: not found: ${args[0]}`)
     process.exit(1)
   }
   const { supervise, startDevServer } = await import('../../server/dev.js')
@@ -47,14 +47,14 @@ async function dev(args: string[], flags: Flags) {
   const free = await findFreePort(port, host)
   if (free !== port) console.log(`\n  port ${port} is in use (by another process on localhost) — using ${free}`)
   const everywhere = host === '::' || host === '0.0.0.0'
-  console.log(`\n  vuecli dev — ${entry}\n  http://${everywhere ? 'localhost' : host}:${free}  (watching for changes)`)
+  console.log(`\n  vurses dev — ${entry}\n  http://${everywhere ? 'localhost' : host}:${free}  (watching for changes)`)
   console.log(everywhere ? `  exposed on all network interfaces (--host): anyone on your network can open it\n` : `  local only; use --host to expose it on your network\n`)
   await supervise({ watchDir, args: [bin, 'dev', entry, '--worker', `--port=${free}`, `--host=${host}`, ...passthrough(flags, ['app'])] })
 }
 
 const command: Command = {
   summary: 'Dev server: browser console target + server routes, live reload (or --terminal)',
-  usage: 'vuecli dev [dir|entry] [--port 3000] [--host [addr]] [--terminal]',
+  usage: 'vurses dev [dir|entry] [--port 3000] [--host [addr]] [--terminal]',
   run: dev,
 }
 export default command

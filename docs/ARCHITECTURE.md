@@ -1,4 +1,4 @@
-# vuecli architecture & extension points
+# vurses architecture & extension points
 
 This document is the contract between the parts of the project. Read it before
 changing core files.
@@ -6,7 +6,7 @@ changing core files.
 ## Repository layout
 
 ```
-src/                       vuecli core (published as `vuecli`)
+src/                       vurses core (published as `vurses`)
   renderer.ts              Vue custom renderer (nodeOps) + runtime template compiler
   compiler-options.ts      template compiler options shared by SFC + runtime compiler
   dom/nodes.ts             TElement / TTextNode tree, Yoga integration
@@ -25,15 +25,15 @@ src/                       vuecli core (published as `vuecli`)
   targets/                 browser console target, frame protocol  [server stream]
   cache/                   cache(), revalidateTag(), ...           [server stream]
   mcp/                     MCP server                              [tooling stream]
-  devtools/                devtools hook + window.vuecli REPL      [tooling stream]
+  devtools/                devtools hook + window.vurses REPL      [tooling stream]
   errors.ts                VC### error codes                       [tooling stream]
   sfc/                     .vue loader hooks (compileSFC)
   cli/                     CLI: index.ts registry + commands/*.ts
   testing.ts               offscreen test renderer
 packages/
   tty-canvas/              standalone Canvas 2D -> terminal library [canvas stream]
-  eslint-plugin-vuecli/    ESLint rules                            [tooling stream]
-  vscode-vuecli/           VS Code extension                        [tooling stream]
+  eslint-plugin-vurses/    ESLint rules                            [tooling stream]
+  vscode-vurses/           VS Code extension                        [tooling stream]
   devtools-extension/      Chrome DevTools panel                    [tooling stream]
 test/                      vitest suites (test/<area>/*.test.ts)
 examples/                  runnable examples

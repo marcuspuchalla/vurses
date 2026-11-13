@@ -1,17 +1,17 @@
 /**
- * vuecli error codes (`VC###`).
+ * vurses error codes (`VC###`).
  *
- * Every error vuecli raises on purpose has a stable code, a one-line message
+ * Every error vurses raises on purpose has a stable code, a one-line message
  * and a link to docs/errors.md, which explains the cause and the fix:
  *
- *   throw vuecliError('VC001', { name: 'useApp' })
- *   // VuecliError: [VC001] useApp() was called outside a vuecli app ...
- *   //   → https://github.com/marcuspuchalla/vuecli/blob/HEAD/docs/errors.md#vc001
+ *   throw vursesError('VC001', { name: 'useApp' })
+ *   // VursesError: [VC001] useApp() was called outside a vurses app ...
+ *   //   → https://github.com/marcuspuchalla/vurses/blob/HEAD/docs/errors.md#vc001
  *
  * Browser-safe: no Node.js imports.
  */
 
-export const DOCS_BASE = 'https://github.com/marcuspuchalla/vuecli/blob/HEAD/docs/errors.md'
+export const DOCS_BASE = 'https://github.com/marcuspuchalla/vurses/blob/HEAD/docs/errors.md'
 
 type Params = Record<string, unknown>
 
@@ -20,7 +20,7 @@ export interface ErrorDefinition {
   title: string
   /** Area of the codebase that raises it. */
   area: 'app' | 'renderer' | 'template' | 'sfc' | 'style' | 'focus' | 'router' | 'server' | 'canvas' | 'tooling' | 'cli'
-  /** Builds the message from the parameters passed to `vuecliError`. */
+  /** Builds the message from the parameters passed to `vursesError`. */
   message: (p: Params) => string
 }
 
@@ -30,10 +30,10 @@ const s = (v: unknown, fallback = '?') => (v === undefined || v === null || v ==
 export const ERRORS = {
   // ------------------------------------------------------------ app (001-009)
   VC001: {
-    title: 'Composable used outside a vuecli app',
+    title: 'Composable used outside a vurses app',
     area: 'app',
     message: (p) =>
-      `${s(p.name, 'useApp')}() was called outside a vuecli app. Call it from setup() of a component rendered by createApp(...).mount().`,
+      `${s(p.name, 'useApp')}() was called outside a vurses app. Call it from setup() of a component rendered by createApp(...).mount().`,
   },
   VC002: {
     title: 'App is not mounted',
@@ -61,13 +61,13 @@ export const ERRORS = {
     title: 'Unsupported static content',
     area: 'renderer',
     message: () =>
-      'insertStaticContent is not supported by the terminal renderer. Compile templates with vuecli compilerOptions (hoistStatic: false).',
+      'insertStaticContent is not supported by the terminal renderer. Compile templates with vurses compilerOptions (hoistStatic: false).',
   },
   VC011: {
     title: 'Unknown element',
     area: 'renderer',
     message: (p) =>
-      `<${s(p.tag)}> has no terminal meaning and renders as a plain box. Use a vuecli component (${s(p.suggestion, 'Box, Text, Button, TextInput, ...')}).`,
+      `<${s(p.tag)}> has no terminal meaning and renders as a plain box. Use a vurses component (${s(p.suggestion, 'Box, Text, Button, TextInput, ...')}).`,
   },
   VC012: {
     title: 'Box inside Text',
@@ -84,7 +84,7 @@ export const ERRORS = {
   VC021: {
     title: 'Runtime compiler unavailable',
     area: 'template',
-    message: () => 'A `template:` string needs the runtime compiler. Import from "vuecli" (not a bundle without @vue/compiler-dom) or precompile .vue files.',
+    message: () => 'A `template:` string needs the runtime compiler. Import from "vurses" (not a bundle without @vue/compiler-dom) or precompile .vue files.',
   },
 
   // ------------------------------------------------------------ sfc (030-039)
@@ -107,7 +107,7 @@ export const ERRORS = {
     title: '.vue loader not registered',
     area: 'sfc',
     message: (p) =>
-      `Cannot import ${s(p.file, 'a .vue file')}: the loader is not registered. Run with \`vuecli <entry>\` or \`node --import vuecli/register\`.`,
+      `Cannot import ${s(p.file, 'a .vue file')}: the loader is not registered. Run with \`vurses <entry>\` or \`node --import vurses/register\`.`,
   },
 
   // ---------------------------------------------------------- style (040-049)
@@ -322,14 +322,14 @@ export const ERRORS = {
   VC116: {
     title: 'Devtools hook not installed',
     area: 'tooling',
-    message: () => 'globalThis.__VUECLI_DEVTOOLS_HOOK__ is not installed: no vuecli app with devtools is running on this page.',
+    message: () => 'globalThis.__VURSES_DEVTOOLS_HOOK__ is not installed: no vurses app with devtools is running on this page.',
   },
 
   // ------------------------------------------------------------ cli (130-139)
   VC130: {
     title: 'Unknown command',
     area: 'cli',
-    message: (p) => `Unknown command "${s(p.name)}". Run \`vuecli --help\`.`,
+    message: (p) => `Unknown command "${s(p.name)}". Run \`vurses --help\`.`,
   },
   VC131: {
     title: 'Invalid flag value',
@@ -338,29 +338,29 @@ export const ERRORS = {
   },
 } satisfies Record<string, ErrorDefinition>
 
-export type VuecliErrorCode = keyof typeof ERRORS
+export type VursesErrorCode = keyof typeof ERRORS
 
 /** Docs link for a code: `.../docs/errors.md#vc001`. */
-export function errorDocsUrl(code: VuecliErrorCode | string): string {
+export function errorDocsUrl(code: VursesErrorCode | string): string {
   return `${DOCS_BASE}#${code.toLowerCase()}`
 }
 
-export interface VuecliErrorOptions {
+export interface VursesErrorOptions {
   cause?: unknown
 }
 
-export class VuecliError extends Error {
-  readonly code: VuecliErrorCode
+export class VursesError extends Error {
+  readonly code: VursesErrorCode
   readonly docsUrl: string
   /** The parameters the message was built from. */
   readonly params: Params
 
-  constructor(code: VuecliErrorCode, message?: string, params: Params = {}, options: VuecliErrorOptions = {}) {
+  constructor(code: VursesErrorCode, message?: string, params: Params = {}, options: VursesErrorOptions = {}) {
     const def = ERRORS[code] as ErrorDefinition | undefined
     const text = message ?? def?.message(params) ?? 'Unknown error'
     const docsUrl = errorDocsUrl(code)
     super(`[${code}] ${text}\n  → ${docsUrl}`, options.cause !== undefined ? { cause: options.cause } : undefined)
-    this.name = 'VuecliError'
+    this.name = 'VursesError'
     this.code = code
     this.docsUrl = docsUrl
     this.params = params
@@ -377,26 +377,26 @@ export class VuecliError extends Error {
 }
 
 /**
- * Creates (does not throw) a `VuecliError` from the catalog.
+ * Creates (does not throw) a `VursesError` from the catalog.
  *
- *   throw vuecliError('VC060', { path: '/nope' })
- *   throw vuecliError('VC030', { file, reason: e.message }, { cause: e })
+ *   throw vursesError('VC060', { path: '/nope' })
+ *   throw vursesError('VC030', { file, reason: e.message }, { cause: e })
  */
-export function vuecliError(code: VuecliErrorCode, params: Params = {}, options: VuecliErrorOptions = {}): VuecliError {
-  return new VuecliError(code, undefined, params, options)
+export function vursesError(code: VursesErrorCode, params: Params = {}, options: VursesErrorOptions = {}): VursesError {
+  return new VursesError(code, undefined, params, options)
 }
 
-/** Throws `vuecliError(code, params)`. Useful in expression position. */
-export function fail(code: VuecliErrorCode, params: Params = {}, options: VuecliErrorOptions = {}): never {
-  throw vuecliError(code, params, options)
+/** Throws `vursesError(code, params)`. Useful in expression position. */
+export function fail(code: VursesErrorCode, params: Params = {}, options: VursesErrorOptions = {}): never {
+  throw vursesError(code, params, options)
 }
 
 /** Type guard; optionally checks the code. */
-export function isVuecliError(err: unknown, code?: VuecliErrorCode): err is VuecliError {
+export function isVursesError(err: unknown, code?: VursesErrorCode): err is VursesError {
   return (
     !!err &&
     typeof err === 'object' &&
-    (err as { name?: unknown }).name === 'VuecliError' &&
+    (err as { name?: unknown }).name === 'VursesError' &&
     typeof (err as { code?: unknown }).code === 'string' &&
     (code === undefined || (err as { code: string }).code === code)
   )
@@ -408,17 +408,17 @@ const warned = new Set<string>()
  * Logs a coded warning (`console.warn`). With `once` (default true) each
  * code + message combination is only reported once per process.
  */
-export function vuecliWarn(code: VuecliErrorCode, params: Params = {}, { once = true } = {}): void {
+export function vursesWarn(code: VursesErrorCode, params: Params = {}, { once = true } = {}): void {
   const text = (ERRORS[code] as ErrorDefinition).message(params)
   const key = code + text
   if (once && warned.has(key)) return
   warned.add(key)
-  console.warn(`[vuecli ${code}] ${text}\n  → ${errorDocsUrl(code)}`)
+  console.warn(`[vurses ${code}] ${text}\n  → ${errorDocsUrl(code)}`)
 }
 
 /** Formats any error for terminal output: code, message, docs link and stack. */
 export function formatError(err: unknown, { stack = false } = {}): string {
-  if (isVuecliError(err)) {
+  if (isVursesError(err)) {
     let out = `${err.code}: ${err.reason}\n  → ${err.docsUrl}`
     if (stack && err.stack) out += '\n' + err.stack.split('\n').filter((l) => /^\s+at /.test(l)).join('\n')
     return out
@@ -428,8 +428,8 @@ export function formatError(err: unknown, { stack = false } = {}): string {
 }
 
 /** Lists the catalog (for docs generation and tooling). */
-export function listErrors(): { code: VuecliErrorCode; title: string; area: ErrorDefinition['area']; docsUrl: string }[] {
-  return (Object.keys(ERRORS) as VuecliErrorCode[]).map((code) => ({
+export function listErrors(): { code: VursesErrorCode; title: string; area: ErrorDefinition['area']; docsUrl: string }[] {
+  return (Object.keys(ERRORS) as VursesErrorCode[]).map((code) => ({
     code,
     title: ERRORS[code].title,
     area: (ERRORS[code] as ErrorDefinition).area,

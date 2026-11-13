@@ -1,6 +1,6 @@
 /**
  * Node.js module customization hooks: lets `import App from './App.vue'` work.
- * Registered by `vuecli/register` (or automatically by the `vuecli` CLI).
+ * Registered by `vurses/register` (or automatically by the `vurses` CLI).
  */
 import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
@@ -12,9 +12,9 @@ type Load = (url: string, context: { format?: string | null }) => Promise<{ form
 const SELF = import.meta.url
 
 export async function resolve(specifier: string, context: { parentURL?: string; conditions?: string[] }, next: Resolve) {
-  // Always resolve `vue` and `vuecli` through this package so that the app and
+  // Always resolve `vue` and `vurses` through this package so that the app and
   // the renderer share a single Vue runtime instance.
-  if (specifier === 'vue' || specifier === 'vuecli' || specifier.startsWith('vuecli/')) {
+  if (specifier === 'vue' || specifier === 'vurses' || specifier.startsWith('vurses/')) {
     try {
       return await next(specifier, { ...context, parentURL: SELF })
     } catch {

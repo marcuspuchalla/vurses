@@ -3,7 +3,7 @@
  * unmodified: getElementById/querySelector/createElement('canvas'),
  * requestAnimationFrame, timers, Image, storage, and DOM events delivered in
  * canvas pixel coordinates. Pure JavaScript — the host (terminal player,
- * vuecli component, tests) drives frames and input through the returned
+ * vurses component, tests) drives frames and input through the returned
  * environment object.
  */
 import { Canvas } from './canvas.js'

@@ -1,10 +1,10 @@
 /**
- * vuecli MCP server and headless sessions (Node only).
+ * vurses MCP server and headless sessions (Node only).
  *
- *   import { createMcpServer, loadApp } from 'vuecli/mcp'
+ *   import { createMcpServer, loadApp } from 'vurses/mcp'
  */
 export { createMcpServer } from './server.js'
-export type { McpServerOptions, VuecliMcpServer } from './server.js'
+export type { McpServerOptions, VursesMcpServer } from './server.js'
 export { HeadlessSession, parseKey } from './session.js'
 export type { SessionOptions, ClickOptions } from './session.js'
 export { loadApp, loadEntry, loadRouterApp, registerSfcHooks } from './load.js'

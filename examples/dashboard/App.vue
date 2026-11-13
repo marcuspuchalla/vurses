@@ -2,7 +2,7 @@
   <Box class="flex-col" :height="size.rows" :width="size.columns">
     <!-- header -->
     <Box class="px-1 shrink-0" bg="surface">
-      <Text bold color="primary">▼ vuecli</Text>
+      <Text bold color="primary">▼ vurses</Text>
       <Text color="muted"> · ops dashboard · {{ settings.name }}</Text>
       <Spacer />
       <Text color="muted">{{ theme.name }} · {{ time }}</Text>
@@ -122,7 +122,7 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
-import { useApp, useInterval, useKeymap, type Command } from 'vuecli'
+import { useApp, useInterval, useKeymap, type Command } from 'vurses'
 import ServiceList from './ServiceList.vue'
 import Overview from './Overview.vue'
 

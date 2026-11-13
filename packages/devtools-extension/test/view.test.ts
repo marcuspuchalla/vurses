@@ -58,7 +58,7 @@ describe('view helpers', () => {
 describe('bridge', () => {
   const run = (hook: unknown) => (expr: string, cb: (r: unknown, ex?: { isException?: boolean; value?: string }) => void) => {
     try {
-      cb(new Function('window', `return ${expr}`)({ __VUECLI_DEVTOOLS_HOOK__: hook }))
+      cb(new Function('window', `return ${expr}`)({ __VURSES_DEVTOOLS_HOOK__: hook }))
     } catch (e) {
       cb(undefined, { isException: true, value: String(e) })
     }

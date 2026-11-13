@@ -1,0 +1,71 @@
+{
+  "name": "vscode-vurses",
+  "displayName": "vurses",
+  "description": "Live terminal-frame preview and App Router scaffolding for vurses apps",
+  "version": "0.1.0",
+  "publisher": "vurses",
+  "license": "GPL-3.0-or-later",
+  "private": true,
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": ["Other", "Visualization"],
+  "keywords": ["vue", "terminal", "tui", "vurses", "preview"],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "workspaceContains:**/node_modules/vurses/package.json",
+    "workspaceContains:app/page.vue",
+    "workspaceContains:src/app/page.vue"
+  ],
+  "scripts": {
+    "build": "node build.mjs",
+    "watch": "node build.mjs --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "package": "node build.mjs --production && npx @vscode/vsce package --no-dependencies"
+  },
+  "contributes": {
+    "commands": [
+      { "command": "vurses.preview", "title": "Open Terminal Preview", "category": "vurses", "icon": "$(open-preview)" },
+      { "command": "vurses.restartPreview", "title": "Restart Terminal Preview", "category": "vurses" },
+      { "command": "vurses.newPage", "title": "New Page", "category": "vurses" },
+      { "command": "vurses.newLayout", "title": "New Layout", "category": "vurses" },
+      { "command": "vurses.newRouteHandler", "title": "New Route Handler", "category": "vurses" }
+    ],
+    "keybindings": [
+      {
+        "command": "vurses.preview",
+        "key": "ctrl+k v",
+        "mac": "cmd+k v",
+        "when": "editorTextFocus && editorLangId != markdown && resourceExtname =~ /^\\.(vue|ts|js|mts|mjs|tsx|jsx)$/"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        { "command": "vurses.preview", "when": "resourceExtname == .vue", "group": "navigation" }
+      ],
+      "explorer/context": [
+        { "command": "vurses.newPage", "when": "explorerResourceIsFolder", "group": "vurses@1" },
+        { "command": "vurses.newLayout", "when": "explorerResourceIsFolder", "group": "vurses@2" },
+        { "command": "vurses.newRouteHandler", "when": "explorerResourceIsFolder", "group": "vurses@3" },
+        { "command": "vurses.preview", "when": "resourceExtname == .vue", "group": "vurses@0" }
+      ]
+    },
+    "configuration": {
+      "title": "vurses",
+      "properties": {
+        "vurses.cliPath": { "type": "string", "default": "", "description": "Path to vurses's bin/vurses.js. Default: node_modules/vurses of the project." },
+        "vurses.nodePath": { "type": "string", "default": "node", "description": "Node.js executable used to run the preview." },
+        "vurses.preview.columns": { "type": "number", "default": 80, "description": "Initial preview width in cells." },
+        "vurses.preview.rows": { "type": "number", "default": 24, "description": "Initial preview height in cells." },
+        "vurses.preview.autoFit": { "type": "boolean", "default": true, "description": "Resize the virtual terminal to fit the preview panel." },
+        "vurses.preview.reloadOnSave": { "type": "boolean", "default": true, "description": "Restart the preview when a project file is saved." },
+        "vurses.preview.theme": { "type": "string", "default": "", "enum": ["", "dark", "light", "dracula"], "description": "Theme for the previewed app." }
+      }
+    }
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.3.7",
+    "@types/vscode": "^1.145.0"
+  }
+}

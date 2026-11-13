@@ -2,7 +2,7 @@
  * Data cache (Next.js `unstable_cache` semantics) and on-demand revalidation.
  *
  * ```ts
- * import { cache, revalidateTag } from 'vuecli'
+ * import { cache, revalidateTag } from 'vurses'
  *
  * const getPrices = cache(async (symbol: string) => (await fetch(`https://api/x/${symbol}`)).json(),
  *   ['prices'], { revalidate: 30, tags: ['prices'] })
@@ -77,7 +77,7 @@ interface CacheState {
   inflight: Map<string, Promise<unknown>>
 }
 
-const STATE = Symbol.for('vuecli.cache')
+const STATE = Symbol.for('vurses.cache')
 function state(): CacheState {
   const g = globalThis as any
   return (g[STATE] ??= { store: new MemoryStore(), inflight: new Map() })

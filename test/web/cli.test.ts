@@ -1,5 +1,5 @@
 /**
- * End-to-end: builds the fixture web app with Vite (`vuecli web`) and renders
+ * End-to-end: builds the fixture web app with Vite (`vurses web`) and renders
  * it with `--snapshot`, including scripted keys. Needs `npm run build`.
  */
 import { execFile } from 'node:child_process'
@@ -12,13 +12,13 @@ const built = existsSync(`${root}dist/cli/commands/web.js`) && existsSync(`${roo
 
 function snapshot(...args: string[]): Promise<string> {
   return new Promise((resolve, reject) =>
-    execFile(process.execPath, ['bin/vuecli.js', 'web', 'test/web/fixtures/shop', '--snapshot', '--size', '70x24', ...args], { cwd: root, timeout: 60_000 }, (err, stdout, stderr) =>
+    execFile(process.execPath, ['bin/vurses.js', 'web', 'test/web/fixtures/shop', '--snapshot', '--size', '70x24', ...args], { cwd: root, timeout: 60_000 }, (err, stdout, stderr) =>
       err ? reject(new Error(`${err.message}\n${stderr}`)) : resolve(stdout),
     ),
   )
 }
 
-describe.skipIf(!built)('vuecli web (fixture app)', () => {
+describe.skipIf(!built)('vurses web (fixture app)', () => {
   it('builds with Vite and renders the page with its CSS', async () => {
     const out = await snapshot()
     expect(out).toContain('Fixture Shop — static header from index.html')

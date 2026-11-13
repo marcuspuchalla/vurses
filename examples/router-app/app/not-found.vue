@@ -9,7 +9,7 @@
 </template>
 
 <script setup lang="ts">
-import { usePathname, useRouter } from 'vuecli'
+import { usePathname, useRouter } from 'vurses'
 const pathname = usePathname()
 const router = useRouter()
 </script>

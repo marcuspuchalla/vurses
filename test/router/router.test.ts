@@ -14,7 +14,7 @@ import * as usersLayout from './fixtures/app/users/layout.js'
 
 const appDir = join(import.meta.dirname, 'fixtures', 'app')
 // inside node_modules so `import 'vue'` in compiled output resolves to the same Vue instance
-const compiledDir = join(import.meta.dirname, '..', '..', 'node_modules', '.cache', 'vuecli-router-test')
+const compiledDir = join(import.meta.dirname, '..', '..', 'node_modules', '.cache', 'vurses-router-test')
 
 /** Test loader: TS/JS via import(), .vue compiled with compileSFC into a temp module. */
 async function load(file: string): Promise<Record<string, unknown>> {

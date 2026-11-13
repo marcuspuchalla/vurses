@@ -1,6 +1,6 @@
 /**
  * DOM event classes for web apps: `new KeyboardEvent('keydown', { key: 'a' })` works, and
- * the events vuecli dispatches are instances of the right class, so library checks such as
+ * the events vurses dispatches are instances of the right class, so library checks such as
  * `e instanceof InputEvent` (Naive UI) or `e instanceof MouseEvent` pass.
  *
  * They extend Node's own `Event`; extra init fields become plain properties.

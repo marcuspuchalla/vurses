@@ -1,9 +1,9 @@
 /**
- * `vuecli build --adapter static|node|bun|vercel|cloudflare` (Node only).
+ * `vurses build --adapter static|node|bun|vercel|cloudflare` (Node only).
  *
  * Every adapter shares the same steps:
- *   1. discover routes, bundle the client app (`_vuecli/app.js`) and the
- *      frame player (`_vuecli/player.js`), copy `public/`
+ *   1. discover routes, bundle the client app (`_vurses/app.js`) and the
+ *      frame player (`_vurses/player.js`), copy `public/`
  *   2. Partial Prerendering: render the static shell frame of every
  *      `runtime = 'server'` route without dynamic params (skip with
  *      `export const dynamic = 'force-dynamic'`); the page paints it instantly
@@ -12,7 +12,7 @@
  *
  * Output layouts:
  *
- *   static      <out>/index.html, <route>/index.html, 404.html, _vuecli/app.js, public files
+ *   static      <out>/index.html, <route>/index.html, 404.html, _vurses/app.js, public files
  *   node        <out>/server.mjs (node:http), <out>/server/index.mjs, <out>/static/**
  *   bun         <out>/bun.mjs (Bun.serve), <out>/server.mjs, <out>/server/index.mjs, <out>/static/**
  *   vercel      .vercel/output/{config.json, static/**, functions/index.func/{index.js,.vc-config.json}}
@@ -59,7 +59,7 @@ export interface BuildResult {
 
 export function defaultOutDir(root: string, adapter: Adapter) {
   if (adapter === 'vercel') return join(root, '.vercel', 'output')
-  return join(root, '.vuecli', adapter)
+  return join(root, '.vurses', adapter)
 }
 
 const hasParams = (pattern: string) => /\[/.test(pattern)
@@ -67,9 +67,9 @@ const hasParams = (pattern: string) => /\[/.test(pattern)
 async function projectTitle(root: string) {
   try {
     const pkg = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
-    return typeof pkg.name === 'string' ? pkg.name : 'vuecli app'
+    return typeof pkg.name === 'string' ? pkg.name : 'vurses app'
   } catch {
-    return 'vuecli app'
+    return 'vurses app'
   }
 }
 
@@ -95,7 +95,7 @@ export async function prerenderShells(project: Project, o: { screen?: { columns:
 export async function buildApp(options: BuildOptions = {}): Promise<BuildResult> {
   const root = resolve(options.root ?? process.cwd())
   const adapter = options.adapter ?? 'node'
-  if (!ADAPTERS.includes(adapter)) throw new Error(`[vuecli] unknown adapter "${adapter}" (expected ${ADAPTERS.join(', ')})`)
+  if (!ADAPTERS.includes(adapter)) throw new Error(`[vurses] unknown adapter "${adapter}" (expected ${ADAPTERS.join(', ')})`)
   const log = options.log ?? (() => {})
   const warnings: string[] = []
   const warn = (m: string) => {
@@ -124,8 +124,8 @@ export async function buildApp(options: BuildOptions = {}): Promise<BuildResult>
 
   // 1. client app, player, public/
   log(`bundling client app…`)
-  await write(at('_vuecli/app.js'), await bundleClient(project, { minify, serverRoutes: adapter === 'static' ? 'unsupported' : 'navigate' }))
-  if (adapter !== 'static') await write(at('_vuecli/player.js'), await bundlePlayer({ minify }))
+  await write(at('_vurses/app.js'), await bundleClient(project, { minify, serverRoutes: adapter === 'static' ? 'unsupported' : 'navigate' }))
+  if (adapter !== 'static') await write(at('_vurses/player.js'), await bundlePlayer({ minify }))
   if (project.publicDir) {
     await cp(project.publicDir, join(outDir, staticDir), { recursive: true })
     files.push(at('(public files)'))
@@ -147,11 +147,11 @@ export async function buildApp(options: BuildOptions = {}): Promise<BuildResult>
       for (const r of project.manifest.routes) {
         if (!r.page || r.runtime === 'server' || hasParams(r.pattern)) continue
         const p = r.pattern.split('/').filter((s) => s && !/^\(.*\)$/.test(s)).join('/')
-        const html = renderDocument({ title, boot: { mode: 'client', path: '/' + p }, script: '/_vuecli/app.js' })
+        const html = renderDocument({ title, boot: { mode: 'client', path: '/' + p }, script: '/_vurses/app.js' })
         await write(p ? `${p}/index.html` : 'index.html', html)
       }
       // dynamic routes and unknown paths: the client router resolves them from 404.html
-      await write('404.html', renderDocument({ title, boot: { mode: 'client', path: '/' }, script: '/_vuecli/app.js' }))
+      await write('404.html', renderDocument({ title, boot: { mode: 'client', path: '/' }, script: '/_vurses/app.js' }))
       break
     }
     case 'node':
@@ -180,16 +180,16 @@ export async function buildApp(options: BuildOptions = {}): Promise<BuildResult>
       log('bundling worker…')
       await bundleServer(project, { kind: 'edge', shells, title, outfile: join(outDir, 'worker.js'), minify, edgeExport: 'worker' })
       files.push('worker.js')
-      const name = title.replace(/[^a-z0-9-]/gi, '-').toLowerCase().replace(/^-+|-+$/g, '') || 'vuecli-app'
+      const name = title.replace(/[^a-z0-9-]/gi, '-').toLowerCase().replace(/^-+|-+$/g, '') || 'vurses-app'
       await write(
         'wrangler.toml',
-        `# generated by vuecli build --adapter cloudflare\nname = "${name}"\nmain = "worker.js"\ncompatibility_date = "2025-01-01"\n\n[assets]\ndirectory = "./public"\nbinding = "ASSETS"\n`,
+        `# generated by vurses build --adapter cloudflare\nname = "${name}"\nmain = "worker.js"\ncompatibility_date = "2025-01-01"\n\n[assets]\ndirectory = "./public"\nbinding = "ASSETS"\n`,
       )
       if (serverRoutes.length) warn("cloudflare: runtime = 'server' routes are served as prerendered frames only (no live sessions: isolates are not sticky and cannot compile Yoga's WASM at runtime; a Durable Object port is future work)")
       break
     }
   }
-  await write('vuecli-build.json', JSON.stringify({ adapter, buildId, createdAt: new Date().toISOString(), prerendered: Object.keys(shells), routes: project.manifest.routes.map((r) => ({ pattern: r.pattern, runtime: r.runtime ?? (r.page ? 'client' : undefined), handler: !!r.handler })) }, null, 2) + '\n')
+  await write('vurses-build.json', JSON.stringify({ adapter, buildId, createdAt: new Date().toISOString(), prerendered: Object.keys(shells), routes: project.manifest.routes.map((r) => ({ pattern: r.pattern, runtime: r.runtime ?? (r.page ? 'client' : undefined), handler: !!r.handler })) }, null, 2) + '\n')
   return { adapter, outDir, buildId, files, prerendered: Object.keys(shells), warnings }
 }
 
@@ -198,25 +198,25 @@ export function isNodeBuild(dir: string) {
   return existsSync(join(dir, 'server', 'index.mjs'))
 }
 
-const NODE_LAUNCHER = `// generated by vuecli build — run with: node server.mjs  (PORT, HOST env vars)
+const NODE_LAUNCHER = `// generated by vurses build — run with: node server.mjs  (PORT, HOST env vars)
 import { fileURLToPath } from 'node:url'
 import { createServerHandler, serve } from './server/index.mjs'
 
 const staticDir = fileURLToPath(new URL('./static', import.meta.url))
 const handler = createServerHandler({ staticDir })
 const server = await serve(handler, { port: Number(process.env.PORT ?? 3000), host: process.env.HOST })
-console.log(\`vuecli server listening on \${server.url}\`)
+console.log(\`vurses server listening on \${server.url}\`)
 const stop = () => server.close().then(() => process.exit(0))
 process.on('SIGINT', stop)
 process.on('SIGTERM', stop)
 `
 
-const BUN_LAUNCHER = `// generated by vuecli build --adapter bun — run with: bun bun.mjs  (PORT, HOST env vars)
+const BUN_LAUNCHER = `// generated by vurses build --adapter bun — run with: bun bun.mjs  (PORT, HOST env vars)
 import { createServerHandler } from './server/index.mjs'
 
 const staticDir = new URL('./static', import.meta.url).pathname
 const handler = createServerHandler({ staticDir })
 // idleTimeout: SSE sessions are long-lived (keep-alive pings every 15 s)
 const server = Bun.serve({ port: Number(process.env.PORT ?? 3000), hostname: process.env.HOST, idleTimeout: 255, fetch: handler })
-console.log(\`vuecli server (bun) listening on \${server.url}\`)
+console.log(\`vurses server (bun) listening on \${server.url}\`)
 `

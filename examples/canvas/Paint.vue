@@ -23,7 +23,7 @@
 import { ref } from 'vue'
 import { writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import type { CanvasPointerEvent, CanvasMode } from 'vuecli'
+import type { CanvasPointerEvent, CanvasMode } from 'vurses'
 import type { Canvas as PixelCanvas, CanvasRenderingContext2D, ImageData } from 'tty-canvas'
 
 defineProps<{ mode: CanvasMode }>()

@@ -1,0 +1,14 @@
+{
+  "name": "eslint-plugin-vurses",
+  "version": "0.1.0",
+  "description": "ESLint rules for vurses terminal apps",
+  "type": "module",
+  "license": "GPL-3.0-or-later",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
+  "files": ["dist", "README.md"],
+  "scripts": { "build": "tsc -p tsconfig.json", "test": "vitest run" },
+  "peerDependencies": { "eslint": ">=9", "vue-eslint-parser": ">=9" },
+  "keywords": ["eslint", "eslintplugin", "vue", "vurses", "terminal"]
+}
